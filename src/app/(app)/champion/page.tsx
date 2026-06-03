@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 import { ChampionForm } from "@/components/ChampionForm";
-import { LOCK_HOURS_BEFORE_KICKOFF } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
+import { isChampionLocked } from "@/lib/timing";
 
 export default async function ChampionPage() {
   const supabase = createClient();
@@ -29,13 +29,11 @@ export default async function ChampionPage() {
   ].sort();
 
   // Cierre: 24h antes del primer partido, o si ya está bloqueada.
-  const firstKickoff = (matches ?? [])
-    .map((m) => new Date(m.kickoff_at).getTime())
-    .sort((a, b) => a - b)[0];
-  const deadlinePassed =
-    firstKickoff !== undefined &&
-    Date.now() >= firstKickoff - LOCK_HOURS_BEFORE_KICKOFF * 3600_000;
-  const closed = Boolean(pick?.is_locked) || deadlinePassed;
+  const firstKickoff =
+    (matches ?? [])
+      .map((m) => m.kickoff_at)
+      .sort((a, b) => a.localeCompare(b))[0] ?? null;
+  const closed = Boolean(pick?.is_locked) || isChampionLocked(firstKickoff);
 
   return (
     <div className="flex flex-col gap-6">

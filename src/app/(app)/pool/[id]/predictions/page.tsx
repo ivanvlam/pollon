@@ -1,15 +1,11 @@
 import Link from "next/link";
 
+import { LockCountdown } from "@/components/LockCountdown";
 import { PredictionForm } from "@/components/PredictionForm";
-import { LOCK_HOURS_BEFORE_KICKOFF, isKnockoutRound } from "@/lib/constants";
+import { isKnockoutRound } from "@/lib/constants";
+import { isPredictionLocked } from "@/lib/timing";
 import { createClient } from "@/lib/supabase/server";
 import type { MatchWinner, Round } from "@/types";
-
-function isLocked(kickoffAt: string): boolean {
-  const lockTime =
-    new Date(kickoffAt).getTime() - LOCK_HOURS_BEFORE_KICKOFF * 3600_000;
-  return Date.now() >= lockTime;
-}
 
 export default async function PredictionsPage({
   params,
@@ -58,7 +54,7 @@ export default async function PredictionsPage({
       <ul className="flex flex-col gap-6">
         {(matches ?? []).map((match) => {
           const pred = predByMatch.get(match.id);
-          const locked = isLocked(match.kickoff_at);
+          const locked = isPredictionLocked(match.kickoff_at);
           const knockout = isKnockoutRound(match.round as Round);
 
           return (
@@ -68,9 +64,14 @@ export default async function PredictionsPage({
             >
               <div className="mb-2 flex items-center justify-between text-xs text-neutral-500">
                 <span>{match.group_name ?? match.round}</span>
-                <span>
+                <span className="flex items-center gap-2">
                   {new Date(match.kickoff_at).toLocaleString()}
-                  {locked && " · cerrado"}
+                  <span>·</span>
+                  {locked ? (
+                    <span className="text-neutral-500">cerrado</span>
+                  ) : (
+                    <LockCountdown kickoffAt={match.kickoff_at} />
+                  )}
                 </span>
               </div>
 

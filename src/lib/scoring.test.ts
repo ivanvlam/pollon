@@ -95,4 +95,55 @@ describe("calculateMatchScore — casos incompletos", () => {
   it("null si la predicción está incompleta", () => {
     expect(calculateMatchScore(group(2, 1), pred(null, 1))).toBeNull();
   });
+
+  it("null si solo falta el marcador visitante", () => {
+    expect(calculateMatchScore(group(2, 1), pred(2, null))).toBeNull();
+  });
+});
+
+describe("calculateMatchScore — bordes adicionales", () => {
+  it("grupo 0-0 exacto → 3 exact_score", () => {
+    expect(calculateMatchScore(group(0, 0), pred(0, 0))).toEqual({
+      points: 3,
+      reason: "exact_score",
+    });
+  });
+
+  it("grupo marcador alto exacto 5-4 → 3", () => {
+    expect(calculateMatchScore(group(5, 4), pred(5, 4))).toEqual({
+      points: 3,
+      reason: "exact_score",
+    });
+  });
+
+  it("grupo: predije empate pero ganó local → null", () => {
+    expect(calculateMatchScore(group(2, 0), pred(1, 1))).toBeNull();
+  });
+
+  it("grupo: predije local pero fue empate → null", () => {
+    expect(calculateMatchScore(group(1, 1), pred(2, 1))).toBeNull();
+  });
+
+  it("grupo: empate acertado con marcadores distintos (0-0 vs 3-3) → 1 correct_draw", () => {
+    expect(calculateMatchScore(group(3, 3), pred(0, 0))).toEqual({
+      points: 1,
+      reason: "correct_draw",
+    });
+  });
+
+  it("elim 0-0 con clasificado correcto (penales) → 4 exact_qualifier_score", () => {
+    expect(calculateMatchScore(knockout(0, 0, "home"), pred(0, 0, "home"))).toEqual(
+      { points: 4, reason: "exact_qualifier_score" },
+    );
+  });
+
+  it("elim: exacto pero sin predecir clasificado (winner null) → 2 exact_score", () => {
+    expect(calculateMatchScore(knockout(2, 1, "home"), pred(2, 1, null))).toEqual(
+      { points: 2, reason: "exact_score" },
+    );
+  });
+
+  it("elim: match sin winner definido y predicción no exacta → null", () => {
+    expect(calculateMatchScore(knockout(2, 1, null), pred(1, 0, "home"))).toBeNull();
+  });
 });
