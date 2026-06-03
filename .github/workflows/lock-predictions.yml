@@ -1,0 +1,17 @@
+name: Lock predictions
+
+# Bloquea las predicciones que cierran (24h antes del kickoff). Cada hora.
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call lock-predictions endpoint
+        run: |
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/lock-predictions"
