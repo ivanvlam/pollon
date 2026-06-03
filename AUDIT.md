@@ -84,18 +84,16 @@ botón admin "recalcular campeón".
 
 ## 3. Cron y notificaciones
 
-### 🔴 Emails de recordatorio duplicados
-`send-reminders` corre cada hora y busca partidos cuyo cierre cae en las
-próximas **2h**. Un mismo partido entra en la ventana en **dos corridas
-consecutivas** → el usuario recibe **2 emails**. No hay registro de
-recordatorios enviados. **Recomendación:** (a) tabla `sent_reminders
-(user_id, match_id)` con UNIQUE, o (b) ventana == intervalo del cron (1h).
+### ✅ Emails de recordatorio duplicados — RESUELTO
+Antes: `send-reminders` (horario) con ventana de 2h mandaba el mismo aviso
+en dos corridas. Ahora existe la tabla `sent_reminders (user_id, match_id)`
+con UNIQUE; la ruta **reserva la fila antes de enviar** (insert que falla si
+ya existe) y solo envía si la reserva tuvo éxito. Si el email falla, libera
+la reserva para reintentar. Migración `..._sent_reminders.sql`.
 
-### 🔴 `auth.admin.listUsers()` sin paginar
-Devuelve solo la primera página (~50 usuarios). Con más usuarios, los
-demás **no reciben email**. **Recomendación:** iterar `page`/`perPage`
-hasta agotar, o construir el mapa id→email por lotes con los `user_id` de
-los miembros.
+### ✅ `auth.admin.listUsers()` sin paginar — RESUELTO
+Ahora se itera `page`/`perPage` (1000) hasta agotar, así todos los usuarios
+entran al mapa id→email, no solo la primera página.
 
 ### 🟠 `sync-matches` sobrescribe resultados manuales del admin
 El `upsert` por `external_id` pisa `home_score/away_score/winner` con lo que
@@ -152,8 +150,8 @@ parcheado (14.2.35).
 
 | # | Severidad | Tema | Estado |
 |---|-----------|------|--------|
-| 3.1 | 🔴 | Emails duplicados | abierto |
-| 3.2 | 🔴 | listUsers sin paginar | abierto |
+| 3.1 | 🔴 | Emails duplicados | ✅ resuelto |
+| 3.2 | 🔴 | listUsers sin paginar | ✅ resuelto |
 | 2.4 | 🟠 | Puntos al unirse tarde | abierto |
 | 2.5 | 🟠 | Detección de la final | abierto |
 | 3.3 | 🟠 | Sync pisa resultado manual | abierto |

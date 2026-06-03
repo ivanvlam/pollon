@@ -262,6 +262,27 @@ export interface Database {
         };
         Relationships: [];
       };
+      sent_reminders: {
+        Row: {
+          id: string;
+          user_id: string;
+          match_id: string;
+          sent_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          match_id: string;
+          sent_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          match_id?: string;
+          sent_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {

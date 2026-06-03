@@ -51,30 +51,57 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, sent: 0 });
   }
 
-  // Mapa id → email vía Auth admin.
-  const { data: usersList } = await supabase.auth.admin.listUsers();
-  const emailById = new Map(
-    (usersList?.users ?? []).map((u) => [u.id, u.email ?? null]),
-  );
+  // Mapa id → email vía Auth admin. PAGINADO: listUsers devuelve por
+  // páginas; sin iterar, los usuarios más allá de la primera no recibirían
+  // email.
+  const emailById = new Map<string, string | null>();
+  const PER_PAGE = 1000;
+  for (let page = 1; ; page++) {
+    const { data: usersPage } = await supabase.auth.admin.listUsers({
+      page,
+      perPage: PER_PAGE,
+    });
+    const users = usersPage?.users ?? [];
+    for (const u of users) emailById.set(u.id, u.email ?? null);
+    if (users.length < PER_PAGE) break;
+  }
 
   const matchIds = matches.map((m) => m.id);
 
-  // Predicciones existentes para esos partidos.
+  // Predicciones ya hechas para esos partidos.
   const { data: preds } = await supabase
     .from("predictions")
     .select("user_id, match_id")
     .in("match_id", matchIds);
-
   const predicted = new Set(
     (preds ?? []).map((p) => `${p.user_id}:${p.match_id}`),
+  );
+
+  // Recordatorios ya enviados — idempotencia entre corridas del cron
+  // (la ventana de 2h cae en dos corridas horarias consecutivas).
+  const { data: alreadySent } = await supabase
+    .from("sent_reminders")
+    .select("user_id, match_id")
+    .in("match_id", matchIds);
+  const reminded = new Set(
+    (alreadySent ?? []).map((r) => `${r.user_id}:${r.match_id}`),
   );
 
   let sent = 0;
   for (const match of matches) {
     for (const userId of userIds) {
-      if (predicted.has(`${userId}:${match.id}`)) continue;
+      const key = `${userId}:${match.id}`;
+      if (predicted.has(key) || reminded.has(key)) continue;
       const email = emailById.get(userId);
       if (!email) continue;
+
+      // Reservar ANTES de enviar: el UNIQUE(user_id, match_id) garantiza
+      // que dos corridas (o concurrentes) no manden el mismo recordatorio.
+      const { error: claimErr } = await supabase
+        .from("sent_reminders")
+        .insert({ user_id: userId, match_id: match.id });
+      if (claimErr) continue; // ya reservado → no reenviar
+
       try {
         await sendReminderEmail({
           to: email,
@@ -85,7 +112,12 @@ export async function GET(request: NextRequest) {
         });
         sent += 1;
       } catch {
-        // Un email fallido no debe abortar el resto.
+        // Si el envío falla, liberar la reserva para reintentar después.
+        await supabase
+          .from("sent_reminders")
+          .delete()
+          .eq("user_id", userId)
+          .eq("match_id", match.id);
       }
     }
   }
