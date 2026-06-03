@@ -1,0 +1,99 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+
+import { z } from "zod";
+
+import { recalculateMatchScores } from "@/lib/scoring-service";
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+
+export type AdminResult = { ok: true } | { ok: false; error: string };
+
+/** Verifica que el usuario actual sea el creador de la polla. */
+async function assertCreator(poolId: string): Promise<AdminResult> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "No autenticado" };
+
+  const { data: pool } = await supabase
+    .from("pools")
+    .select("created_by")
+    .eq("id", poolId)
+    .maybeSingle();
+
+  if (!pool || pool.created_by !== user.id) {
+    return { ok: false, error: "No autorizado" };
+  }
+  return { ok: true };
+}
+
+const resultSchema = z.object({
+  homeScore: z.number().int().min(0).max(99),
+  awayScore: z.number().int().min(0).max(99),
+  winner: z.enum(["home", "away"]).nullable(),
+});
+
+/** Activa o desactiva un partido (habilita la UI de predicción). */
+export async function setMatchActive(
+  poolId: string,
+  matchId: string,
+  active: boolean,
+): Promise<AdminResult> {
+  const auth = await assertCreator(poolId);
+  if (!auth.ok) return auth;
+
+  const svc = createServiceRoleClient();
+  const { error } = await svc
+    .from("matches")
+    .update({ is_active: active })
+    .eq("id", matchId);
+
+  if (error) return { ok: false, error: "No se pudo actualizar el partido" };
+
+  revalidatePath(`/pool/${poolId}/admin`);
+  return { ok: true };
+}
+
+/**
+ * Guarda manualmente el resultado de un partido (status → finished) y
+ * dispara el recálculo de scores. Misma lógica que el resultado venido
+ * de API-Football.
+ */
+export async function saveMatchResult(
+  poolId: string,
+  matchId: string,
+  input: { homeScore: number; awayScore: number; winner: "home" | "away" | null },
+): Promise<AdminResult> {
+  const auth = await assertCreator(poolId);
+  if (!auth.ok) return auth;
+
+  const parsed = resultSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.errors[0]?.message ?? "Datos inválidos" };
+  }
+
+  const svc = createServiceRoleClient();
+  const { error } = await svc
+    .from("matches")
+    .update({
+      home_score: parsed.data.homeScore,
+      away_score: parsed.data.awayScore,
+      winner: parsed.data.winner,
+      status: "finished",
+    })
+    .eq("id", matchId);
+
+  if (error) return { ok: false, error: "No se pudo guardar el resultado" };
+
+  try {
+    await recalculateMatchScores(matchId);
+  } catch {
+    return { ok: false, error: "Resultado guardado, pero falló el recálculo" };
+  }
+
+  revalidatePath(`/pool/${poolId}`);
+  revalidatePath(`/pool/${poolId}/admin`);
+  return { ok: true };
+}
