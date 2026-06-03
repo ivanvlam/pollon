@@ -297,6 +297,14 @@ export interface Database {
         Args: { p_match_id: string; p_scores: Json };
         Returns: undefined;
       };
+      submit_champion: {
+        Args: { p_team: string };
+        Returns: undefined;
+      };
+      replace_champion_scores: {
+        Args: { p_scores: Json };
+        Returns: undefined;
+      };
     };
     Enums: Record<never, never>;
     CompositeTypes: Record<never, never>;

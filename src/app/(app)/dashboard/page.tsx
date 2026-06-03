@@ -22,8 +22,18 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-10">
+      <section className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Mis pollas</h1>
+        <Link
+          href="/champion"
+          className="rounded-lg border border-neutral-600 px-4 py-2 text-sm font-medium transition hover:bg-neutral-800"
+        >
+          🏆 Mi campeón
+        </Link>
+      </section>
+
       <section>
-        <h1 className="mb-4 text-2xl font-bold">Mis pollas</h1>
+        <h2 className="sr-only">Listado de pollas</h2>
         {pools.length === 0 ? (
           <p className="text-neutral-400">
             Aún no estás en ninguna polla. Crea una o únete con un código.

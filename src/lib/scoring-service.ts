@@ -5,6 +5,7 @@
 // replace_match_scores. Solo se ejecuta del lado servidor con el
 // service role (cron / admin).
 
+import { CHAMPION_POINTS } from "@/lib/constants";
 import { calculateMatchScore } from "@/lib/scoring";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import type { MatchWinner, Round } from "@/types";
@@ -26,7 +27,7 @@ export async function recalculateMatchScores(
 
   const { data: match } = await supabase
     .from("matches")
-    .select("id, round, status, home_score, away_score, winner")
+    .select("id, round, status, home_team, away_team, home_score, away_score, winner")
     .eq("id", matchId)
     .maybeSingle();
 
@@ -98,5 +99,56 @@ export async function recalculateMatchScores(
     throw new Error(`replace_match_scores falló: ${error.message}`);
   }
 
+  // Si terminó la final, el campeón quedó definido: recalcular esos puntos.
+  if (match.round === "final" && match.winner !== null) {
+    const championTeam =
+      match.winner === "home" ? match.home_team : match.away_team;
+    await recalculateChampionScores(championTeam);
+  }
+
   return { matchId, inserted: rows.length };
+}
+
+/**
+ * Recalcula los puntos de campeón a nivel global. Otorga CHAMPION_POINTS
+ * por cada polla a los usuarios que acertaron el campeón del torneo.
+ * Idempotente: borra todos los scores de campeón y reinserta desde cero.
+ */
+export async function recalculateChampionScores(
+  championTeam: string,
+): Promise<{ inserted: number }> {
+  const supabase = createServiceRoleClient();
+
+  const { data: picks } = await supabase
+    .from("champion_predictions")
+    .select("user_id")
+    .eq("team", championTeam);
+
+  const winners = picks ?? [];
+  const userIds = [...new Set(winners.map((p) => p.user_id))];
+
+  const { data: memberships } = await supabase
+    .from("pool_members")
+    .select("user_id, pool_id")
+    .in(
+      "user_id",
+      userIds.length > 0 ? userIds : ["00000000-0000-0000-0000-000000000000"],
+    );
+
+  const rows = (memberships ?? []).map((m) => ({
+    user_id: m.user_id,
+    pool_id: m.pool_id,
+    points: CHAMPION_POINTS,
+    reason: "champion" as const,
+  }));
+
+  const { error } = await supabase.rpc("replace_champion_scores", {
+    p_scores: rows,
+  });
+
+  if (error) {
+    throw new Error(`replace_champion_scores falló: ${error.message}`);
+  }
+
+  return { inserted: rows.length };
 }
