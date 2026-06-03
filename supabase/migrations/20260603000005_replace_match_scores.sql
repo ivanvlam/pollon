@@ -31,3 +31,6 @@ $$;
 -- Bloquear la ejecución a clientes normales: solo el service role.
 revoke execute on function public.replace_match_scores(uuid, jsonb) from public;
 revoke execute on function public.replace_match_scores(uuid, jsonb) from anon, authenticated;
+-- Tras revocar PUBLIC hay que conceder explícitamente al service role,
+-- que es quien la invoca desde el cron / panel admin.
+grant execute on function public.replace_match_scores(uuid, jsonb) to service_role;

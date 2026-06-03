@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { nanoid } from "nanoid";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { createPoolSchema } from "@/lib/validations";
 
 export type PoolActionState = { error: string } | null;
@@ -64,7 +64,11 @@ export async function joinPool(inviteCode: string): Promise<PoolActionState> {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const { data: pool, error: poolError } = await supabase
+  // Resolver el código con el service role: el cliente del usuario NO tiene
+  // permiso de SELECT sobre pollas ajenas, así el invite_code no es
+  // enumerable. Solo se expone el id de la polla cuyo código exacto se provee.
+  const admin = createServiceRoleClient();
+  const { data: pool, error: poolError } = await admin
     .from("pools")
     .select("id")
     .eq("invite_code", inviteCode)

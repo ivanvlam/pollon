@@ -60,16 +60,13 @@ create policy "profiles_update_own" on public.profiles
 -- ============================================================
 alter table public.pools enable row level security;
 
--- Ver pollas de las que soy miembro (o creador)
+-- Ver pollas de las que soy miembro (o creador).
+-- NO se expone ninguna otra polla: el flujo de "unirse por código" se
+-- resuelve server-side con el service role (ver lib/pools/actions.ts),
+-- así el invite_code permanece secreto y no es enumerable.
 create policy "pools_select_member" on public.pools
   for select to authenticated
   using (created_by = auth.uid() or public.is_pool_member(id));
-
--- Cualquier autenticado puede leer una polla por su invite_code para unirse.
--- (La lectura por código se hace server-side; esta policy permite el flujo de join.)
-create policy "pools_select_by_invite" on public.pools
-  for select to authenticated
-  using (true);
 
 create policy "pools_insert_own" on public.pools
   for insert to authenticated
