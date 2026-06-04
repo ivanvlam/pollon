@@ -36,12 +36,12 @@ describe("computeGroupStandings", () => {
   });
 
   it("ordena por puntos, luego diferencia de gol, luego goles a favor", () => {
-    // A: 3pts (gd+3); B: 3pts (gd+1); C: 0; D: 0
+    // A: 3pts (gd+3); B: 3pts (gd+1); luego empatan a 0: D (gd-1) sobre C (gd-3)
     const rows = computeGroupStandings([
       m("A", "C", 3, 0),
       m("B", "D", 1, 0),
     ]);
-    expect(rows.map((r) => r.team)).toEqual(["A", "B", "C", "D"]);
+    expect(rows.map((r) => r.team)).toEqual(["A", "B", "D", "C"]);
   });
 
   it("ignora partidos no finalizados para los puntos", () => {
