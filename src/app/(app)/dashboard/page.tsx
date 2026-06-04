@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { CreatePoolForm } from "@/components/CreatePoolForm";
 import { JoinPoolForm } from "@/components/JoinPoolForm";
+import { TimezoneSync } from "@/components/TimezoneSync";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {
@@ -9,6 +10,13 @@ export default async function DashboardPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Timezone guardada (para detectar/guardar la del navegador).
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("timezone")
+    .eq("id", user!.id)
+    .maybeSingle();
 
   // Pollas de las que el usuario es miembro.
   const { data: memberships } = await supabase
@@ -22,6 +30,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-10">
+      <TimezoneSync current={profile?.timezone ?? null} />
       <section className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Mis pollas</h1>
         <Link

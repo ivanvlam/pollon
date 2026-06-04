@@ -94,6 +94,26 @@ export async function joinPool(inviteCode: string): Promise<PoolActionState> {
   redirect(`/pool/${pool.id}`);
 }
 
+/** Sale de una polla (borra la membresía propia; RLS lo permite). */
+export async function leavePool(poolId: string): Promise<PoolActionState> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const { error } = await supabase
+    .from("pool_members")
+    .delete()
+    .eq("pool_id", poolId)
+    .eq("user_id", user.id);
+
+  if (error) return { error: "No se pudo salir de la polla" };
+
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
+}
+
 /** Variante para usar desde un <form action> con FormData. */
 export async function joinPoolFromForm(
   _prev: PoolActionState,
