@@ -12,35 +12,56 @@ export default async function DashboardPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const uid = user!.id;
 
   // Timezone guardada (para detectar/guardar la del navegador).
   const { data: profile } = await supabase
     .from("profiles")
     .select("timezone")
-    .eq("id", user!.id)
+    .eq("id", uid)
     .maybeSingle();
 
   // Pollas de las que el usuario es miembro.
   const { data: memberships } = await supabase
     .from("pool_members")
-    .select("pool:pools(id, name, invite_code, created_by)")
-    .eq("user_id", user!.id);
+    .select("pool:pools(id, name, created_by)")
+    .eq("user_id", uid);
 
   const pools = (memberships ?? [])
     .map((m) => m.pool)
     .filter((p): p is NonNullable<typeof p> => p !== null);
 
+  // Ranking de cada polla (para mostrar participantes y tu posición).
+  const rankings = await Promise.all(
+    pools.map(async (p) => {
+      const { data } = await supabase.rpc("get_pool_ranking", {
+        p_pool_id: p.id,
+      });
+      return { poolId: p.id, rows: data ?? [] };
+    }),
+  );
+  const rankingByPool = new Map(rankings.map((r) => [r.poolId, r.rows]));
+
   return (
     <div className="flex flex-col gap-10">
       <TimezoneSync current={profile?.timezone ?? null} />
-      <section className="flex items-center justify-between">
+
+      <section className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Mis pollas</h1>
-        <Link
-          href="/champion"
-          className="rounded-lg border border-neutral-600 px-4 py-2 text-sm font-medium transition hover:bg-neutral-800"
-        >
-          🏆 Mi campeón
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/como-funciona"
+            className="rounded-lg px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-800"
+          >
+            ¿Cómo funciona?
+          </Link>
+          <Link
+            href="/champion"
+            className="rounded-lg border border-neutral-700 px-4 py-2 text-sm font-medium transition hover:bg-neutral-800"
+          >
+            🏆 Mi campeón
+          </Link>
+        </div>
       </section>
 
       <section>
@@ -50,20 +71,51 @@ export default async function DashboardPage() {
             Aún no estás en ninguna polla. Crea una o únete con un código.
           </p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {pools.map((pool) => (
-              <li key={pool.id}>
-                <Link
-                  href={`/pool/${pool.id}`}
-                  className="flex items-center justify-between rounded-lg border border-neutral-800 px-4 py-3 transition hover:border-neutral-600"
-                >
-                  <span className="font-medium">{pool.name}</span>
-                  {pool.created_by === user!.id && (
-                    <span className="text-xs text-neutral-500">Creador</span>
-                  )}
-                </Link>
-              </li>
-            ))}
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {pools.map((pool) => {
+              const rows = rankingByPool.get(pool.id) ?? [];
+              const count = rows.length;
+              const myIndex = rows.findIndex((r) => r.user_id === uid);
+              const myRow = myIndex >= 0 ? rows[myIndex] : null;
+              const namesPreview = rows
+                .map((r) => r.display_name)
+                .slice(0, 4)
+                .join(", ");
+
+              return (
+                <li key={pool.id}>
+                  <Link
+                    href={`/pool/${pool.id}`}
+                    className="block rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 transition hover:border-neutral-600"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{pool.name}</span>
+                      {pool.created_by === uid && (
+                        <span className="text-xs text-neutral-500">Creador</span>
+                      )}
+                    </div>
+
+                    <div className="mt-2 flex items-center justify-between text-sm">
+                      <span className="text-neutral-400">
+                        {count} {count === 1 ? "participante" : "participantes"}
+                      </span>
+                      {myRow && (
+                        <span className="text-emerald-400">
+                          Vas {myIndex + 1}º · {myRow.total} pts
+                        </span>
+                      )}
+                    </div>
+
+                    {namesPreview && (
+                      <p className="mt-1 truncate text-xs text-neutral-500">
+                        {namesPreview}
+                        {count > 4 ? ` +${count - 4}` : ""}
+                      </p>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
