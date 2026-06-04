@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Pollon — Polla del Mundial 2026",
+    default: "Pollon · Polla del Mundial 2026",
     template: "%s · Pollon",
   },
   description:

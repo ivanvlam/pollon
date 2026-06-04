@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacidad — Pollon",
+  title: "Privacidad",
 };
 
 export default function PrivacyPage() {

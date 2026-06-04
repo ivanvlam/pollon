@@ -23,16 +23,14 @@ export default function ComoFuncionaPage() {
         <h2 className="text-lg font-semibold">Fase de grupos</h2>
         <ul className="flex flex-col gap-2 text-sm text-neutral-300">
           <li>
-            <span className="font-semibold text-emerald-400">3 pts</span> —
+            <span className="font-semibold text-emerald-400">3 pts</span>:
             marcador exacto (predices 2-1 y termina 2-1).
           </li>
           <li>
-            <span className="font-semibold text-emerald-400">1 pt</span> —
+            <span className="font-semibold text-emerald-400">1 pt</span>:
             aciertas el ganador o el empate, pero no el marcador exacto.
           </li>
-          <li className="text-neutral-500">
-            Son excluyentes: o 3, o 1, o 0.
-          </li>
+          <li className="text-neutral-500">Son excluyentes: o 3, o 1, o 0.</li>
         </ul>
       </Card>
 
@@ -40,16 +38,17 @@ export default function ComoFuncionaPage() {
         <h2 className="text-lg font-semibold">Fase eliminatoria</h2>
         <ul className="flex flex-col gap-2 text-sm text-neutral-300">
           <li>
-            <span className="font-semibold text-emerald-400">2 pts</span> — por
+            <span className="font-semibold text-emerald-400">2 pts</span>: por
             acertar quién clasifica.
           </li>
           <li>
-            <span className="font-semibold text-emerald-400">+2 pts</span> — por
+            <span className="font-semibold text-emerald-400">+2 pts</span>: por
             el marcador exacto a los 90 minutos.
           </li>
           <li className="text-neutral-500">
-            Se suman (máximo 4). El marcador es siempre a 90'. Si predices empate,
-            eliges quién clasifica por penales; si no, clasifica el ganador.
+            Se suman (máximo 4). El marcador es siempre a 90 minutos. Si predices
+            empate, eliges quién clasifica (la serie se define en prórroga o
+            penales); si no, clasifica el ganador del partido.
           </li>
         </ul>
       </Card>
@@ -58,7 +57,7 @@ export default function ComoFuncionaPage() {
         <h2 className="text-lg font-semibold">Campeón del Mundial</h2>
         <ul className="flex flex-col gap-2 text-sm text-neutral-300">
           <li>
-            <span className="font-semibold text-emerald-400">10 pts</span> — si
+            <span className="font-semibold text-emerald-400">10 pts</span>: si
             aciertas el campeón.
           </li>
           <li className="text-neutral-500">
@@ -72,16 +71,16 @@ export default function ComoFuncionaPage() {
         <h2 className="text-lg font-semibold">Cierre y desempates</h2>
         <ul className="flex flex-col gap-2 text-sm text-neutral-300">
           <li>
-            Las predicciones de cada partido se <strong>cierran 24 horas antes</strong>
-            del inicio. Después no se pueden cambiar.
+            Las predicciones de cada partido se cierran 24 horas antes del
+            inicio. Después no se pueden cambiar.
           </li>
           <li>
             Cuando un partido cierra, puedes ver las predicciones del resto de la
             polla.
           </li>
           <li className="text-neutral-500">
-            Desempate del ranking: más marcadores exactos → más ganadores
-            acertados → campeón acertado → orden alfabético.
+            Desempate del ranking: más marcadores exactos, luego más ganadores
+            acertados, luego campeón acertado, y por último orden alfabético.
           </li>
         </ul>
       </Card>

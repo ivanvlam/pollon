@@ -144,7 +144,7 @@ export function PredictionForm({
       {/* En eliminatorias el clasificado solo se pregunta si es empate */}
       {isKnockout && isDraw && (
         <div className="flex items-center justify-center gap-2 text-sm">
-          <span className="text-neutral-500">Clasifica (penales):</span>
+          <span className="text-neutral-500">Clasifica (prórroga/penales):</span>
           <button
             type="button"
             aria-pressed={drawWinner === "home"}

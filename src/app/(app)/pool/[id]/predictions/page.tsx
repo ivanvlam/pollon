@@ -72,7 +72,7 @@ export default async function PredictionsPage({
   );
 
   const fmtScore = (h: number | null, a: number | null) =>
-    h === null || a === null ? "—" : `${h}–${a}`;
+    h === null || a === null ? "-" : `${h}-${a}`;
 
   return (
     <div className="flex flex-col gap-8">
@@ -185,7 +185,7 @@ export default async function PredictionsPage({
                               key={p.user_id}
                               className="flex justify-between text-neutral-400"
                             >
-                              <span>{nameById.get(p.user_id) ?? "—"}</span>
+                              <span>{nameById.get(p.user_id) ?? "?"}</span>
                               <span>
                                 {fmtScore(p.predicted_home, p.predicted_away)}
                                 {p.predicted_winner
