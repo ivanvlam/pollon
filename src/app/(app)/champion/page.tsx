@@ -4,6 +4,8 @@ import { ChampionForm } from "@/components/ChampionForm";
 import { createClient } from "@/lib/supabase/server";
 import { isChampionLocked } from "@/lib/timing";
 
+export const metadata = { title: "Mi campeón" };
+
 export default async function ChampionPage() {
   const supabase = createClient();
   const {

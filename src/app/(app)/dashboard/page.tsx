@@ -5,6 +5,8 @@ import { JoinPoolForm } from "@/components/JoinPoolForm";
 import { TimezoneSync } from "@/components/TimezoneSync";
 import { createClient } from "@/lib/supabase/server";
 
+export const metadata = { title: "Mis pollas" };
+
 export default async function DashboardPage() {
   const supabase = createClient();
   const {
