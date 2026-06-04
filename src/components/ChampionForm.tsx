@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 
+import { Button } from "@/components/ui/Button";
+import { FieldError } from "@/components/ui/FieldError";
 import { submitChampion } from "@/lib/champion/actions";
 
 interface Props {
@@ -26,10 +28,14 @@ export function ChampionForm({ teams, initialTeam }: Props) {
 
   return (
     <div className="flex flex-col gap-3">
+      <label htmlFor="champion-team" className="text-sm font-medium text-neutral-300">
+        Equipo campeón
+      </label>
       <select
+        id="champion-team"
         value={team}
         onChange={(e) => setTeam(e.target.value)}
-        className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 outline-none focus:border-neutral-400"
+        className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none transition focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/30"
       >
         <option value="">Elige un equipo…</option>
         {teams.map((t) => (
@@ -39,19 +45,16 @@ export function ChampionForm({ teams, initialTeam }: Props) {
         ))}
       </select>
 
-      <button
-        onClick={save}
-        disabled={pending || team === ""}
-        className="rounded-lg bg-white px-4 py-2 font-medium text-black transition hover:bg-neutral-200 disabled:opacity-50"
-      >
+      <Button onClick={save} disabled={pending || team === ""}>
         {pending ? "Guardando…" : "Guardar campeón"}
-      </button>
+      </Button>
 
-      {msg && (
-        <p className={`text-sm ${isError ? "text-red-400" : "text-green-500"}`}>
-          {msg}
-        </p>
-      )}
+      {msg &&
+        (isError ? (
+          <FieldError>{msg}</FieldError>
+        ) : (
+          <p className="text-sm text-emerald-400">{msg}</p>
+        ))}
     </div>
   );
 }

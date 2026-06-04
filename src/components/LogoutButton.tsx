@@ -1,14 +1,12 @@
+import { Button } from "@/components/ui/Button";
 import { logout } from "@/app/(auth)/actions";
 
 export function LogoutButton() {
   return (
     <form action={logout}>
-      <button
-        type="submit"
-        className="text-sm text-neutral-400 underline transition hover:text-white"
-      >
+      <Button type="submit" variant="ghost" size="sm">
         Salir
-      </button>
+      </Button>
     </form>
   );
 }

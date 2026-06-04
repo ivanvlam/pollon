@@ -3,18 +3,19 @@
 import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 
+import { Button } from "@/components/ui/Button";
+import { FieldError } from "@/components/ui/FieldError";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+
 import { login, type AuthState } from "../actions";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-lg bg-white px-4 py-2 font-medium text-black transition hover:bg-neutral-200 disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} className="w-full">
       {pending ? "Entrando…" : "Entrar"}
-    </button>
+    </Button>
   );
 }
 
@@ -25,34 +26,40 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center p-6">
       <form
         action={formAction}
-        className="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-neutral-800 p-8"
+        className="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-8"
       >
         <h1 className="text-2xl font-bold">Entrar a Pollon</h1>
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          required
-          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 outline-none focus:border-neutral-400"
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Contraseña"
-          required
-          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 outline-none focus:border-neutral-400"
-        />
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            name="email"
+            placeholder="tu@email.com"
+            required
+            autoComplete="email"
+          />
+        </div>
 
-        {state?.error && (
-          <p className="text-sm text-red-400">{state.error}</p>
-        )}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="password">Contraseña</Label>
+          <Input
+            id="password"
+            type="password"
+            name="password"
+            placeholder="••••••"
+            required
+            autoComplete="current-password"
+          />
+        </div>
 
+        <FieldError>{state?.error}</FieldError>
         <SubmitButton />
 
         <p className="text-center text-sm text-neutral-400">
           ¿No tienes cuenta?{" "}
-          <Link href="/register" className="underline hover:text-white">
+          <Link href="/register" className="text-emerald-400 hover:underline">
             Crear cuenta
           </Link>
         </p>

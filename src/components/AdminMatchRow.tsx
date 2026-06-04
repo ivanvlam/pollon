@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { saveMatchResult, setMatchActive } from "@/lib/admin/actions";
 import type { MatchWinner } from "@/types";
 
@@ -53,48 +55,49 @@ export function AdminMatchRow({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-neutral-800 p-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm">
-          {homeTeam} vs {awayTeam}
+    <div className="flex flex-col gap-3 rounded-lg border border-neutral-800 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium">
+          {homeTeam} <span className="text-neutral-500">vs</span> {awayTeam}
         </span>
-        <button
+        <Button
           onClick={toggleActive}
           disabled={pending}
-          className={`rounded px-2 py-1 text-xs ${
-            isActive
-              ? "bg-green-600/20 text-green-400"
-              : "bg-neutral-800 text-neutral-400"
-          }`}
+          size="sm"
+          variant={isActive ? "secondary" : "ghost"}
+          className={isActive ? "border-emerald-600/50 text-emerald-400" : ""}
         >
           {isActive ? "Activo" : "Inactivo"}
-        </button>
+        </Button>
       </div>
 
-      <div className="flex items-center gap-2">
-        <input
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
           type="number"
           min={0}
           max={99}
           value={home}
+          aria-label={`Goles de ${homeTeam}`}
           onChange={(e) => setHome(e.target.value)}
-          className="w-14 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-center"
+          className="w-14 text-center"
         />
         <span className="text-neutral-500">–</span>
-        <input
+        <Input
           type="number"
           min={0}
           max={99}
           value={away}
+          aria-label={`Goles de ${awayTeam}`}
           onChange={(e) => setAway(e.target.value)}
-          className="w-14 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-center"
+          className="w-14 text-center"
         />
 
         {isKnockout && (
           <select
             value={win}
+            aria-label="Quién clasifica"
             onChange={(e) => setWin(e.target.value as MatchWinner | "")}
-            className="rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-2 text-sm text-neutral-100 outline-none focus:border-emerald-500"
           >
             <option value="">Clasifica…</option>
             <option value="home">{homeTeam}</option>
@@ -102,13 +105,13 @@ export function AdminMatchRow({
           </select>
         )}
 
-        <button
+        <Button
           onClick={save}
           disabled={pending || home === "" || away === ""}
-          className="rounded bg-white px-3 py-1 text-sm font-medium text-black disabled:opacity-50"
+          size="sm"
         >
           Guardar resultado
-        </button>
+        </Button>
       </div>
 
       {msg && <p className="text-xs text-neutral-400">{msg}</p>}

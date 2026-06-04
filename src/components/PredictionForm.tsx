@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 
+import { Input } from "@/components/ui/Input";
 import { PREDICTION_DEBOUNCE_MS } from "@/lib/constants";
 import { submitPrediction } from "@/lib/predictions/actions";
 import type { MatchWinner } from "@/types";
@@ -68,36 +69,40 @@ export function PredictionForm({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-3">
-        <span className="w-28 truncate text-right text-sm">{homeTeam}</span>
-        <input
+        <span className="flex-1 truncate text-right text-sm font-medium">
+          {homeTeam}
+        </span>
+        <Input
           type="number"
           min={0}
           max={99}
           value={home}
+          aria-label={`Goles de ${homeTeam}`}
           onChange={(e) => {
             setHome(e.target.value);
             scheduleSave(e.target.value, away, winner);
           }}
-          className="w-14 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-center"
+          className="w-14 text-center"
         />
         <span className="text-neutral-500">–</span>
-        <input
+        <Input
           type="number"
           min={0}
           max={99}
           value={away}
+          aria-label={`Goles de ${awayTeam}`}
           onChange={(e) => {
             setAway(e.target.value);
             scheduleSave(home, e.target.value, winner);
           }}
-          className="w-14 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-center"
+          className="w-14 text-center"
         />
-        <span className="w-28 truncate text-sm">{awayTeam}</span>
+        <span className="flex-1 truncate text-sm font-medium">{awayTeam}</span>
       </div>
 
       {isKnockout && (
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-neutral-400">Clasifica:</span>
+        <fieldset className="flex items-center gap-3 text-sm">
+          <legend className="float-left mr-2 text-neutral-400">Clasifica:</legend>
           <label className="flex items-center gap-1">
             <input
               type="radio"
@@ -122,12 +127,12 @@ export function PredictionForm({
             />
             {awayTeam}
           </label>
-        </div>
+        </fieldset>
       )}
 
-      <p className="h-4 text-xs">
+      <p className="h-4 text-xs" aria-live="polite">
         {state === "saving" && <span className="text-neutral-500">Guardando…</span>}
-        {state === "saved" && <span className="text-green-500">Guardado ✓</span>}
+        {state === "saved" && <span className="text-emerald-400">Guardado ✓</span>}
         {state === "error" && <span className="text-red-400">{errorMsg}</span>}
       </p>
     </div>
