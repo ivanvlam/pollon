@@ -66,6 +66,12 @@ export default async function PoolRankingPage({
         >
           Grupos
         </Link>
+        <Link
+          href={`/pool/${pool.id}/bracket`}
+          className="text-emerald-400 hover:underline"
+        >
+          Bracket
+        </Link>
         {isCreator && (
           <Link
             href={`/pool/${pool.id}/admin`}

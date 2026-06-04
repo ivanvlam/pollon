@@ -119,7 +119,7 @@ export default async function PredictionsPage({
                 const myPoints = pointsByMatch.get(match.id);
 
                 return (
-                  <Card key={match.id} className="p-4">
+                  <Card key={match.id} id={`m-${match.id}`} className="scroll-mt-20 p-4">
                     <div className="mb-3 flex items-center justify-between text-xs text-neutral-500">
                       <span>{match.group_name ?? ROUND_LABELS[round]}</span>
                       <span>
