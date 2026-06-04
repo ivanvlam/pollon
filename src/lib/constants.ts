@@ -2,8 +2,11 @@
 // Constantes del proyecto Pollon
 // ============================================================
 
-/** Horas antes del kickoff en que se cierran las predicciones. */
+/** Horas antes del kickoff en que se cierran las predicciones de partidos. */
 export const LOCK_HOURS_BEFORE_KICKOFF = 24;
+
+/** Horas antes del PRIMER partido en que se cierra la predicción de campeón. */
+export const CHAMPION_LOCK_HOURS = 1;
 
 /** Puntos por acertar el campeón del Mundial. Pendiente de confirmar. */
 export const CHAMPION_POINTS = 10;

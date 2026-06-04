@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { LOCK_HOURS_BEFORE_KICKOFF } from "@/lib/constants";
+import { CHAMPION_LOCK_HOURS, LOCK_HOURS_BEFORE_KICKOFF } from "@/lib/constants";
 import { verifyCronSecret } from "@/lib/cron";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
   if (firstMatch) {
     const championDeadline =
       new Date(firstMatch.kickoff_at).getTime() -
-      LOCK_HOURS_BEFORE_KICKOFF * 3600_000;
+      CHAMPION_LOCK_HOURS * 3600_000;
     if (now >= championDeadline) {
       const { data } = await supabase
         .from("champion_predictions")

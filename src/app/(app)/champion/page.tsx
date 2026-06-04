@@ -47,7 +47,7 @@ export default async function ChampionPage() {
       </header>
 
       <p className="text-sm text-neutral-400">
-        Elige quién crees que ganará el Mundial 2026. Se cierra 24 horas antes
+        Elige quién crees que ganará el Mundial 2026. Se cierra 1 hora antes
         del primer partido y es independiente de tu predicción de la final.
       </p>
 

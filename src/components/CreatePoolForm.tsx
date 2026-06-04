@@ -29,7 +29,7 @@ export function CreatePoolForm() {
         name="name"
         placeholder="Nombre de la polla"
         aria-label="Nombre de la polla"
-        required
+        maxLength={60}
       />
       <FieldError>{state?.error}</FieldError>
       <SubmitButton />

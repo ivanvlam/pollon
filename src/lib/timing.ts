@@ -11,9 +11,10 @@
 // timezone del usuario, siempre que kickoff_at venga como ISO con offset
 // (Supabase devuelve timestamptz con 'Z'/offset).
 
-import { LOCK_HOURS_BEFORE_KICKOFF } from "@/lib/constants";
+import { CHAMPION_LOCK_HOURS, LOCK_HOURS_BEFORE_KICKOFF } from "@/lib/constants";
 
 export const LOCK_MS = LOCK_HOURS_BEFORE_KICKOFF * 3600_000;
+export const CHAMPION_LOCK_MS = CHAMPION_LOCK_HOURS * 3600_000;
 
 /** Parsea un ISO timestamp a epoch ms. Devuelve NaN si es inválido. */
 export function parseKickoff(kickoffAt: string): number {
@@ -49,16 +50,16 @@ export function msUntilLock(
 
 /**
  * ¿La predicción de campeón está cerrada en `now`?
- * Cierra 24h antes del PRIMER partido del torneo. Si aún no hay fixture
- * (firstKickoffAt === null) está abierta — coincide con submit_champion,
- * que con min(kickoff_at) NULL no aplica deadline.
+ * Cierra CHAMPION_LOCK_HOURS (1h) antes del PRIMER partido del torneo. Si
+ * aún no hay fixture (firstKickoffAt === null) está abierta — coincide con
+ * submit_champion, que con min(kickoff_at) NULL no aplica deadline.
  */
 export function isChampionLocked(
   firstKickoffAt: string | null,
   now: number = Date.now(),
 ): boolean {
   if (firstKickoffAt === null) return false;
-  const lock = parseKickoff(firstKickoffAt) - LOCK_MS;
+  const lock = parseKickoff(firstKickoffAt) - CHAMPION_LOCK_MS;
   if (Number.isNaN(lock)) return false;
   return now >= lock;
 }

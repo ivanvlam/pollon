@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CHAMPION_LOCK_MS,
   LOCK_MS,
   formatCountdown,
   isChampionLocked,
@@ -67,18 +68,23 @@ describe("msUntilLock", () => {
   });
 });
 
-describe("isChampionLocked", () => {
+describe("isChampionLocked — cierra 1h antes del primer partido", () => {
+  const CH_LOCK = KICKOFF_MS - CHAMPION_LOCK_MS; // 1h antes del kickoff
+
   it("ABIERTO si no hay fixture (null)", () => {
     expect(isChampionLocked(null, Date.now())).toBe(false);
   });
-  it("ABIERTO 1ms antes del cierre del primer partido", () => {
-    expect(isChampionLocked(KICKOFF, LOCK - 1)).toBe(false);
+  it("ABIERTO 24h antes (mucho antes del cierre de 1h)", () => {
+    expect(isChampionLocked(KICKOFF, LOCK)).toBe(false);
   });
-  it("CERRADO en el instante exacto", () => {
-    expect(isChampionLocked(KICKOFF, LOCK)).toBe(true);
+  it("ABIERTO 1ms antes del cierre (1h)", () => {
+    expect(isChampionLocked(KICKOFF, CH_LOCK - 1)).toBe(false);
+  });
+  it("CERRADO en el instante exacto del cierre (1h antes)", () => {
+    expect(isChampionLocked(KICKOFF, CH_LOCK)).toBe(true);
   });
   it("fecha inválida → abierto (coincide con SQL min() NULL)", () => {
-    expect(isChampionLocked("xxx", LOCK + 1)).toBe(false);
+    expect(isChampionLocked("xxx", CH_LOCK + 1)).toBe(false);
   });
 });
 

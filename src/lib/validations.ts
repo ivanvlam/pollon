@@ -17,8 +17,9 @@ export const registerSchema = z.object({
 export const createPoolSchema = z.object({
   name: z
     .string()
-    .min(2, "El nombre debe tener al menos 2 caracteres")
-    .max(60, "El nombre es demasiado largo"),
+    .trim()
+    .min(2, "Escribe un nombre de al menos 2 caracteres")
+    .max(60, "El nombre es demasiado largo (máximo 60 caracteres)"),
 });
 
 export const predictionSchema = z
