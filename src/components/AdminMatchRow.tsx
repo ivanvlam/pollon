@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 
+import { Flag } from "@/components/Flag";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { saveMatchResult, setMatchActive } from "@/lib/admin/actions";
@@ -57,8 +58,10 @@ export function AdminMatchRow({
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-neutral-800 p-3">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-medium">
+        <span className="flex items-center gap-2 text-sm font-medium">
+          <Flag team={homeTeam} />
           {homeTeam} <span className="text-neutral-500">vs</span> {awayTeam}
+          <Flag team={awayTeam} />
         </span>
         <Button
           onClick={toggleActive}

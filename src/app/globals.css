@@ -19,3 +19,14 @@ body {
 ::selection {
   background: rgba(52, 211, 153, 0.25); /* emerald */
 }
+
+/* Ocultar las flechas (spinner) default de los <input type="number"> */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Flag } from "@/components/Flag";
 import { LockCountdown } from "@/components/LockCountdown";
 import { PredictionForm } from "@/components/PredictionForm";
 import { Card } from "@/components/ui/Card";
@@ -151,10 +152,12 @@ export default async function PredictionsPage({
                     ) : (
                       <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="font-medium">
-                            {match.home_team}{" "}
-                            <span className="text-neutral-500">vs</span>{" "}
+                          <span className="flex items-center gap-2 font-medium">
+                            <Flag team={match.home_team} />
+                            {match.home_team}
+                            <span className="text-neutral-500">vs</span>
                             {match.away_team}
+                            <Flag team={match.away_team} />
                           </span>
                           {myPoints !== undefined && (
                             <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
