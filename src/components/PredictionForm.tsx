@@ -32,15 +32,24 @@ export function PredictionForm({
 }: Props) {
   const [home, setHome] = useState<string>(initialHome?.toString() ?? "");
   const [away, setAway] = useState<string>(initialAway?.toString() ?? "");
-  const [winner, setWinner] = useState<MatchWinner | "">(initialWinner ?? "");
+  // Solo se usa cuando el marcador es empate (clasifica por penales).
+  const [drawWinner, setDrawWinner] = useState<MatchWinner | "">(
+    initialHome !== null && initialHome === initialAway
+      ? (initialWinner ?? "")
+      : "",
+  );
   const [state, setState] = useState<SaveState>("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const homeN = home === "" ? null : Number(home);
+  const awayN = away === "" ? null : Number(away);
+  const isDraw = homeN !== null && awayN !== null && homeN === awayN;
+
   function scheduleSave(
     nextHome: string,
     nextAway: string,
-    nextWinner: MatchWinner | "",
+    nextDrawWinner: MatchWinner | "",
   ) {
     if (timer.current) clearTimeout(timer.current);
 
@@ -49,7 +58,18 @@ export function PredictionForm({
     if (nextHome === "" || nextAway === "" || Number.isNaN(h) || Number.isNaN(a)) {
       return;
     }
-    if (isKnockout && nextWinner === "") return;
+
+    let winner: MatchWinner | undefined;
+    if (isKnockout) {
+      if (h === a) {
+        // Empate: el clasificado se elige explícitamente (penales).
+        if (nextDrawWinner === "") return;
+        winner = nextDrawWinner as MatchWinner;
+      } else {
+        // Marcador no-empate: clasifica el ganador del 90'.
+        winner = h > a ? "home" : "away";
+      }
+    }
 
     setState("saving");
     timer.current = setTimeout(async () => {
@@ -57,7 +77,7 @@ export function PredictionForm({
         matchId,
         predictedHome: h,
         predictedAway: a,
-        predictedWinner: isKnockout ? (nextWinner as MatchWinner) : undefined,
+        predictedWinner: winner,
       });
       if (result.ok) {
         setState("saved");
@@ -76,6 +96,14 @@ export function PredictionForm({
         : "border-neutral-700 text-neutral-400 hover:bg-neutral-800",
     );
 
+  // Clasificado derivado (para el cartelito informativo cuando no es empate).
+  const derivedQualifier =
+    isKnockout && homeN !== null && awayN !== null && homeN !== awayN
+      ? homeN > awayN
+        ? homeTeam
+        : awayTeam
+      : null;
+
   return (
     <div className="flex flex-col gap-3">
       {/* Marcador estilo TV */}
@@ -92,7 +120,7 @@ export function PredictionForm({
           ariaLabel={homeTeam}
           onChange={(v) => {
             setHome(v);
-            scheduleSave(v, away, winner);
+            scheduleSave(v, away, drawWinner);
           }}
         />
         <span className="text-xl font-bold text-neutral-600">:</span>
@@ -101,7 +129,7 @@ export function PredictionForm({
           ariaLabel={awayTeam}
           onChange={(v) => {
             setAway(v);
-            scheduleSave(home, v, winner);
+            scheduleSave(home, v, drawWinner);
           }}
         />
 
@@ -113,15 +141,16 @@ export function PredictionForm({
         </div>
       </div>
 
-      {isKnockout && (
+      {/* En eliminatorias el clasificado solo se pregunta si es empate */}
+      {isKnockout && isDraw && (
         <div className="flex items-center justify-center gap-2 text-sm">
-          <span className="text-neutral-500">Clasifica:</span>
+          <span className="text-neutral-500">Clasifica (penales):</span>
           <button
             type="button"
-            aria-pressed={winner === "home"}
-            className={chip(winner === "home")}
+            aria-pressed={drawWinner === "home"}
+            className={chip(drawWinner === "home")}
             onClick={() => {
-              setWinner("home");
+              setDrawWinner("home");
               scheduleSave(home, away, "home");
             }}
           >
@@ -129,16 +158,22 @@ export function PredictionForm({
           </button>
           <button
             type="button"
-            aria-pressed={winner === "away"}
-            className={chip(winner === "away")}
+            aria-pressed={drawWinner === "away"}
+            className={chip(drawWinner === "away")}
             onClick={() => {
-              setWinner("away");
+              setDrawWinner("away");
               scheduleSave(home, away, "away");
             }}
           >
             {awayTeam}
           </button>
         </div>
+      )}
+
+      {derivedQualifier && (
+        <p className="text-center text-xs text-neutral-500">
+          Clasifica: <span className="text-neutral-300">{derivedQualifier}</span>
+        </p>
       )}
 
       <p className="h-4 text-center text-xs" aria-live="polite">
