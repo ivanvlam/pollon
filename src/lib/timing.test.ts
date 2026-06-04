@@ -16,8 +16,8 @@ const KICKOFF_MS = Date.parse(KICKOFF);
 const LOCK = KICKOFF_MS - LOCK_MS; // 2026-06-10T16:00:00Z
 
 describe("predictionLockTime", () => {
-  it("es exactamente 24h antes del kickoff", () => {
-    expect(predictionLockTime(KICKOFF)).toBe(Date.parse("2026-06-10T16:00:00Z"));
+  it("es exactamente LOCK_MS antes del kickoff", () => {
+    expect(predictionLockTime(KICKOFF)).toBe(KICKOFF_MS - LOCK_MS);
   });
 });
 
@@ -75,7 +75,7 @@ describe("isChampionLocked — cierra 1h antes del primer partido", () => {
     expect(isChampionLocked(null, Date.now())).toBe(false);
   });
   it("ABIERTO 24h antes (mucho antes del cierre de 1h)", () => {
-    expect(isChampionLocked(KICKOFF, LOCK)).toBe(false);
+    expect(isChampionLocked(KICKOFF, KICKOFF_MS - 24 * 3_600_000)).toBe(false);
   });
   it("ABIERTO 1ms antes del cierre (1h)", () => {
     expect(isChampionLocked(KICKOFF, CH_LOCK - 1)).toBe(false);

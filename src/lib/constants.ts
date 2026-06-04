@@ -3,7 +3,7 @@
 // ============================================================
 
 /** Horas antes del kickoff en que se cierran las predicciones de partidos. */
-export const LOCK_HOURS_BEFORE_KICKOFF = 24;
+export const LOCK_HOURS_BEFORE_KICKOFF = 1;
 
 /** Horas antes del PRIMER partido en que se cierra la predicción de campeón. */
 export const CHAMPION_LOCK_HOURS = 1;

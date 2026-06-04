@@ -71,7 +71,7 @@ export default function ComoFuncionaPage() {
         <h2 className="text-lg font-semibold">Cierre y desempates</h2>
         <ul className="flex flex-col gap-2 text-sm text-neutral-300">
           <li>
-            Las predicciones de cada partido se cierran 24 horas antes del
+            Las predicciones de cada partido se cierran 1 hora antes del
             inicio. Después no se pueden cambiar.
           </li>
           <li>
