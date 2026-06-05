@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
   const windowStart = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
   const windowEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString();
 
-  const [{ data: liveMatches }, { data: windowMatches }] = await Promise.all([
+  const [{ count: totalMatches }, { data: liveMatches }, { data: windowMatches }] = await Promise.all([
+    supabase.from("matches").select("*", { count: "exact", head: true }),
     supabase.from("matches").select("round").eq("status", "live"),
     supabase.from("matches").select("round")
       .gte("kickoff_at", windowStart)
@@ -39,7 +40,10 @@ export async function GET(request: NextRequest) {
     ...(windowMatches ?? []).map((m) => m.round),
   ]);
 
-  if (activeRounds.size === 0) {
+  // Si no hay partidos en la DB (primera carga), fetchear todo el fixture.
+  // Si hay partidos pero ninguno en ventana activa, salir sin llamar a la API.
+  const isBootstrap = (totalMatches ?? 0) === 0;
+  if (!isBootstrap && activeRounds.size === 0) {
     return NextResponse.json({ ok: true, synced: 0, skipped: true });
   }
 
@@ -52,7 +56,10 @@ export async function GET(request: NextRequest) {
     semifinal: [150],
     final: [200],
   };
-  const sdbRounds = [...activeRounds].flatMap((r) => ROUND_TO_SDB[r] ?? []);
+  // Bootstrap: pedir todas las rondas. Normal: solo las activas.
+  const sdbRounds = isBootstrap
+    ? undefined
+    : [...activeRounds].flatMap((r) => ROUND_TO_SDB[r] ?? []);
 
   let fixtures;
   try {

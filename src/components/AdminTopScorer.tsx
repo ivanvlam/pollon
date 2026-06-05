@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/Button";
-import { setActualTopScorer, syncPlayers } from "@/lib/admin/actions";
+import { setActualTopScorer, syncMatches, syncPlayers } from "@/lib/admin/actions";
 
 interface Player { name: string; team: string; }
 
@@ -13,6 +13,9 @@ interface Props {
 }
 
 export function AdminTopScorer({ poolId, players }: Props) {
+  const [matchSyncMsg, setMatchSyncMsg] = useState("");
+  const [matchSyncPending, startMatchSync] = useTransition();
+
   const [syncMsg, setSyncMsg] = useState("");
   const [syncPending, startSync] = useTransition();
 
@@ -34,6 +37,13 @@ export function AdminTopScorer({ poolId, players }: Props) {
     setOpen(false);
   }
 
+  function handleMatchSync() {
+    startMatchSync(async () => {
+      const r = await syncMatches(poolId);
+      setMatchSyncMsg(r.ok ? `✓ ${(r as { count?: number }).count ?? "?"} partidos sincronizados` : r.error);
+    });
+  }
+
   function handleSync() {
     startSync(async () => {
       const r = await syncPlayers(poolId);
@@ -51,11 +61,23 @@ export function AdminTopScorer({ poolId, players }: Props) {
 
   return (
     <div className="flex flex-col gap-6 rounded-xl border border-neutral-800 p-5">
-      <h2 className="font-semibold">Goleador del torneo</h2>
+      <h2 className="font-semibold">Setup inicial</h2>
 
       <div className="flex flex-col gap-2">
         <p className="text-sm text-neutral-400">
-          Sincroniza los planteles desde TheSportsDB (hacer una sola vez, puede tardar ~2 min).
+          Carga el fixture completo del Mundial desde TheSportsDB. Hacerlo antes de abrir las predicciones.
+        </p>
+        <div className="flex items-center gap-3">
+          <Button onClick={handleMatchSync} disabled={matchSyncPending}>
+            {matchSyncPending ? "Sincronizando…" : "Sincronizar partidos"}
+          </Button>
+          {matchSyncMsg && <span className="text-sm text-emerald-400">{matchSyncMsg}</span>}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-neutral-400">
+          Sincroniza los planteles de jugadores (hacer una sola vez, puede tardar ~2 min).
         </p>
         <div className="flex items-center gap-3">
           <Button onClick={handleSync} disabled={syncPending}>

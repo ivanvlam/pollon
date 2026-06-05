@@ -110,6 +110,49 @@ export async function syncPlayers(poolId: string): Promise<AdminResult & { count
   return { ok: true, count: PLAYERS_DATA.length };
 }
 
+/** Sincroniza el fixture completo desde TheSportsDB (todas las rondas, sin windowing). */
+export async function syncMatches(poolId: string): Promise<AdminResult & { count?: number }> {
+  const auth = await assertAdmin();
+  if (!auth.ok) return auth;
+
+  const { fetchWorldCupFixtures } = await import("@/lib/thesportsdb");
+  const { createServiceRoleClient: svcClient } = await import("@/lib/supabase/server");
+
+  let fixtures;
+  try {
+    fixtures = await fetchWorldCupFixtures();
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Error al contactar TheSportsDB" };
+  }
+
+  if (fixtures.length === 0) return { ok: false, error: "TheSportsDB no devolvió partidos" };
+
+  const svc = svcClient();
+  const { error } = await svc.from("matches").upsert(
+    fixtures.map((f) => ({
+      external_id: f.external_id,
+      round: f.round,
+      group_name: f.group_name,
+      home_team: f.home_team,
+      away_team: f.away_team,
+      kickoff_at: f.kickoff_at,
+      status: f.status,
+      home_score: f.home_score,
+      away_score: f.away_score,
+      winner: f.winner,
+      updated_at: new Date().toISOString(),
+      ...(f.round === "group_stage" ? { is_active: true } : {}),
+    })),
+    { onConflict: "external_id" },
+  );
+
+  if (error) return { ok: false, error: `Error al guardar: ${error.message}` };
+
+  revalidatePath(`/pool/${poolId}/admin`);
+  revalidatePath(`/pool/${poolId}`);
+  return { ok: true, count: fixtures.length };
+}
+
 /** Marca el campeón real y recalcula puntos. teamName en español (como se almacena en champion_predictions). */
 export async function setActualChampion(
   poolId: string,
