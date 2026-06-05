@@ -147,10 +147,19 @@ export default async function PoolRankingPage({
               </tbody>
             </table>
           </div>
-          <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-xs text-neutral-500">
-            <div className="flex gap-1"><dt className="font-medium text-neutral-400">Exactos</dt><dd>marcador exacto · 5 pts</dd></div>
-            <div className="flex gap-1"><dt className="font-medium text-neutral-400">Dif</dt><dd>misma diferencia de goles · 3 pts</dd></div>
-            <div className="flex gap-1"><dt className="font-medium text-neutral-400">Aciertos</dt><dd>solo ganador / clasificado · 2 pts</dd></div>
+          <dl className="mt-4 grid grid-cols-3 divide-x divide-neutral-800 text-center text-xs text-neutral-500">
+            <div className="flex flex-col gap-0.5 px-3">
+              <dt className="font-medium text-neutral-300">Exactos</dt>
+              <dd>marcador exacto · 5 pts</dd>
+            </div>
+            <div className="flex flex-col gap-0.5 px-3">
+              <dt className="font-medium text-neutral-300">Dif</dt>
+              <dd>misma diferencia · 3 pts</dd>
+            </div>
+            <div className="flex flex-col gap-0.5 px-3">
+              <dt className="font-medium text-neutral-300">Aciertos</dt>
+              <dd>solo ganador · 2 pts</dd>
+            </div>
           </dl>
           </>
         )}
