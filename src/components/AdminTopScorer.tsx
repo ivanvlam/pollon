@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { setActualTopScorer, syncMatches, syncPlayers } from "@/lib/admin/actions";
+import { toSpanish } from "@/lib/teamNames";
 
 interface Player { name: string; team: string; }
 
@@ -28,7 +29,7 @@ export function AdminTopScorer({ poolId, players }: Props) {
   const filtered = query.length < 2
     ? []
     : players.filter((p) =>
-        `${p.name} ${p.team}`.toLowerCase().includes(query.toLowerCase()),
+        `${p.name} ${p.team} ${toSpanish(p.team)}`.toLowerCase().includes(query.toLowerCase()),
       ).slice(0, 40);
 
   function pick(p: Player) {
@@ -63,25 +64,27 @@ export function AdminTopScorer({ poolId, players }: Props) {
     <div className="flex flex-col gap-6 rounded-xl border border-neutral-800 p-5">
       <h2 className="font-semibold">Setup inicial</h2>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1">
+        <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">1 · Partidos</p>
         <p className="text-sm text-neutral-400">
-          Carga el fixture completo del Mundial desde TheSportsDB. Hacerlo antes de abrir las predicciones.
+          Carga el fixture completo del Mundial desde TheSportsDB.
         </p>
-        <div className="flex items-center gap-3">
+        <div className="mt-1 flex items-center gap-3">
           <Button onClick={handleMatchSync} disabled={matchSyncPending}>
-            {matchSyncPending ? "Sincronizando…" : "Sincronizar partidos"}
+            {matchSyncPending ? "Sincronizando…" : "Cargar partidos"}
           </Button>
           {matchSyncMsg && <span className="text-sm text-emerald-400">{matchSyncMsg}</span>}
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1">
+        <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">2 · Jugadores</p>
         <p className="text-sm text-neutral-400">
-          Sincroniza los planteles de jugadores (hacer una sola vez, puede tardar ~2 min).
+          Carga los planteles para elegir el goleador (hacer una sola vez).
         </p>
-        <div className="flex items-center gap-3">
+        <div className="mt-1 flex items-center gap-3">
           <Button onClick={handleSync} disabled={syncPending}>
-            {syncPending ? "Sincronizando…" : "Sincronizar jugadores"}
+            {syncPending ? "Sincronizando…" : "Cargar jugadores"}
           </Button>
           {syncMsg && <span className="text-sm text-emerald-400">{syncMsg}</span>}
         </div>
@@ -110,7 +113,7 @@ export function AdminTopScorer({ poolId, players }: Props) {
                   className="cursor-pointer px-3 py-2 text-sm hover:bg-neutral-800"
                 >
                   <span className="font-medium">{p.name}</span>
-                  <span className="ml-2 text-neutral-500">{p.team}</span>
+                  <span className="ml-2 text-neutral-500">{toSpanish(p.team)}</span>
                 </li>
               ))}
             </ul>
