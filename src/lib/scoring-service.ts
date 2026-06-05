@@ -8,6 +8,7 @@
 import { CHAMPION_POINTS } from "@/lib/constants";
 import { calculateMatchScore } from "@/lib/scoring";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { toSpanish } from "@/lib/teamNames";
 import type { MatchWinner, Round } from "@/types";
 
 export interface RecalcResult {
@@ -101,8 +102,9 @@ export async function recalculateMatchScores(
 
   // Si terminó la final, el campeón quedó definido: recalcular esos puntos.
   if (match.round === "final" && match.winner !== null) {
-    const championTeam =
-      match.winner === "home" ? match.home_team : match.away_team;
+    const championTeam = toSpanish(
+      match.winner === "home" ? match.home_team : match.away_team,
+    );
     await recalculateChampionScores(championTeam);
   }
 

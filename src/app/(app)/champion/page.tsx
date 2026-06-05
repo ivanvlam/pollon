@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { ChampionForm } from "@/components/ChampionForm";
 import { createClient } from "@/lib/supabase/server";
+import { toSpanish } from "@/lib/teamNames";
 import { isChampionLocked } from "@/lib/timing";
 
 export const metadata = { title: "Mi campeón" };
@@ -28,7 +29,7 @@ export default async function ChampionPage() {
     ...new Set(
       (matches ?? []).flatMap((m) => [m.home_team, m.away_team]),
     ),
-  ].sort();
+  ].sort().map(toSpanish);
 
   // Cierre: 24h antes del primer partido, o si ya está bloqueada.
   const firstKickoff =
@@ -54,7 +55,7 @@ export default async function ChampionPage() {
       {closed ? (
         <p className="rounded-lg border border-neutral-800 p-4">
           {pick?.team
-            ? `Tu campeón: ${pick.team} (predicción cerrada)`
+            ? `Tu campeón: ${toSpanish(pick.team)} (predicción cerrada)`
             : "La predicción de campeón ya cerró y no registraste ninguna."}
         </p>
       ) : teams.length === 0 ? (
