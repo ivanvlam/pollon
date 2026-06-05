@@ -42,7 +42,7 @@ export function GroupModal({ name, standings, matches, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl border border-neutral-700 bg-neutral-950 sm:rounded-2xl"
+        className="flex max-h-[90dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl border border-neutral-700 bg-neutral-950 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
