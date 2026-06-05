@@ -102,22 +102,22 @@ export default async function PoolRankingPage({
         ) : (
           <>
           <div className="overflow-x-auto">
-            <table className="text-left text-sm">
+            <table className="w-full min-w-[24rem] text-left text-sm">
               <thead className="border-b border-neutral-800 text-neutral-400">
                 <tr>
-                  <th className="py-2 pr-1">#</th>
-                  <th className="py-2 pr-6">Jugador</th>
-                  <th className="w-16 py-2 text-center" title="Puntos totales">Pts</th>
-                  <th className="w-16 py-2 text-center" title="Marcador exacto (5 pts)">Exactos</th>
-                  <th className="w-16 py-2 text-center" title="Diferencia de goles correcta (3 pts)">Dif</th>
-                  <th className="w-16 py-2 text-center" title="Solo ganador / clasificado acertado (2 pts)">Aciertos</th>
+                  <th className="py-2 pr-2">#</th>
+                  <th className="py-2">Jugador</th>
+                  <th className="w-20 py-2 text-center" title="Puntos totales">Pts</th>
+                  <th className="w-20 py-2 text-center" title="Marcador exacto (5 pts)">Exactos</th>
+                  <th className="w-20 py-2 text-center" title="Diferencia de goles correcta (3 pts)">Dif</th>
+                  <th className="w-20 py-2 text-center" title="Solo ganador / clasificado acertado (2 pts)">Aciertos</th>
                 </tr>
               </thead>
               <tbody>
                 {(ranking ?? []).map((row, i) => (
                   <tr key={row.user_id} className="border-b border-neutral-900">
-                    <td className="py-2 pr-1 text-neutral-500">{i + 1}</td>
-                    <td className="py-2 pr-6">
+                    <td className="py-2 pr-2 text-neutral-500">{i + 1}</td>
+                    <td className="py-2">
                       {row.display_name}
                       {row.user_id === user!.id && (
                         <span className="ml-2 text-xs text-emerald-400">
@@ -130,16 +130,16 @@ export default async function PoolRankingPage({
                         </span>
                       )}
                     </td>
-                    <td className="w-16 py-2 text-center font-semibold">
+                    <td className="w-20 py-2 text-center font-semibold">
                       {row.total}
                     </td>
-                    <td className="w-16 py-2 text-center text-neutral-400">
+                    <td className="w-20 py-2 text-center text-neutral-400">
                       {row.exact_count}
                     </td>
-                    <td className="w-16 py-2 text-center text-neutral-400">
+                    <td className="w-20 py-2 text-center text-neutral-400">
                       {row.diff_count}
                     </td>
-                    <td className="w-16 py-2 text-center text-neutral-400">
+                    <td className="w-20 py-2 text-center text-neutral-400">
                       {row.winner_count}
                     </td>
                   </tr>
