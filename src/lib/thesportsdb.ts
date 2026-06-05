@@ -3,14 +3,31 @@
 // ============================================================
 // Docs: https://www.thesportsdb.com/free_sports_api
 // FIFA World Cup: idLeague 4429, temporada 2026.
-// El key de prueba "3" es gratis pero viene recortado (subconjunto de
-// partidos, sin strStage). Para el fixture completo, usar un key premium
-// en THESPORTSDB_KEY.
+//
+// El endpoint de TEMPORADA (eventsseason) viene topado a ~16 resultados en
+// el key gratis. El endpoint por RONDA (eventsround) devuelve la ronda
+// completa, así que iteramos las rondas para tener todos los partidos.
+// Códigos de ronda de TheSportsDB para el Mundial:
+//   grupos = 1,2,3 · octavos = 16 · cuartos = 125 · semis = 150 · final = 200
+// (Las eliminatorias aparecen recién cuando se definen los cruces.)
+//
+// THESPORTSDB_KEY: "3" es el key de prueba gratis. Un key premium da más
+// cuota y livescores cada 2 min.
 
 import type { MatchStatus, MatchWinner, Round } from "@/types";
 
 const WORLD_CUP_LEAGUE_ID = 4429;
 const WORLD_CUP_SEASON = 2026;
+
+const ROUND_DEFS: { r: number; round: Round }[] = [
+  { r: 1, round: "group_stage" },
+  { r: 2, round: "group_stage" },
+  { r: 3, round: "group_stage" },
+  { r: 16, round: "round_of_16" },
+  { r: 125, round: "quarterfinal" },
+  { r: 150, round: "semifinal" },
+  { r: 200, round: "final" },
+];
 
 export interface ExternalMatch {
   external_id: string;
@@ -36,8 +53,6 @@ interface SdbEvent {
   strTime: string | null;
   strStatus: string | null;
   strGroup: string | null;
-  strStage: string | null;
-  strEvent: string | null;
 }
 
 const FINISHED = new Set(["FT", "AET", "PEN", "Match Finished"]);
@@ -57,27 +72,8 @@ function toUtcIso(ev: SdbEvent): string {
     (ev.dateEvent && ev.strTime ? `${ev.dateEvent}T${ev.strTime}` : null);
   if (!raw) return new Date(0).toISOString();
   const hasTz = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(raw);
-  const iso = hasTz ? raw : `${raw}Z`;
-  const d = new Date(iso);
+  const d = new Date(hasTz ? raw : `${raw}Z`);
   return Number.isNaN(d.getTime()) ? new Date(0).toISOString() : d.toISOString();
-}
-
-/** Clasifica ronda y grupo. Los partidos de grupos traen strGroup. */
-function mapRound(ev: SdbEvent): { round: Round; group_name: string | null } {
-  if (ev.strGroup && ev.strGroup.trim() !== "") {
-    return { round: "group_stage", group_name: `Group ${ev.strGroup.trim()}` };
-  }
-  const text = `${ev.strStage ?? ""} ${ev.strEvent ?? ""}`.toLowerCase();
-  if (text.includes("round of 16") || text.includes("octavos")) {
-    return { round: "round_of_16", group_name: null };
-  }
-  if (text.includes("quarter") || text.includes("cuartos")) {
-    return { round: "quarterfinal", group_name: null };
-  }
-  if (text.includes("semi")) return { round: "semifinal", group_name: null };
-  if (text.includes("final")) return { round: "final", group_name: null };
-  // Sin etiqueta de fase: asumimos primera ronda eliminatoria (best-effort).
-  return { round: "round_of_16", group_name: null };
 }
 
 function parseScore(v: string | null): number | null {
@@ -97,34 +93,51 @@ function deriveWinner(
   return null; // empate a 90': el clasificado (penales) no lo da esta API
 }
 
+function toExternal(ev: SdbEvent, round: Round): ExternalMatch {
+  const status = mapStatus(ev.strStatus);
+  const home = parseScore(ev.intHomeScore);
+  const away = parseScore(ev.intAwayScore);
+  return {
+    external_id: ev.idEvent,
+    round,
+    group_name:
+      round === "group_stage" && ev.strGroup && ev.strGroup.trim() !== ""
+        ? `Group ${ev.strGroup.trim()}`
+        : null,
+    home_team: ev.strHomeTeam,
+    away_team: ev.strAwayTeam,
+    kickoff_at: toUtcIso(ev),
+    status,
+    home_score: home,
+    away_score: away,
+    winner: deriveWinner(status, home, away),
+  };
+}
+
+/**
+ * Trae todos los partidos del Mundial iterando por ronda y deduplicando.
+ * Las rondas eliminatorias devuelven vacío hasta que se definen los cruces.
+ */
 export async function fetchWorldCupFixtures(): Promise<ExternalMatch[]> {
   const key = process.env.THESPORTSDB_KEY || "3";
-  const url = `https://www.thesportsdb.com/api/v1/json/${key}/eventsseason.php?id=${WORLD_CUP_LEAGUE_ID}&s=${WORLD_CUP_SEASON}`;
+  const base = `https://www.thesportsdb.com/api/v1/json/${key}`;
 
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) {
-    throw new Error(`TheSportsDB respondió ${res.status}`);
+  const perRound = await Promise.all(
+    ROUND_DEFS.map(async ({ r, round }) => {
+      const res = await fetch(
+        `${base}/eventsround.php?id=${WORLD_CUP_LEAGUE_ID}&r=${r}&s=${WORLD_CUP_SEASON}`,
+        { cache: "no-store" },
+      );
+      if (!res.ok) return [];
+      const json = (await res.json()) as { events: SdbEvent[] | null };
+      return (json.events ?? []).map((ev) => toExternal(ev, round));
+    }),
+  );
+
+  // Deduplicar por external_id (por si un partido aparece en dos rondas).
+  const byId = new Map<string, ExternalMatch>();
+  for (const arr of perRound) {
+    for (const m of arr) byId.set(m.external_id, m);
   }
-
-  const json = (await res.json()) as { events: SdbEvent[] | null };
-  const events = json.events ?? [];
-
-  return events.map((ev) => {
-    const status = mapStatus(ev.strStatus);
-    const { round, group_name } = mapRound(ev);
-    const home = parseScore(ev.intHomeScore);
-    const away = parseScore(ev.intAwayScore);
-    return {
-      external_id: ev.idEvent,
-      round,
-      group_name,
-      home_team: ev.strHomeTeam,
-      away_team: ev.strAwayTeam,
-      kickoff_at: toUtcIso(ev),
-      status,
-      home_score: home,
-      away_score: away,
-      winner: deriveWinner(status, home, away),
-    };
-  });
+  return [...byId.values()];
 }
