@@ -19,7 +19,8 @@ export type ScoreReason =
   | "correct_qualifier"
   | "correct_diff_qualifier"
   | "exact_qualifier_score"
-  | "champion";
+  | "champion"
+  | "top_scorer";
 
 export interface Profile {
   id: string;

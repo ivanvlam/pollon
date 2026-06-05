@@ -11,6 +11,9 @@ export const CHAMPION_LOCK_HOURS = 1;
 /** Puntos por acertar el campeón del Mundial. */
 export const CHAMPION_POINTS = 15;
 
+/** Puntos por acertar el goleador del Mundial. */
+export const TOP_SCORER_POINTS = 10;
+
 /** Tabla de puntos del sistema de puntuación. */
 export const POINTS = {
   /** Marcador exacto (grupos) / exacto + clasificado (eliminatorias). */

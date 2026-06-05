@@ -58,19 +58,27 @@ export async function GET(request: NextRequest) {
     .maybeSingle();
 
   let championLocked = 0;
+  let topScorerLocked = 0;
   if (firstMatch) {
     const championDeadline =
       new Date(firstMatch.kickoff_at).getTime() -
       CHAMPION_LOCK_HOURS * 3600_000;
     if (now >= championDeadline) {
-      const { data } = await supabase
+      const { data: c } = await supabase
         .from("champion_predictions")
         .update({ is_locked: true, locked_at: nowIso })
         .eq("is_locked", false)
         .select("id");
-      championLocked = data?.length ?? 0;
+      championLocked = c?.length ?? 0;
+
+      const { data: ts } = await supabase
+        .from("top_scorer_predictions")
+        .update({ is_locked: true, locked_at: nowIso })
+        .eq("is_locked", false)
+        .select("id");
+      topScorerLocked = ts?.length ?? 0;
     }
   }
 
-  return NextResponse.json({ ok: true, locked, championLocked });
+  return NextResponse.json({ ok: true, locked, championLocked, topScorerLocked });
 }

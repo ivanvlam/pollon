@@ -283,6 +283,39 @@ export interface Database {
         };
         Relationships: [];
       };
+      players: {
+        Row: { id: string; name: string; team: string };
+        Insert: { id?: string; name: string; team: string };
+        Update: { id?: string; name?: string; team?: string };
+        Relationships: [];
+      };
+      top_scorer_predictions: {
+        Row: {
+          id: string;
+          user_id: string;
+          player_name: string;
+          is_locked: boolean;
+          locked_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          player_name: string;
+          is_locked?: boolean;
+          locked_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          player_name?: string;
+          is_locked?: boolean;
+          locked_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -326,6 +359,10 @@ export interface Database {
       replace_champion_scores: {
         Args: { p_scores: Json };
         Returns: undefined;
+      };
+      recalculate_top_scorer_scores: {
+        Args: { p_player_name: string };
+        Returns: Json;
       };
     };
     Enums: Record<never, never>;

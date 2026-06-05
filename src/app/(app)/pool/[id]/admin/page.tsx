@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { AdminMatchRow } from "@/components/AdminMatchRow";
+import { AdminTopScorer } from "@/components/AdminTopScorer";
 import { isKnockoutRound } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import type { MatchWinner, Round } from "@/types";
@@ -25,12 +26,13 @@ export default async function AdminPage({
   if (!pool) notFound();
   if (user!.email !== process.env.ADMIN_EMAIL) redirect(`/pool/${pool.id}`);
 
-  const { data: matches } = await supabase
-    .from("matches")
-    .select(
-      "id, round, home_team, away_team, kickoff_at, is_active, home_score, away_score, winner",
-    )
-    .order("kickoff_at", { ascending: true });
+  const [{ data: matches }, { data: players }] = await Promise.all([
+    supabase
+      .from("matches")
+      .select("id, round, home_team, away_team, kickoff_at, is_active, home_score, away_score, winner")
+      .order("kickoff_at", { ascending: true }),
+    supabase.from("players").select("name, team").order("name"),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -41,9 +43,11 @@ export default async function AdminPage({
         </Link>
       </header>
 
+      <AdminTopScorer poolId={pool.id} players={players ?? []} />
+
       <p className="text-sm text-neutral-400">
         Activa los partidos para habilitar las predicciones e ingresa
-        resultados manualmente si API-Football no los provee.
+        resultados manualmente si la API no los provee.
       </p>
 
       <div className="flex flex-col gap-3">

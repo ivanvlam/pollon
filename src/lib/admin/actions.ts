@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { recalculateMatchScores } from "@/lib/scoring-service";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { fetchWorldCupPlayers } from "@/lib/thesportsdb";
 
 export type AdminResult = { ok: true } | { ok: false; error: string };
 
@@ -89,5 +90,55 @@ export async function saveMatchResult(
 
   revalidatePath(`/pool/${poolId}`);
   revalidatePath(`/pool/${poolId}/admin`);
+  return { ok: true };
+}
+
+/** Sincroniza los jugadores de todos los equipos desde TheSportsDB. */
+export async function syncPlayers(poolId: string): Promise<AdminResult & { count?: number }> {
+  const auth = await assertAdmin();
+  if (!auth.ok) return auth;
+
+  const svc = createServiceRoleClient();
+
+  const { data: matches } = await svc
+    .from("matches")
+    .select("home_team, away_team");
+
+  const teams = [
+    ...new Set((matches ?? []).flatMap((m) => [m.home_team, m.away_team])),
+  ];
+
+  if (teams.length === 0) return { ok: false, error: "No hay equipos cargados aún" };
+
+  const players = await fetchWorldCupPlayers(teams);
+  if (players.length === 0) return { ok: false, error: "La API no devolvió jugadores" };
+
+  const { error } = await svc
+    .from("players")
+    .upsert(players, { onConflict: "name,team" });
+
+  if (error) return { ok: false, error: "No se pudieron guardar los jugadores" };
+
+  revalidatePath(`/pool/${poolId}/admin`);
+  return { ok: true, count: players.length };
+}
+
+/** Marca el goleador real y recalcula puntos. */
+export async function setActualTopScorer(
+  poolId: string,
+  playerName: string,
+): Promise<AdminResult> {
+  const auth = await assertAdmin();
+  if (!auth.ok) return auth;
+
+  const svc = createServiceRoleClient();
+  const { error } = await svc.rpc("recalculate_top_scorer_scores", {
+    p_player_name: playerName,
+  });
+
+  if (error) return { ok: false, error: `Error al calcular: ${error.message}` };
+
+  revalidatePath(`/pool/${poolId}/admin`);
+  revalidatePath(`/pool/${poolId}`);
   return { ok: true };
 }

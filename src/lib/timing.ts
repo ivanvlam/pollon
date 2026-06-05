@@ -64,6 +64,16 @@ export function isChampionLocked(
   return now >= lock;
 }
 
+/** ms hasta el cierre de campeón/goleador. Negativo si ya cerró. */
+export function msUntilChampionLock(
+  firstKickoffAt: string | null,
+  now: number = Date.now(),
+): number {
+  if (firstKickoffAt === null) return Infinity;
+  const lock = parseKickoff(firstKickoffAt) - CHAMPION_LOCK_MS;
+  return lock - now;
+}
+
 /**
  * Formatea una duración (ms) como countdown legible.
  * Negativo o cero → "Cerrado".

@@ -115,6 +115,50 @@ function toExternal(ev: SdbEvent, round: Round): ExternalMatch {
   };
 }
 
+export interface ExternalPlayer {
+  name: string;
+  team: string;
+}
+
+async function fetchTeamId(key: string, teamName: string): Promise<string | null> {
+  const res = await fetch(
+    `https://www.thesportsdb.com/api/v1/json/${key}/searchteams.php?t=${encodeURIComponent(teamName)}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) return null;
+  const json = (await res.json()) as { teams: { idTeam: string }[] | null };
+  return json.teams?.[0]?.idTeam ?? null;
+}
+
+async function fetchPlayersByTeamId(key: string, teamId: string, teamName: string): Promise<ExternalPlayer[]> {
+  const res = await fetch(
+    `https://www.thesportsdb.com/api/v1/json/${key}/lookup_all_players.php?id=${teamId}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) return [];
+  const json = (await res.json()) as { player: { strPlayer: string }[] | null };
+  return (json.player ?? []).map((p) => ({ name: p.strPlayer, team: teamName }));
+}
+
+/**
+ * Trae los jugadores de todos los equipos indicados desde TheSportsDB.
+ * Ejecutar una sola vez desde el panel admin — hace 2 requests por equipo.
+ */
+export async function fetchWorldCupPlayers(teams: string[]): Promise<ExternalPlayer[]> {
+  const key = process.env.THESPORTSDB_KEY || "3";
+  const all: ExternalPlayer[] = [];
+
+  for (const team of teams) {
+    const teamId = await fetchTeamId(key, team);
+    if (!teamId) continue;
+    const players = await fetchPlayersByTeamId(key, teamId, team);
+    all.push(...players);
+    await new Promise((r) => setTimeout(r, 200));
+  }
+
+  return all;
+}
+
 /**
  * Trae todos los partidos del Mundial iterando por ronda y deduplicando.
  * Las rondas eliminatorias devuelven vacío hasta que se definen los cruces.
