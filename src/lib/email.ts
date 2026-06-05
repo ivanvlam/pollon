@@ -20,8 +20,9 @@ export interface ReminderEmail {
   matchUrl: string;
 }
 
-/** Envía un recordatorio de cierre de predicción. */
+/** Envía un recordatorio de cierre de predicción. No-op si RESEND_API_KEY no está configurada. */
 export async function sendReminderEmail(email: ReminderEmail): Promise<void> {
+  if (!process.env.RESEND_API_KEY) return;
   const resend = getClient();
   const kickoff = new Date(email.kickoffAt).toLocaleString("es", {
     dateStyle: "full",
