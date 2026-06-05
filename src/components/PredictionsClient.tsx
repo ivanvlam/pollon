@@ -88,6 +88,12 @@ export function PredictionsClient({
     () => new Set(allPreds.filter((p) => p.user_id === uid).map((p) => p.match_id)),
   );
 
+  // Valores de predicción guardados localmente para que el form no pierda los
+  // datos si se desmonta y vuelve a montar por un cambio de filtro.
+  const [localPreds, setLocalPreds] = useState<Map<string, { home: number; away: number; winner: string | null }>>(
+    () => new Map(),
+  );
+
   const memberSet = useMemo(() => new Set(memberIds), [memberIds]);
 
   const groups = useMemo(
@@ -288,14 +294,15 @@ export function PredictionsClient({
                       homeTeam={toSpanish(match.home_team)}
                       awayTeam={toSpanish(match.away_team)}
                       isKnockout={knockout}
-                      initialHome={mine?.predicted_home ?? null}
-                      initialAway={mine?.predicted_away ?? null}
+                      initialHome={localPreds.get(match.id)?.home ?? mine?.predicted_home ?? null}
+                      initialAway={localPreds.get(match.id)?.away ?? mine?.predicted_away ?? null}
                       initialWinner={
-                        (mine?.predicted_winner as MatchWinner | null) ?? null
+                        ((localPreds.get(match.id)?.winner ?? mine?.predicted_winner) as MatchWinner | null) ?? null
                       }
-                      onSaved={(id) =>
-                        setSavedMatchIds((prev) => new Set([...prev, id]))
-                      }
+                      onSaved={(id, home, away, winner) => {
+                        setSavedMatchIds((prev) => new Set([...prev, id]));
+                        setLocalPreds((prev) => new Map(prev).set(id, { home, away, winner }));
+                      }}
                     />
                   ) : (
                     <div className="flex flex-col gap-3">

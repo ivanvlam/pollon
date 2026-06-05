@@ -19,7 +19,7 @@ interface Props {
   initialHome: number | null;
   initialAway: number | null;
   initialWinner: MatchWinner | null;
-  onSaved?: (matchId: string) => void;
+  onSaved?: (matchId: string, home: number, away: number, winner: MatchWinner | null) => void;
 }
 
 export function PredictionForm({
@@ -83,7 +83,7 @@ export function PredictionForm({
       });
       if (result.ok) {
         setState("saved");
-        onSaved?.(matchId);
+        onSaved?.(matchId, h, a, winner ?? null);
       } else {
         setState("error");
         setErrorMsg(result.error);
