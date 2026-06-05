@@ -100,16 +100,17 @@ export default async function PoolRankingPage({
             Todavía no hay puntos. ¡Empieza a predecir!
           </p>
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[24rem] text-left text-sm">
               <thead className="border-b border-neutral-800 text-neutral-400">
                 <tr>
                   <th className="py-2 pr-2">#</th>
                   <th className="py-2">Jugador</th>
-                  <th className="py-2 pr-2 text-right">Pts</th>
-                  <th className="py-2 pr-2 text-right">Exactos</th>
-                  <th className="py-2 pr-2 text-right">Dif</th>
-                  <th className="py-2 text-right">Aciertos</th>
+                  <th className="py-2 pr-2 text-right" title="Puntos totales">Pts</th>
+                  <th className="py-2 pr-2 text-right" title="Marcador exacto (5 pts)">Exactos</th>
+                  <th className="py-2 pr-2 text-right" title="Diferencia de goles correcta (3 pts)">Dif</th>
+                  <th className="py-2 text-right" title="Solo ganador / clasificado acertado (2 pts)">Aciertos</th>
                 </tr>
               </thead>
               <tbody>
@@ -146,6 +147,12 @@ export default async function PoolRankingPage({
               </tbody>
             </table>
           </div>
+          <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-xs text-neutral-500">
+            <div className="flex gap-1"><dt className="font-medium text-neutral-400">Exactos</dt><dd>marcador exacto · 5 pts</dd></div>
+            <div className="flex gap-1"><dt className="font-medium text-neutral-400">Dif</dt><dd>misma diferencia de goles · 3 pts</dd></div>
+            <div className="flex gap-1"><dt className="font-medium text-neutral-400">Aciertos</dt><dd>solo ganador / clasificado · 2 pts</dd></div>
+          </dl>
+          </>
         )}
       </section>
     </div>
