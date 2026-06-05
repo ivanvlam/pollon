@@ -1,4 +1,3 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#10b981" />
-  <text x="50%" y="50%" font-family="system-ui, -apple-system, sans-serif" font-size="38" font-weight="700" fill="#0a0a0b" text-anchor="middle" dominant-baseline="central">P</text>
+  <text x="50%" y="54%" font-size="52" text-anchor="middle" dominant-baseline="central">⚽</text>
 </svg>

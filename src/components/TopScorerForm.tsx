@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { FieldError } from "@/components/ui/FieldError";
 import { submitTopScorer } from "@/lib/top-scorer/actions";
+import { toSpanish } from "@/lib/teamNames";
 
 interface Player {
   name: string;
@@ -27,7 +28,7 @@ export function TopScorerForm({ players, initialPlayer }: Props) {
   const filtered = query.length < 2
     ? []
     : players.filter((p) =>
-        `${p.name} ${p.team}`.toLowerCase().includes(query.toLowerCase()),
+        `${p.name} ${p.team} ${toSpanish(p.team)}`.toLowerCase().includes(query.toLowerCase()),
       ).slice(0, 40);
 
   function pick(player: Player) {
@@ -75,7 +76,7 @@ export function TopScorerForm({ players, initialPlayer }: Props) {
                 className="cursor-pointer px-3 py-2 text-sm hover:bg-neutral-800"
               >
                 <span className="font-medium text-neutral-100">{p.name}</span>
-                <span className="ml-2 text-neutral-500">{p.team}</span>
+                <span className="ml-2 text-neutral-500">{toSpanish(p.team)}</span>
               </li>
             ))}
           </ul>
