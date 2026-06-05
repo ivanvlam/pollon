@@ -41,7 +41,9 @@ export async function GET(request: NextRequest) {
     (existing ?? []).map((m) => [m.external_id, m.status]),
   );
 
-  // Upsert de todos los fixtures (no tocamos is_active: lo controla el admin).
+  // Upsert de todos los fixtures.
+  // Fase de grupos se activa automáticamente (equipos ya conocidos).
+  // Eliminatorias quedan inactivas hasta que el admin las habilite manualmente.
   const { error: upsertErr } = await supabase.from("matches").upsert(
     fixtures.map((f) => ({
       external_id: f.external_id,
@@ -55,6 +57,7 @@ export async function GET(request: NextRequest) {
       away_score: f.away_score,
       winner: f.winner,
       updated_at: new Date().toISOString(),
+      ...(f.round === "group_stage" ? { is_active: true } : {}),
     })),
     { onConflict: "external_id" },
   );

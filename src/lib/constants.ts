@@ -2,8 +2,8 @@
 // Constantes del proyecto Pollon
 // ============================================================
 
-/** Horas antes del kickoff en que se cierran las predicciones de partidos. */
-export const LOCK_HOURS_BEFORE_KICKOFF = 1;
+/** Horas antes del kickoff en que se cierran las predicciones de partidos. 0 = cierra al inicio. */
+export const LOCK_HOURS_BEFORE_KICKOFF = 0;
 
 /** Horas antes del PRIMER partido en que se cierra la predicción de campeón. */
 export const CHAMPION_LOCK_HOURS = 1;
@@ -29,6 +29,7 @@ export const PREDICTION_DEBOUNCE_MS = 500;
 /** Rondas del torneo. */
 export const ROUNDS = [
   "group_stage",
+  "round_of_32",
   "round_of_16",
   "quarterfinal",
   "semifinal",

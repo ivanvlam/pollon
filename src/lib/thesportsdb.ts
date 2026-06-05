@@ -23,6 +23,7 @@ const ROUND_DEFS: { r: number; round: Round }[] = [
   { r: 1, round: "group_stage" },
   { r: 2, round: "group_stage" },
   { r: 3, round: "group_stage" },
+  { r: 32, round: "round_of_32" },
   { r: 16, round: "round_of_16" },
   { r: 125, round: "quarterfinal" },
   { r: 150, round: "semifinal" },
