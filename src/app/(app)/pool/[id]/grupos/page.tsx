@@ -63,7 +63,7 @@ export default async function GroupsPage({
           href={`/pool/${params.id}`}
           className="text-sm text-emerald-400 hover:underline"
         >
-          Volver al ranking
+          ← Volver al ranking
         </Link>
       </header>
 

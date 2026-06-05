@@ -40,7 +40,7 @@ export default function PrivacyPage() {
 
       <p className="mt-8">
         <Link href="/" className="text-sm underline">
-          Volver al inicio
+          ← Volver al inicio
         </Link>
       </p>
     </main>

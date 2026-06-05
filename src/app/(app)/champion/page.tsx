@@ -41,7 +41,7 @@ export default async function ChampionPage() {
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">🏆 Campeón y Goleador</h1>
         <Link href="/dashboard" className="text-sm underline">
-          Volver
+          ← Volver
         </Link>
       </header>
 

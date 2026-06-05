@@ -39,7 +39,7 @@ export default async function AdminPage({
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Admin · {pool.name}</h1>
         <Link href={`/pool/${pool.id}`} className="text-sm underline">
-          Volver al ranking
+          ← Volver al ranking
         </Link>
       </header>
 

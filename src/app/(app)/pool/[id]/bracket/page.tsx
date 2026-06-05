@@ -64,7 +64,7 @@ export default async function BracketPage({
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Bracket</h1>
         <Link href={`/pool/${params.id}`} className="text-sm text-emerald-400 hover:underline">
-          Volver al ranking
+          ← Volver al ranking
         </Link>
       </header>
 
