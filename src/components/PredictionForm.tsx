@@ -19,6 +19,7 @@ interface Props {
   initialHome: number | null;
   initialAway: number | null;
   initialWinner: MatchWinner | null;
+  onSaved?: (matchId: string) => void;
 }
 
 export function PredictionForm({
@@ -29,6 +30,7 @@ export function PredictionForm({
   initialHome,
   initialAway,
   initialWinner,
+  onSaved,
 }: Props) {
   const [home, setHome] = useState<string>(initialHome?.toString() ?? "");
   const [away, setAway] = useState<string>(initialAway?.toString() ?? "");
@@ -81,6 +83,7 @@ export function PredictionForm({
       });
       if (result.ok) {
         setState("saved");
+        onSaved?.(matchId);
       } else {
         setState("error");
         setErrorMsg(result.error);

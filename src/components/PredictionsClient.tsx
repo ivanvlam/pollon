@@ -82,6 +82,12 @@ export function PredictionsClient({
   const [sort, setSort] = useState<SortKey>("kickoff_asc");
   const [predFilter, setPredFilter] = useState<PredFilter>("all");
 
+  // Set de matchIds con predicción propia — se actualiza optimistamente cuando
+  // PredictionForm guarda, sin esperar a que el servidor re-renderice.
+  const [savedMatchIds, setSavedMatchIds] = useState<Set<string>>(
+    () => new Set(allPreds.filter((p) => p.user_id === uid).map((p) => p.match_id)),
+  );
+
   const memberSet = useMemo(() => new Set(memberIds), [memberIds]);
 
   const groups = useMemo(
@@ -128,7 +134,7 @@ export function PredictionsClient({
 
     if (predFilter !== "all") {
       result = result.filter((m) => {
-        const has = myPredByMatch.has(m.id);
+        const has = savedMatchIds.has(m.id);
         return predFilter === "with" ? has : !has;
       });
     }
@@ -286,6 +292,9 @@ export function PredictionsClient({
                       initialAway={mine?.predicted_away ?? null}
                       initialWinner={
                         (mine?.predicted_winner as MatchWinner | null) ?? null
+                      }
+                      onSaved={(id) =>
+                        setSavedMatchIds((prev) => new Set([...prev, id]))
                       }
                     />
                   ) : (
