@@ -23,14 +23,18 @@ export default function ComoFuncionaPage() {
         <h2 className="text-lg font-semibold">Fase de grupos</h2>
         <ul className="flex flex-col gap-2 text-sm text-neutral-300">
           <li>
-            <span className="font-semibold text-emerald-400">3 pts</span>:
+            <span className="font-semibold text-emerald-400">5 pts</span>:
             marcador exacto (predices 2-1 y termina 2-1).
           </li>
           <li>
-            <span className="font-semibold text-emerald-400">1 pt</span>:
-            aciertas el ganador o el empate, pero no el marcador exacto.
+            <span className="font-semibold text-emerald-400">3 pts</span>:
+            aciertas el tipo de resultado y la diferencia de goles, pero no el marcador exacto (predices 2-0 y termina 3-1).
           </li>
-          <li className="text-neutral-500">Son excluyentes: o 3, o 1, o 0.</li>
+          <li>
+            <span className="font-semibold text-emerald-400">2 pts</span>:
+            aciertas solo el ganador o el empate.
+          </li>
+          <li className="text-neutral-500">Son excluyentes: se aplica el nivel más alto.</li>
         </ul>
       </Card>
 
@@ -38,31 +42,36 @@ export default function ComoFuncionaPage() {
         <h2 className="text-lg font-semibold">Fase eliminatoria</h2>
         <ul className="flex flex-col gap-2 text-sm text-neutral-300">
           <li>
-            <span className="font-semibold text-emerald-400">2 pts</span>: por
-            acertar quién clasifica.
+            <span className="font-semibold text-emerald-400">5 pts</span>:
+            marcador exacto a 90 minutos + aciertas quién clasifica.
           </li>
           <li>
-            <span className="font-semibold text-emerald-400">+2 pts</span>: por
-            el marcador exacto a los 90 minutos.
+            <span className="font-semibold text-emerald-400">3 pts</span>:
+            tipo de resultado + diferencia de goles correcta + quién clasifica.
+          </li>
+          <li>
+            <span className="font-semibold text-emerald-400">2 pts</span>:
+            solo aciertas quién clasifica.
           </li>
           <li className="text-neutral-500">
-            Se suman (máximo 4). El marcador es siempre a 90 minutos. Si predices
-            empate, eliges quién clasifica (la serie se define en prórroga o
-            penales); si no, clasifica el ganador del partido.
+            El marcador es siempre a 90 minutos. Puedes predecir empate y elegir quién clasifica
+            (la serie se define en prórroga o penales).
           </li>
         </ul>
       </Card>
 
       <Card className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Campeón del Mundial</h2>
+        <h2 className="text-lg font-semibold">Campeón y Goleador</h2>
         <ul className="flex flex-col gap-2 text-sm text-neutral-300">
           <li>
-            <span className="font-semibold text-emerald-400">10 pts</span>: si
-            aciertas el campeón.
+            <span className="font-semibold text-emerald-400">15 pts</span>: si aciertas el campeón del Mundial.
+          </li>
+          <li>
+            <span className="font-semibold text-emerald-400">10 pts</span>: si aciertas el goleador del torneo.
           </li>
           <li className="text-neutral-500">
-            Se elige hasta 1 hora antes del primer partido del torneo y es
-            independiente de tu predicción de la final.
+            Ambas predicciones se cierran 1 hora antes del primer partido e
+            son independientes de las predicciones de partidos.
           </li>
         </ul>
       </Card>
@@ -79,8 +88,7 @@ export default function ComoFuncionaPage() {
             polla.
           </li>
           <li className="text-neutral-500">
-            Desempate del ranking: más marcadores exactos, luego más ganadores
-            acertados, luego campeón acertado, y por último orden alfabético.
+            Desempate: más exactos (5 pts) → más diferencias acertadas (3 pts) → más ganadores (2 pts) → campeón acertado → orden alfabético.
           </li>
         </ul>
       </Card>
