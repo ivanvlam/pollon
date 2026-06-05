@@ -120,16 +120,6 @@ export interface ExternalPlayer {
   team: string;
 }
 
-async function fetchTeamId(key: string, teamName: string): Promise<string | null> {
-  const res = await fetch(
-    `https://www.thesportsdb.com/api/v1/json/${key}/searchteams.php?t=${encodeURIComponent(teamName)}`,
-    { cache: "no-store" },
-  );
-  if (!res.ok) return null;
-  const json = (await res.json()) as { teams: { idTeam: string }[] | null };
-  return json.teams?.[0]?.idTeam ?? null;
-}
-
 async function fetchPlayersByTeamId(key: string, teamId: string, teamName: string): Promise<ExternalPlayer[]> {
   const res = await fetch(
     `https://www.thesportsdb.com/api/v1/json/${key}/lookup_all_players.php?id=${teamId}`,
@@ -141,24 +131,44 @@ async function fetchPlayersByTeamId(key: string, teamId: string, teamName: strin
 }
 
 /**
- * Trae los jugadores de todos los equipos indicados desde TheSportsDB.
- * Ejecutar una sola vez desde el panel admin.
- * Hace todas las búsquedas en paralelo para evitar el timeout de Vercel.
+ * Trae los jugadores del Mundial extrayendo los IDs de equipo directamente
+ * desde los eventos de la fase de grupos (rondas 1-3 cubren los 48 equipos).
+ * Más confiable que buscar por nombre, que devuelve equipos incorrectos.
  */
-export async function fetchWorldCupPlayers(teams: string[]): Promise<ExternalPlayer[]> {
+export async function fetchWorldCupPlayers(): Promise<ExternalPlayer[]> {
   const key = process.env.THESPORTSDB_KEY || "3";
+  const base = `https://www.thesportsdb.com/api/v1/json/${key}`;
 
-  const teamIds = await Promise.all(
-    teams.map(async (team) => {
-      const id = await fetchTeamId(key, team);
-      return id ? { id, team } : null;
+  interface SdbEventWithIds {
+    strHomeTeam: string;
+    strAwayTeam: string;
+    idHomeTeam: string;
+    idAwayTeam: string;
+  }
+
+  // Rondas 1-3 de grupos cubren los 48 equipos
+  const rounds = await Promise.all(
+    [1, 2, 3].map(async (r) => {
+      const res = await fetch(`${base}/eventsround.php?id=${WORLD_CUP_LEAGUE_ID}&r=${r}&s=${WORLD_CUP_SEASON}`, { cache: "no-store" });
+      if (!res.ok) return [];
+      const json = (await res.json()) as { events: SdbEventWithIds[] | null };
+      return json.events ?? [];
     }),
   );
 
-  const valid = teamIds.filter(Boolean) as { id: string; team: string }[];
+  // Construir mapa nombre → id (deduplicado)
+  const teamMap = new Map<string, string>();
+  for (const events of rounds) {
+    for (const ev of events) {
+      if (ev.idHomeTeam) teamMap.set(ev.strHomeTeam, ev.idHomeTeam);
+      if (ev.idAwayTeam) teamMap.set(ev.strAwayTeam, ev.idAwayTeam);
+    }
+  }
+
+  if (teamMap.size === 0) return [];
 
   const playerArrays = await Promise.all(
-    valid.map(({ id, team }) => fetchPlayersByTeamId(key, id, team)),
+    [...teamMap.entries()].map(([team, id]) => fetchPlayersByTeamId(key, id, team)),
   );
 
   return playerArrays.flat();

@@ -100,17 +100,7 @@ export async function syncPlayers(poolId: string): Promise<AdminResult & { count
 
   const svc = createServiceRoleClient();
 
-  const { data: matches } = await svc
-    .from("matches")
-    .select("home_team, away_team");
-
-  const teams = [
-    ...new Set((matches ?? []).flatMap((m) => [m.home_team, m.away_team])),
-  ];
-
-  if (teams.length === 0) return { ok: false, error: "No hay equipos cargados aún" };
-
-  const players = await fetchWorldCupPlayers(teams);
+  const players = await fetchWorldCupPlayers();
   if (players.length === 0) return { ok: false, error: "La API no devolvió jugadores" };
 
   const { error } = await svc
