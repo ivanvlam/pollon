@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 
 import { Flag } from "@/components/Flag";
+import { toSpanish } from "@/lib/teamNames";
 import { createClient } from "@/lib/supabase/server";
 import type { MatchWinner, Round } from "@/types";
 
@@ -68,7 +69,7 @@ export default async function BracketPage({
       </header>
 
       <p className="text-xs text-neutral-500">
-        Deslizá horizontalmente para ver todas las rondas.
+        Desliza horizontalmente para ver todas las rondas.
       </p>
 
       {/* ── Bracket ─────────────────────────────────────────────────────── */}
@@ -281,7 +282,7 @@ function TeamRow({
     <div className={`flex items-center justify-between gap-1 ${win ? "font-semibold text-emerald-400" : "text-neutral-300"}`}>
       <span className="flex min-w-0 items-center gap-1">
         <Flag team={team} />
-        <span className="truncate">{team}</span>
+        <span className="truncate">{toSpanish(team)}</span>
       </span>
       <span className="tabular-nums">{value ?? "–"}</span>
     </div>

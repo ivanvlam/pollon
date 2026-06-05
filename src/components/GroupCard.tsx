@@ -3,10 +3,10 @@
 import { useState } from "react";
 
 import { Flag } from "@/components/Flag";
-import { LockCountdown } from "@/components/LockCountdown";
-import { PredictionForm } from "@/components/PredictionForm";
+import { GroupModal } from "@/components/GroupModal";
 import { Card } from "@/components/ui/Card";
 import type { StandingRow } from "@/lib/standings";
+import { toSpanish } from "@/lib/teamNames";
 import { isPredictionLocked } from "@/lib/timing";
 
 export interface GroupMatchRow {
@@ -29,9 +29,6 @@ interface Props {
   yourPoints: number;
 }
 
-const fmt = (h: number | null, a: number | null) =>
-  h === null || a === null ? "- : -" : `${h} : ${a}`;
-
 export function GroupCard({ name, standings, matches, yourPoints }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -40,127 +37,73 @@ export function GroupCard({ name, standings, matches, yourPoints }: Props) {
   ).length;
 
   return (
-    <Card className="flex flex-col gap-5 p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">{name}</h2>
-        {yourPoints > 0 && (
-          <span className="text-sm text-emerald-400">{yourPoints} pts</span>
-        )}
-      </div>
+    <>
+      <Card className="flex flex-col gap-4 p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">{name}</h2>
+          {yourPoints > 0 && (
+            <span className="text-sm text-emerald-400">{yourPoints} pts</span>
+          )}
+        </div>
 
-      {/* Tabla de posiciones */}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[18rem] text-left text-sm">
-          <thead className="border-b border-neutral-800 text-xs text-neutral-500">
-            <tr>
-              <th className="pb-1 pr-2">#</th>
-              <th className="pb-1">Equipo</th>
-              <th className="pb-1 pr-2 text-center">PJ</th>
-              <th className="pb-1 pr-2 text-center">DG</th>
-              <th className="pb-1 text-center">Pts</th>
-            </tr>
-          </thead>
-          <tbody>
-            {standings.map((row, i) => (
-              <tr key={row.team} className="border-b border-neutral-900 last:border-0">
-                <td className="py-1.5 pr-2 text-neutral-500">{i + 1}</td>
-                <td className="py-1.5">
-                  <span className="flex items-center gap-2">
-                    <Flag team={row.team} />
-                    {row.team}
-                  </span>
-                </td>
-                <td className="py-1.5 pr-2 text-center text-neutral-400">{row.played}</td>
-                <td className="py-1.5 pr-2 text-center text-neutral-400">
-                  {row.gd > 0 ? `+${row.gd}` : row.gd}
-                </td>
-                <td className="py-1.5 text-center font-semibold">{row.points}</td>
+        {/* Tabla de posiciones */}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[16rem] text-left text-sm">
+            <thead className="border-b border-neutral-800 text-xs text-neutral-500">
+              <tr>
+                <th className="pb-1 pr-2">#</th>
+                <th className="pb-1">Equipo</th>
+                <th className="pb-1 pr-2 text-center">PJ</th>
+                <th className="pb-1 pr-2 text-center">DG</th>
+                <th className="pb-1 text-center">Pts</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {standings.map((row, i) => (
+                <tr key={row.team} className="border-b border-neutral-900 last:border-0">
+                  <td className="py-1.5 pr-2 text-neutral-500">{i + 1}</td>
+                  <td className="py-1.5">
+                    <span className="flex items-center gap-2">
+                      <Flag team={row.team} />
+                      {toSpanish(row.team)}
+                    </span>
+                  </td>
+                  <td className="py-1.5 pr-2 text-center text-neutral-400">{row.played}</td>
+                  <td className="py-1.5 pr-2 text-center text-neutral-400">
+                    {row.gd > 0 ? `+${row.gd}` : row.gd}
+                  </td>
+                  <td className="py-1.5 text-center font-semibold">{row.points}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      {/* Toggle partidos */}
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 text-sm text-neutral-400 transition hover:text-neutral-200"
-      >
-        {open ? "Ocultar partidos ▲" : `Ver ${matches.length} partidos ▾`}
-        {!open && pendingCount > 0 && (
-          <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-400">
-            {pendingCount} sin predicción
-          </span>
-        )}
-      </button>
+        {/* Botón abrir modal */}
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex items-center justify-between rounded-lg border border-neutral-800 px-3 py-2 text-sm text-neutral-400 transition hover:border-neutral-600 hover:text-neutral-200"
+        >
+          <span>Ver {matches.length} partidos</span>
+          {pendingCount > 0 ? (
+            <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-400">
+              {pendingCount} sin predicción
+            </span>
+          ) : (
+            <span className="text-neutral-600">→</span>
+          )}
+        </button>
+      </Card>
 
       {open && (
-        <div className="flex flex-col gap-3">
-          {matches.map((match) => {
-            const locked = isPredictionLocked(match.kickoff_at);
-            const finished = match.status === "finished";
-            const canPredict = match.is_active && !locked;
-
-            return (
-              <div key={match.id} className="rounded-lg border border-neutral-800 p-3">
-                <div className="mb-2 flex items-center justify-between text-xs text-neutral-500">
-                  <span>{new Date(match.kickoff_at).toLocaleString()}</span>
-                  {finished ? (
-                    <span className="font-medium text-neutral-300">
-                      Final {fmt(match.home_score, match.away_score)}
-                    </span>
-                  ) : locked ? (
-                    <span>Empezó</span>
-                  ) : (
-                    <LockCountdown kickoffAt={match.kickoff_at} />
-                  )}
-                </div>
-
-                {canPredict ? (
-                  <PredictionForm
-                    matchId={match.id}
-                    homeTeam={match.home_team}
-                    awayTeam={match.away_team}
-                    isKnockout={false}
-                    initialHome={match.pred?.predicted_home ?? null}
-                    initialAway={match.pred?.predicted_away ?? null}
-                    initialWinner={null}
-                  />
-                ) : (
-                  <div className="text-sm">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="flex min-w-0 items-center gap-1.5">
-                        <Flag team={match.home_team} className="shrink-0" />
-                        <span className="truncate">{match.home_team}</span>
-                      </span>
-                      <span className="tabular-nums text-neutral-300">
-                        {match.pred?.predicted_home ?? "–"}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <span className="flex min-w-0 items-center gap-1.5">
-                        <Flag team={match.away_team} className="shrink-0" />
-                        <span className="truncate">{match.away_team}</span>
-                      </span>
-                      <span className="tabular-nums text-neutral-300">
-                        {match.pred?.predicted_away ?? "–"}
-                      </span>
-                    </div>
-                    {match.myPoints !== undefined && (
-                      <div className="mt-1.5 text-right">
-                        <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs text-emerald-400">
-                          +{match.myPoints} pts
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <GroupModal
+          name={name}
+          standings={standings}
+          matches={matches}
+          onClose={() => setOpen(false)}
+        />
       )}
-    </Card>
+    </>
   );
 }

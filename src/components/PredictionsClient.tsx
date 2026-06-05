@@ -7,6 +7,7 @@ import { LockCountdown } from "@/components/LockCountdown";
 import { PredictionForm } from "@/components/PredictionForm";
 import { Card } from "@/components/ui/Card";
 import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
+import { toSpanish } from "@/lib/teamNames";
 import { isPredictionLocked } from "@/lib/timing";
 import type { MatchWinner } from "@/types";
 
@@ -278,8 +279,8 @@ export function PredictionsClient({
                   {!locked ? (
                     <PredictionForm
                       matchId={match.id}
-                      homeTeam={match.home_team}
-                      awayTeam={match.away_team}
+                      homeTeam={toSpanish(match.home_team)}
+                      awayTeam={toSpanish(match.away_team)}
                       isKnockout={knockout}
                       initialHome={mine?.predicted_home ?? null}
                       initialAway={mine?.predicted_away ?? null}
@@ -292,9 +293,9 @@ export function PredictionsClient({
                       <div className="flex items-center justify-between text-sm">
                         <span className="flex items-center gap-2 font-medium">
                           <Flag team={match.home_team} />
-                          {match.home_team}
+                          {toSpanish(match.home_team)}
                           <span className="text-neutral-500">vs</span>
-                          {match.away_team}
+                          {toSpanish(match.away_team)}
                           <Flag team={match.away_team} />
                         </span>
                         {myPoints !== undefined && (
@@ -311,7 +312,7 @@ export function PredictionsClient({
                             {mine
                               ? `${fmt(mine.predicted_home, mine.predicted_away)}${
                                   mine.predicted_winner
-                                    ? ` · ${mine.predicted_winner === "home" ? match.home_team : match.away_team}`
+                                    ? ` · ${mine.predicted_winner === "home" ? toSpanish(match.home_team) : toSpanish(match.away_team)}`
                                     : ""
                                 }`
                               : "sin predicción"}
@@ -326,7 +327,7 @@ export function PredictionsClient({
                             <span>
                               {fmt(p.predicted_home, p.predicted_away)}
                               {p.predicted_winner
-                                ? ` · ${p.predicted_winner === "home" ? match.home_team : match.away_team}`
+                                ? ` · ${p.predicted_winner === "home" ? toSpanish(match.home_team) : toSpanish(match.away_team)}`
                                 : ""}
                             </span>
                           </li>
