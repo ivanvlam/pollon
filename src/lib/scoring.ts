@@ -1,23 +1,17 @@
 // ============================================================
 // Pollon — Lógica de puntuación (función pura, testeable)
 // ============================================================
-// Reglas del CLAUDE.md:
+// Sistema de puntos (excluyente, se aplica el nivel más alto):
 //
-// Fase de grupos (excluyente):
-//   - 3 pts marcador exacto
-//   - 1 pt  ganador/empate correcto sin marcador exacto
+// Fase de grupos:
+//   5 pts — marcador exacto                          → exact_score
+//   3 pts — tipo correcto + misma diferencia de goles → correct_diff
+//   2 pts — solo tipo correcto (ganador/empate)       → correct_winner / correct_draw
 //
-// Eliminatorias (se suman, máx 4):
-//   - 2 pts acertar quién clasifica
-//   - 2 pts marcador exacto a 90 min
-//
-// Como `scores` tiene UNIQUE(user_id, pool_id, match_id), se guarda UNA
-// fila por partido. La `reason` resume la combinación:
-//   - exact_qualifier_score : exacto + clasificado (4 pts)
-//   - exact_score           : exacto (grupo 3 pts; elim solo-exacto 2 pts)
-//   - correct_winner        : ganador correcto en grupos (1 pt)
-//   - correct_draw          : empate correcto en grupos (1 pt)
-//   - correct_qualifier     : solo clasificado en elim (2 pts)
+// Eliminatorias:
+//   5 pts — marcador exacto a 90 min + clasificado   → exact_qualifier_score
+//   3 pts — tipo + diferencia correcta + clasificado  → correct_diff_qualifier
+//   2 pts — solo clasificado correcto                 → correct_qualifier
 
 import { POINTS } from "@/lib/constants";
 import type { MatchWinner, Round, ScoreReason } from "@/types";
@@ -66,40 +60,35 @@ export function calculateMatchScore(
     prediction.predicted_home === match.home_score &&
     prediction.predicted_away === match.away_score;
 
+  const actualDiff = match.home_score - match.away_score;
+  const predictedDiff = prediction.predicted_home - prediction.predicted_away;
+  const sameDiff = actualDiff === predictedDiff;
+
+  const actualOutcome = outcomeOf(match.home_score, match.away_score);
+  const predictedOutcome = outcomeOf(prediction.predicted_home, prediction.predicted_away);
+  const sameOutcome = actualOutcome === predictedOutcome;
+
   if (match.round === "group_stage") {
-    if (exactScore) {
-      return { points: POINTS.GROUP_EXACT, reason: "exact_score" };
-    }
-    const actual = outcomeOf(match.home_score, match.away_score);
-    const predicted = outcomeOf(
-      prediction.predicted_home,
-      prediction.predicted_away,
-    );
-    if (actual === predicted) {
+    if (exactScore) return { points: POINTS.EXACT, reason: "exact_score" };
+    if (sameDiff) return { points: POINTS.DIFF, reason: "correct_diff" };
+    if (sameOutcome) {
       return {
-        points: POINTS.GROUP_WINNER,
-        reason: actual === "draw" ? "correct_draw" : "correct_winner",
+        points: POINTS.WINNER,
+        reason: actualOutcome === "draw" ? "correct_draw" : "correct_winner",
       };
     }
     return null;
   }
 
-  // Eliminatorias
+  // Eliminatorias: sin clasificado correcto no hay puntos
   const qualifierCorrect =
     prediction.predicted_winner !== null &&
     match.winner !== null &&
     prediction.predicted_winner === match.winner;
 
-  let points = 0;
-  if (qualifierCorrect) points += POINTS.ELIM_QUALIFIER;
-  if (exactScore) points += POINTS.ELIM_EXACT;
+  if (!qualifierCorrect) return null;
 
-  if (points === 0) return null;
-
-  let reason: ScoreReason;
-  if (qualifierCorrect && exactScore) reason = "exact_qualifier_score";
-  else if (exactScore) reason = "exact_score";
-  else reason = "correct_qualifier";
-
-  return { points, reason };
+  if (exactScore) return { points: POINTS.EXACT, reason: "exact_qualifier_score" };
+  if (sameDiff) return { points: POINTS.DIFF, reason: "correct_diff_qualifier" };
+  return { points: POINTS.WINNER, reason: "correct_qualifier" };
 }

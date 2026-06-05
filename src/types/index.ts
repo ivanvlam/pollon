@@ -13,9 +13,11 @@ export type MatchWinner = "home" | "away";
 
 export type ScoreReason =
   | "exact_score"
+  | "correct_diff"
   | "correct_winner"
   | "correct_draw"
   | "correct_qualifier"
+  | "correct_diff_qualifier"
   | "exact_qualifier_score"
   | "champion";
 
@@ -95,6 +97,7 @@ export interface RankingRow {
   display_name: string;
   total: number;
   exact_count: number;
+  diff_count: number;
   winner_count: number;
   champion_correct: boolean;
 }

@@ -301,6 +301,7 @@ export interface Database {
           display_name: string;
           total: number;
           exact_count: number;
+          diff_count: number;
           winner_count: number;
           champion_correct: boolean;
         }[];

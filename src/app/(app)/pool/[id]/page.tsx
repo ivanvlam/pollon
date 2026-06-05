@@ -99,6 +99,7 @@ export default async function PoolRankingPage({
                   <th className="py-2">Jugador</th>
                   <th className="py-2 pr-2 text-right">Pts</th>
                   <th className="py-2 pr-2 text-right">Exactos</th>
+                  <th className="py-2 pr-2 text-right">Dif</th>
                   <th className="py-2 text-right">Aciertos</th>
                 </tr>
               </thead>
@@ -124,6 +125,9 @@ export default async function PoolRankingPage({
                     </td>
                     <td className="py-2 pr-2 text-right text-neutral-400">
                       {row.exact_count}
+                    </td>
+                    <td className="py-2 pr-2 text-right text-neutral-400">
+                      {row.diff_count}
                     </td>
                     <td className="py-2 text-right text-neutral-400">
                       {row.winner_count}

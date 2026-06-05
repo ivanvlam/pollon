@@ -8,19 +8,17 @@ export const LOCK_HOURS_BEFORE_KICKOFF = 0;
 /** Horas antes del PRIMER partido en que se cierra la predicción de campeón. */
 export const CHAMPION_LOCK_HOURS = 1;
 
-/** Puntos por acertar el campeón del Mundial. Pendiente de confirmar. */
-export const CHAMPION_POINTS = 10;
+/** Puntos por acertar el campeón del Mundial. */
+export const CHAMPION_POINTS = 15;
 
 /** Tabla de puntos del sistema de puntuación. */
 export const POINTS = {
-  /** Fase de grupos: marcador exacto. */
-  GROUP_EXACT: 3,
-  /** Fase de grupos: ganador o empate correcto (sin marcador exacto). */
-  GROUP_WINNER: 1,
-  /** Eliminatorias: acertar quién clasifica. */
-  ELIM_QUALIFIER: 2,
-  /** Eliminatorias: marcador exacto a 90 min (adicional, se suma a ELIM_QUALIFIER). */
-  ELIM_EXACT: 2,
+  /** Marcador exacto (grupos) / exacto + clasificado (eliminatorias). */
+  EXACT: 5,
+  /** Tipo de resultado correcto + misma diferencia de goles. */
+  DIFF: 3,
+  /** Solo tipo de resultado correcto (ganador/empate) o solo clasificado. */
+  WINNER: 2,
 } as const;
 
 /** Debounce (ms) antes de enviar una predicción desde el frontend. */
