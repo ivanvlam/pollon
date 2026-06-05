@@ -40,7 +40,7 @@ export default async function ChampionPage() {
     <div className="flex flex-col gap-8">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">🏆 Campeón y Goleador</h1>
-        <Link href="/dashboard" className="text-sm underline">
+        <Link href="/dashboard" className="text-sm text-neutral-400 hover:text-white">
           ← Volver
         </Link>
       </header>

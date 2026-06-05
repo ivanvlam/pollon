@@ -39,7 +39,7 @@ export default function PrivacyPage() {
       </div>
 
       <p className="mt-8">
-        <Link href="/" className="text-sm underline">
+        <Link href="/" className="text-sm text-neutral-400 hover:text-white">
           ← Volver al inicio
         </Link>
       </p>

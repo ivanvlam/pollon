@@ -61,7 +61,7 @@ export default async function GroupsPage({
         <h1 className="text-2xl font-bold">Grupos</h1>
         <Link
           href={`/pool/${params.id}`}
-          className="text-sm text-emerald-400 hover:underline"
+          className="text-sm text-neutral-400 hover:text-white"
         >
           ← Volver al ranking
         </Link>
