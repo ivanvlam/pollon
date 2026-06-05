@@ -9,21 +9,15 @@ import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 
 export type AdminResult = { ok: true } | { ok: false; error: string };
 
-/** Verifica que el usuario actual sea el creador de la polla. */
-async function assertCreator(poolId: string): Promise<AdminResult> {
+/** Verifica que el usuario actual sea el admin de la app. */
+async function assertAdmin(): Promise<AdminResult> {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "No autenticado" };
 
-  const { data: pool } = await supabase
-    .from("pools")
-    .select("created_by")
-    .eq("id", poolId)
-    .maybeSingle();
-
-  if (!pool || pool.created_by !== user.id) {
+  if (user.email !== process.env.ADMIN_EMAIL) {
     return { ok: false, error: "No autorizado" };
   }
   return { ok: true };
@@ -41,7 +35,7 @@ export async function setMatchActive(
   matchId: string,
   active: boolean,
 ): Promise<AdminResult> {
-  const auth = await assertCreator(poolId);
+  const auth = await assertAdmin();
   if (!auth.ok) return auth;
 
   const svc = createServiceRoleClient();
@@ -66,7 +60,7 @@ export async function saveMatchResult(
   matchId: string,
   input: { homeScore: number; awayScore: number; winner: "home" | "away" | null },
 ): Promise<AdminResult> {
-  const auth = await assertCreator(poolId);
+  const auth = await assertAdmin();
   if (!auth.ok) return auth;
 
   const parsed = resultSchema.safeParse(input);

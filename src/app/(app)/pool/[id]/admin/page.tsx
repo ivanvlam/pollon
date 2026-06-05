@@ -23,7 +23,7 @@ export default async function AdminPage({
     .maybeSingle();
 
   if (!pool) notFound();
-  if (pool.created_by !== user!.id) redirect(`/pool/${pool.id}`);
+  if (user!.email !== process.env.ADMIN_EMAIL) redirect(`/pool/${pool.id}`);
 
   const { data: matches } = await supabase
     .from("matches")

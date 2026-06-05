@@ -27,7 +27,7 @@ export default async function PoolRankingPage({
     p_pool_id: pool.id,
   });
 
-  const isCreator = pool.created_by === user!.id;
+  const isCreator = user!.email === process.env.ADMIN_EMAIL;
 
   return (
     <div className="flex flex-col gap-8">
