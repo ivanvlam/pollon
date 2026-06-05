@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { fetchWorldCupFixtures } from "@/lib/api-football";
+import { fetchWorldCupFixtures } from "@/lib/thesportsdb";
 import { verifyCronSecret } from "@/lib/cron";
 import { recalculateMatchScores } from "@/lib/scoring-service";
 import { createServiceRoleClient } from "@/lib/supabase/server";
