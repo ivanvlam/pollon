@@ -319,6 +319,10 @@ export interface Database {
     };
     Views: Record<never, never>;
     Functions: {
+      join_pool_by_code: {
+        Args: { p_invite_code: string };
+        Returns: string | null;
+      };
       upsert_players_data: {
         Args: { players: { name: string; team: string }[] };
         Returns: number;

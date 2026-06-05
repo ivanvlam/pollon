@@ -64,34 +64,19 @@ export async function joinPool(inviteCode: string): Promise<PoolActionState> {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  // Resolver el código con el service role: el cliente del usuario NO tiene
-  // permiso de SELECT sobre pollas ajenas, así el invite_code no es
-  // enumerable. Solo se expone el id de la polla cuyo código exacto se provee.
-  const admin = createServiceRoleClient();
-  const { data: pool, error: poolError } = await admin
-    .from("pools")
-    .select("id")
-    .eq("invite_code", inviteCode)
-    .maybeSingle();
+  // join_pool_by_code es SECURITY DEFINER: puede ver pollas ajenas para
+  // resolver el invite_code sin exponer todos los códigos (RLS queda activo
+  // para cualquier otra consulta).
+  const { data: poolId, error } = await supabase.rpc("join_pool_by_code", {
+    p_invite_code: inviteCode,
+  });
 
-  if (poolError || !pool) {
+  if (error || !poolId) {
     return { error: "Código de invitación inválido" };
   }
 
-  // upsert idempotente: si ya es miembro, no falla (unique pool_id+user_id).
-  const { error: memberError } = await supabase
-    .from("pool_members")
-    .upsert(
-      { pool_id: pool.id, user_id: user.id },
-      { onConflict: "pool_id,user_id", ignoreDuplicates: true },
-    );
-
-  if (memberError) {
-    return { error: "No se pudo unir a la polla" };
-  }
-
   revalidatePath("/dashboard");
-  redirect(`/pool/${pool.id}`);
+  redirect(`/pool/${poolId}`);
 }
 
 /** Sale de una polla (borra la membresía propia; RLS lo permite). */
