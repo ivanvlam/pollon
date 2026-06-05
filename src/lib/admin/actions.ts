@@ -103,11 +103,14 @@ export async function syncPlayers(poolId: string): Promise<AdminResult & { count
   const players = await fetchWorldCupPlayers();
   if (players.length === 0) return { ok: false, error: "La API no devolvió jugadores" };
 
-  const { error } = await svc
-    .from("players")
-    .upsert(players, { onConflict: "name,team" });
-
-  if (error) return { ok: false, error: "No se pudieron guardar los jugadores" };
+  // Insertar en lotes de 200 ignorando duplicados
+  const BATCH = 200;
+  for (let i = 0; i < players.length; i += BATCH) {
+    const { error } = await svc
+      .from("players")
+      .upsert(players.slice(i, i + BATCH), { ignoreDuplicates: true });
+    if (error) return { ok: false, error: "No se pudieron guardar los jugadores" };
+  }
 
   revalidatePath(`/pool/${poolId}/admin`);
   return { ok: true, count: players.length };
