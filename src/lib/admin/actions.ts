@@ -51,6 +51,28 @@ export async function setMatchActive(
   return { ok: true };
 }
 
+/** Activa todos los partidos de una ronda eliminatoria de una vez. */
+export async function setRoundActive(
+  poolId: string,
+  round: string,
+): Promise<AdminResult & { count?: number }> {
+  const auth = await assertAdmin();
+  if (!auth.ok) return auth;
+
+  const svc = createServiceRoleClient();
+  const { data, error } = await svc
+    .from("matches")
+    .update({ is_active: true })
+    .eq("round", round)
+    .eq("is_active", false)
+    .select("id");
+
+  if (error) return { ok: false, error: "No se pudo activar la ronda" };
+
+  revalidatePath(`/pool/${poolId}/admin`);
+  return { ok: true, count: data?.length ?? 0 };
+}
+
 /**
  * Guarda manualmente el resultado de un partido (status → finished) y
  * dispara el recálculo de scores. Misma lógica que el resultado venido

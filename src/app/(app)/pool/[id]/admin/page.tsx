@@ -3,8 +3,9 @@ import { notFound, redirect } from "next/navigation";
 
 import { AdminChampion } from "@/components/AdminChampion";
 import { AdminMatchRow } from "@/components/AdminMatchRow";
+import { AdminRoundActivator } from "@/components/AdminRoundActivator";
 import { AdminTopScorer } from "@/components/AdminTopScorer";
-import { isKnockoutRound } from "@/lib/constants";
+import { isKnockoutRound, ROUNDS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { toSpanish } from "@/lib/teamNames";
 import type { MatchWinner, Round } from "@/types";
@@ -57,27 +58,68 @@ export default async function AdminPage({
         resultados manualmente si la API no los provee.
       </p>
 
-      <div className="flex flex-col gap-3">
-        {(matches ?? []).map((match) => (
-          <AdminMatchRow
-            key={match.id}
-            poolId={pool.id}
-            matchId={match.id}
-            homeTeam={match.home_team}
-            awayTeam={match.away_team}
-            isKnockout={isKnockoutRound(match.round as Round)}
-            isActive={match.is_active}
-            homeScore={match.home_score}
-            awayScore={match.away_score}
-            winner={match.winner as MatchWinner | null}
-          />
-        ))}
-        {(!matches || matches.length === 0) && (
-          <p className="text-neutral-400">
-            No hay partidos cargados. Corre el sync de API-Football.
-          </p>
-        )}
-      </div>
+      {(!matches || matches.length === 0) ? (
+        <p className="text-neutral-400">
+          No hay partidos cargados. Usá el botón "Sincronizar partidos" de arriba.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {ROUNDS.filter((r) => r !== "group_stage").map((round) => {
+            const roundMatches = (matches ?? []).filter((m) => m.round === round);
+            if (roundMatches.length === 0) return null;
+            const allActive = roundMatches.every((m) => m.is_active);
+            const ROUND_LABELS: Record<string, string> = {
+              round_of_32: "Ronda de 32",
+              round_of_16: "Octavos de final",
+              quarterfinal: "Cuartos de final",
+              semifinal: "Semifinales",
+              final: "Final",
+            };
+            return (
+              <div key={round} className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-semibold text-neutral-300">{ROUND_LABELS[round] ?? round}</h2>
+                  {!allActive && (
+                    <AdminRoundActivator poolId={pool.id} round={round} label={ROUND_LABELS[round] ?? round} />
+                  )}
+                </div>
+                {roundMatches.map((match) => (
+                  <AdminMatchRow
+                    key={match.id}
+                    poolId={pool.id}
+                    matchId={match.id}
+                    homeTeam={match.home_team}
+                    awayTeam={match.away_team}
+                    isKnockout={isKnockoutRound(match.round as Round)}
+                    isActive={match.is_active}
+                    homeScore={match.home_score}
+                    awayScore={match.away_score}
+                    winner={match.winner as MatchWinner | null}
+                  />
+                ))}
+              </div>
+            );
+          })}
+
+          <div className="flex flex-col gap-3">
+            <h2 className="font-semibold text-neutral-300">Fase de grupos</h2>
+            {(matches ?? []).filter((m) => m.round === "group_stage").map((match) => (
+              <AdminMatchRow
+                key={match.id}
+                poolId={pool.id}
+                matchId={match.id}
+                homeTeam={match.home_team}
+                awayTeam={match.away_team}
+                isKnockout={false}
+                isActive={match.is_active}
+                homeScore={match.home_score}
+                awayScore={match.away_score}
+                winner={match.winner as MatchWinner | null}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
