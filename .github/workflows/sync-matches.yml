@@ -1,10 +1,12 @@
 name: Sync matches
 
-# Sincroniza fixture y resultados desde API-Football cada 5 minutos.
-# Reemplaza el cron de Vercel (que en plan Hobby solo corre 1 vez/día).
+# Sincroniza fixture y resultados desde TheSportsDB cada 15 minutos.
+# La ruta hace skip si no hay partidos en la ventana [-3h, +2h], así que
+# en la práctica solo consume cuota de la API durante ventanas de partido.
+# Con clave gratuita (100 req/día): ~40 req en el día más cargado.
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/15 * * * *"
   workflow_dispatch: {}
 
 jobs:

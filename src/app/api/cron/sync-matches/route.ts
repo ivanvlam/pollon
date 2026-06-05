@@ -20,9 +20,43 @@ export async function GET(request: NextRequest) {
 
   const supabase = createServiceRoleClient();
 
+  // Solo llamamos a la API si hay partidos live o en la ventana [-3h, +2h].
+  // Fuera de esa ventana devolvemos ok sin consumir cuota.
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
+  const windowEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString();
+
+  const [{ data: liveMatches }, { data: windowMatches }] = await Promise.all([
+    supabase.from("matches").select("round").eq("status", "live"),
+    supabase.from("matches").select("round")
+      .gte("kickoff_at", windowStart)
+      .lte("kickoff_at", windowEnd)
+      .neq("status", "finished"),
+  ]);
+
+  const activeRounds = new Set([
+    ...(liveMatches ?? []).map((m) => m.round),
+    ...(windowMatches ?? []).map((m) => m.round),
+  ]);
+
+  if (activeRounds.size === 0) {
+    return NextResponse.json({ ok: true, synced: 0, skipped: true });
+  }
+
+  // Mapea los rounds de la app a los números de ronda de TheSportsDB.
+  const ROUND_TO_SDB: Record<string, number[]> = {
+    group_stage: [1, 2, 3],
+    round_of_32: [32],
+    round_of_16: [16],
+    quarterfinal: [125],
+    semifinal: [150],
+    final: [200],
+  };
+  const sdbRounds = [...activeRounds].flatMap((r) => ROUND_TO_SDB[r] ?? []);
+
   let fixtures;
   try {
-    fixtures = await fetchWorldCupFixtures();
+    fixtures = await fetchWorldCupFixtures(sdbRounds);
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "api error" },

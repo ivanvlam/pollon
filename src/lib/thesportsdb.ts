@@ -184,13 +184,18 @@ export async function fetchWorldCupPlayers(): Promise<ExternalPlayer[]> {
 /**
  * Trae todos los partidos del Mundial iterando por ronda y deduplicando.
  * Las rondas eliminatorias devuelven vacío hasta que se definen los cruces.
+ * @param sdbRounds - Si se pasa, solo se fetchean esas rondas (optimización de cuota).
  */
-export async function fetchWorldCupFixtures(): Promise<ExternalMatch[]> {
+export async function fetchWorldCupFixtures(sdbRounds?: number[]): Promise<ExternalMatch[]> {
   const key = process.env.THESPORTSDB_KEY || "3";
   const base = `https://www.thesportsdb.com/api/v1/json/${key}`;
 
+  const roundsToFetch = sdbRounds
+    ? ROUND_DEFS.filter((rd) => sdbRounds.includes(rd.r))
+    : ROUND_DEFS;
+
   const perRound = await Promise.all(
-    ROUND_DEFS.map(async ({ r, round }) => {
+    roundsToFetch.map(async ({ r, round }) => {
       const res = await fetch(
         `${base}/eventsround.php?id=${WORLD_CUP_LEAGUE_ID}&r=${r}&s=${WORLD_CUP_SEASON}`,
         { cache: "no-store" },
