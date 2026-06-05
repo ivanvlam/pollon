@@ -150,15 +150,15 @@ export default async function PoolRankingPage({
           <dl className="mt-8 grid grid-cols-3 divide-x divide-neutral-800 text-center text-xs text-neutral-500">
             <div className="flex flex-col gap-0.5 px-3">
               <dt className="font-medium text-neutral-300">Exactos</dt>
-              <dd>marcador exacto · 5 pts</dd>
+              <dd>Marcador exacto · 5 pts</dd>
             </div>
             <div className="flex flex-col gap-0.5 px-3">
               <dt className="font-medium text-neutral-300">Dif</dt>
-              <dd>misma diferencia · 3 pts</dd>
+              <dd>Misma diferencia · 3 pts</dd>
             </div>
             <div className="flex flex-col gap-0.5 px-3">
               <dt className="font-medium text-neutral-300">Aciertos</dt>
-              <dd>solo ganador · 2 pts</dd>
+              <dd>Solo ganador · 2 pts</dd>
             </div>
           </dl>
           </>
