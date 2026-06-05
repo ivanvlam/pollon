@@ -107,10 +107,10 @@ export default async function PoolRankingPage({
                 <tr>
                   <th className="py-2 pr-2">#</th>
                   <th className="py-2">Jugador</th>
-                  <th className="py-2 pr-2 text-right" title="Puntos totales">Pts</th>
-                  <th className="py-2 pr-2 text-right" title="Marcador exacto (5 pts)">Exactos</th>
-                  <th className="py-2 pr-2 text-right" title="Diferencia de goles correcta (3 pts)">Dif</th>
-                  <th className="py-2 text-right" title="Solo ganador / clasificado acertado (2 pts)">Aciertos</th>
+                  <th className="w-14 py-2 text-center" title="Puntos totales">Pts</th>
+                  <th className="w-14 py-2 text-center" title="Marcador exacto (5 pts)">Exactos</th>
+                  <th className="w-14 py-2 text-center" title="Diferencia de goles correcta (3 pts)">Dif</th>
+                  <th className="w-14 py-2 text-center" title="Solo ganador / clasificado acertado (2 pts)">Aciertos</th>
                 </tr>
               </thead>
               <tbody>
@@ -130,16 +130,16 @@ export default async function PoolRankingPage({
                         </span>
                       )}
                     </td>
-                    <td className="py-2 pr-2 text-right font-semibold">
+                    <td className="w-14 py-2 text-center font-semibold">
                       {row.total}
                     </td>
-                    <td className="py-2 pr-2 text-right text-neutral-400">
+                    <td className="w-14 py-2 text-center text-neutral-400">
                       {row.exact_count}
                     </td>
-                    <td className="py-2 pr-2 text-right text-neutral-400">
+                    <td className="w-14 py-2 text-center text-neutral-400">
                       {row.diff_count}
                     </td>
-                    <td className="py-2 text-right text-neutral-400">
+                    <td className="w-14 py-2 text-center text-neutral-400">
                       {row.winner_count}
                     </td>
                   </tr>
@@ -147,7 +147,7 @@ export default async function PoolRankingPage({
               </tbody>
             </table>
           </div>
-          <dl className="mt-4 grid grid-cols-3 divide-x divide-neutral-800 text-center text-xs text-neutral-500">
+          <dl className="mt-8 grid grid-cols-3 divide-x divide-neutral-800 text-center text-xs text-neutral-500">
             <div className="flex flex-col gap-0.5 px-3">
               <dt className="font-medium text-neutral-300">Exactos</dt>
               <dd>marcador exacto · 5 pts</dd>
