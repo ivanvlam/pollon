@@ -142,21 +142,26 @@ async function fetchPlayersByTeamId(key: string, teamId: string, teamName: strin
 
 /**
  * Trae los jugadores de todos los equipos indicados desde TheSportsDB.
- * Ejecutar una sola vez desde el panel admin — hace 2 requests por equipo.
+ * Ejecutar una sola vez desde el panel admin.
+ * Hace todas las búsquedas en paralelo para evitar el timeout de Vercel.
  */
 export async function fetchWorldCupPlayers(teams: string[]): Promise<ExternalPlayer[]> {
   const key = process.env.THESPORTSDB_KEY || "3";
-  const all: ExternalPlayer[] = [];
 
-  for (const team of teams) {
-    const teamId = await fetchTeamId(key, team);
-    if (!teamId) continue;
-    const players = await fetchPlayersByTeamId(key, teamId, team);
-    all.push(...players);
-    await new Promise((r) => setTimeout(r, 200));
-  }
+  const teamIds = await Promise.all(
+    teams.map(async (team) => {
+      const id = await fetchTeamId(key, team);
+      return id ? { id, team } : null;
+    }),
+  );
 
-  return all;
+  const valid = teamIds.filter(Boolean) as { id: string; team: string }[];
+
+  const playerArrays = await Promise.all(
+    valid.map(({ id, team }) => fetchPlayersByTeamId(key, id, team)),
+  );
+
+  return playerArrays.flat();
 }
 
 /**
