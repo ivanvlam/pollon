@@ -128,24 +128,32 @@ export function GroupCard({ name, standings, matches, yourPoints }: Props) {
                     initialWinner={null}
                   />
                 ) : (
-                  <div className="flex items-center justify-between gap-2 text-sm">
-                    <span className="flex items-center gap-2">
-                      <Flag team={match.home_team} />
-                      {match.home_team}
-                      <span className="text-neutral-600">vs</span>
-                      {match.away_team}
-                      <Flag team={match.away_team} />
-                    </span>
-                    <span className="shrink-0 text-neutral-400">
-                      {match.pred
-                        ? fmt(match.pred.predicted_home, match.pred.predicted_away)
-                        : "—"}
-                      {match.myPoints !== undefined && (
-                        <span className="ml-2 rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs text-emerald-400">
-                          +{match.myPoints}
+                  <div className="text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <Flag team={match.home_team} className="shrink-0" />
+                        <span className="truncate">{match.home_team}</span>
+                      </span>
+                      <span className="tabular-nums text-neutral-300">
+                        {match.pred?.predicted_home ?? "–"}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <Flag team={match.away_team} className="shrink-0" />
+                        <span className="truncate">{match.away_team}</span>
+                      </span>
+                      <span className="tabular-nums text-neutral-300">
+                        {match.pred?.predicted_away ?? "–"}
+                      </span>
+                    </div>
+                    {match.myPoints !== undefined && (
+                      <div className="mt-1.5 text-right">
+                        <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs text-emerald-400">
+                          +{match.myPoints} pts
                         </span>
-                      )}
-                    </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

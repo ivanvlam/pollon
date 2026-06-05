@@ -57,6 +57,9 @@ const ROUND_LABELS: Record<Round, string> = {
 const fmt = (h: number | null, a: number | null) =>
   h === null || a === null ? "-" : `${h}-${a}`;
 
+// TheSportsDB devuelve "Group A", la app está en español → "Grupo A"
+const displayGroup = (name: string) => name.replace(/^Group\s+/i, "Grupo ");
+
 const chip = (active: boolean) =>
   `rounded-full border px-3 py-1 text-xs transition cursor-pointer ${
     active
@@ -224,7 +227,7 @@ export function PredictionsClient({
                 className={chip(groupFilter === g)}
                 onClick={() => setGroupFilter(groupFilter === g ? null : g)}
               >
-                {g}
+                {displayGroup(g)}
               </button>
             ))}
           </div>
@@ -256,7 +259,7 @@ export function PredictionsClient({
               return (
                 <Card key={match.id} id={`m-${match.id}`} className="scroll-mt-20 p-4">
                   <div className="mb-3 flex items-center justify-between text-xs text-neutral-500">
-                    <span>{match.group_name ?? ROUND_LABELS[match.round]}</span>
+                    <span>{match.group_name ? displayGroup(match.group_name) : ROUND_LABELS[match.round]}</span>
                     <span>
                       {new Date(match.kickoff_at).toLocaleString()}
                       {" · "}
