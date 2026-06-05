@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CopyInviteButton } from "@/components/CopyInviteButton";
+import { DeletePoolButton } from "@/components/DeletePoolButton";
 import { LeavePoolButton } from "@/components/LeavePoolButton";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,11 +24,16 @@ export default async function PoolRankingPage({
 
   if (!pool) notFound();
 
-  const { data: ranking, error } = await supabase.rpc("get_pool_ranking", {
-    p_pool_id: pool.id,
-  });
+  const [{ data: ranking, error }, { count: memberCount }] = await Promise.all([
+    supabase.rpc("get_pool_ranking", { p_pool_id: pool.id }),
+    supabase
+      .from("pool_members")
+      .select("id", { count: "exact", head: true })
+      .eq("pool_id", pool.id),
+  ]);
 
   const isCreator = user!.email === process.env.ADMIN_EMAIL;
+  const isPoolCreator = user!.id === pool.created_by;
 
   return (
     <div className="flex flex-col gap-8">
@@ -49,7 +55,10 @@ export default async function PoolRankingPage({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <CopyInviteButton inviteCode={pool.invite_code} />
-          {!isCreator && <LeavePoolButton poolId={pool.id} />}
+          {!isPoolCreator && <LeavePoolButton poolId={pool.id} />}
+          {isPoolCreator && (memberCount ?? 0) <= 1 && (
+            <DeletePoolButton poolId={pool.id} />
+          )}
         </div>
       </header>
 

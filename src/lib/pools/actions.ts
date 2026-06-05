@@ -114,6 +114,37 @@ export async function leavePool(poolId: string): Promise<PoolActionState> {
   redirect("/dashboard");
 }
 
+/** Elimina una polla. Solo el creador puede hacerlo y únicamente si está solo. */
+export async function deletePool(poolId: string): Promise<PoolActionState> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const { data: pool } = await supabase
+    .from("pools")
+    .select("created_by")
+    .eq("id", poolId)
+    .maybeSingle();
+
+  if (!pool) return { error: "Polla no encontrada" };
+  if (pool.created_by !== user.id) return { error: "No tienes permiso" };
+
+  const { count } = await supabase
+    .from("pool_members")
+    .select("id", { count: "exact", head: true })
+    .eq("pool_id", poolId);
+
+  if ((count ?? 0) > 1) return { error: "No puedes eliminar una polla con más de un participante" };
+
+  const { error } = await supabase.from("pools").delete().eq("id", poolId);
+  if (error) return { error: "No se pudo eliminar la polla" };
+
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
+}
+
 /** Variante para usar desde un <form action> con FormData. */
 export async function joinPoolFromForm(
   _prev: PoolActionState,
