@@ -167,11 +167,18 @@ export async function fetchWorldCupPlayers(): Promise<ExternalPlayer[]> {
 
   if (teamMap.size === 0) return [];
 
-  const playerArrays = await Promise.all(
-    [...teamMap.entries()].map(([team, id]) => fetchPlayersByTeamId(key, id, team)),
-  );
+  // Fetch en lotes de 8 para no saturar las conexiones salientes de Vercel
+  const entries = [...teamMap.entries()];
+  const all: ExternalPlayer[] = [];
+  for (let i = 0; i < entries.length; i += 8) {
+    const batch = entries.slice(i, i + 8);
+    const results = await Promise.all(
+      batch.map(([team, id]) => fetchPlayersByTeamId(key, id, team)),
+    );
+    all.push(...results.flat());
+  }
 
-  return playerArrays.flat();
+  return all;
 }
 
 /**
