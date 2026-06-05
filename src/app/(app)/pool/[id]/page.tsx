@@ -107,10 +107,10 @@ export default async function PoolRankingPage({
                 <tr>
                   <th className="py-2 pr-2">#</th>
                   <th className="py-2">Jugador</th>
-                  <th className="w-20 py-2 text-center" title="Puntos totales">Pts</th>
-                  <th className="w-20 py-2 text-center" title="Marcador exacto (5 pts)">Exactos</th>
-                  <th className="w-20 py-2 text-center" title="Diferencia de goles correcta (3 pts)">Dif</th>
-                  <th className="w-20 py-2 text-center" title="Solo ganador / clasificado acertado (2 pts)">Aciertos</th>
+                  <th className="w-28 py-2 text-center" title="Puntos totales">Pts</th>
+                  <th className="w-28 py-2 text-center" title="Marcador exacto (5 pts)">Exactos</th>
+                  <th className="w-28 py-2 text-center" title="Diferencia de goles correcta (3 pts)">Dif</th>
+                  <th className="w-28 py-2 text-center" title="Solo ganador / clasificado acertado (2 pts)">Aciertos</th>
                 </tr>
               </thead>
               <tbody>
@@ -130,16 +130,16 @@ export default async function PoolRankingPage({
                         </span>
                       )}
                     </td>
-                    <td className="w-20 py-2 text-center font-semibold">
+                    <td className="w-28 py-2 text-center font-semibold">
                       {row.total}
                     </td>
-                    <td className="w-20 py-2 text-center text-neutral-400">
+                    <td className="w-28 py-2 text-center text-neutral-400">
                       {row.exact_count}
                     </td>
-                    <td className="w-20 py-2 text-center text-neutral-400">
+                    <td className="w-28 py-2 text-center text-neutral-400">
                       {row.diff_count}
                     </td>
-                    <td className="w-20 py-2 text-center text-neutral-400">
+                    <td className="w-28 py-2 text-center text-neutral-400">
                       {row.winner_count}
                     </td>
                   </tr>
