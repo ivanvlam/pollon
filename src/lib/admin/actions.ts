@@ -103,13 +103,7 @@ export async function syncPlayers(poolId: string): Promise<AdminResult & { count
   const players = PLAYERS_DATA;
   if (players.length === 0) return { ok: false, error: "No hay jugadores en el archivo estático" };
 
-  // Borrar todo y reinsertar en lotes de 200
-  const { error: delError } = await svc
-    .from("players")
-    .delete()
-    .neq("id", "00000000-0000-0000-0000-000000000000");
-  if (delError) return { ok: false, error: `Error al limpiar tabla: ${delError.message}` };
-
+  // Upsert en lotes de 200 — ignoreDuplicates evita conflictos con (name, team)
   const BATCH = 200;
   for (let i = 0; i < players.length; i += BATCH) {
     const { error } = await svc
