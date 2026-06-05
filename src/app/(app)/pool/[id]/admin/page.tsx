@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { AdminChampion } from "@/components/AdminChampion";
 import { AdminMatchRow } from "@/components/AdminMatchRow";
 import { AdminTopScorer } from "@/components/AdminTopScorer";
 import { isKnockoutRound } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
+import { toSpanish } from "@/lib/teamNames";
 import type { MatchWinner, Round } from "@/types";
 
 export default async function AdminPage({
@@ -44,6 +46,11 @@ export default async function AdminPage({
       </header>
 
       <AdminTopScorer poolId={pool.id} players={players ?? []} />
+
+      <AdminChampion
+        poolId={pool.id}
+        teams={[...new Set((matches ?? []).flatMap((m) => [m.home_team, m.away_team]))].sort().map(toSpanish)}
+      />
 
       <p className="text-sm text-neutral-400">
         Activa los partidos para habilitar las predicciones e ingresa

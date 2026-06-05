@@ -110,6 +110,26 @@ export async function syncPlayers(poolId: string): Promise<AdminResult & { count
   return { ok: true, count: PLAYERS_DATA.length };
 }
 
+/** Marca el campeón real y recalcula puntos. teamName en español (como se almacena en champion_predictions). */
+export async function setActualChampion(
+  poolId: string,
+  teamName: string,
+): Promise<AdminResult> {
+  const auth = await assertAdmin();
+  if (!auth.ok) return auth;
+
+  const { recalculateChampionScores } = await import("@/lib/scoring-service");
+  try {
+    await recalculateChampionScores(teamName);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Error al calcular" };
+  }
+
+  revalidatePath(`/pool/${poolId}/admin`);
+  revalidatePath(`/pool/${poolId}`);
+  return { ok: true };
+}
+
 /** Marca el goleador real y recalcula puntos. */
 export async function setActualTopScorer(
   poolId: string,

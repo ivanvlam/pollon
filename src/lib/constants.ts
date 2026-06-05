@@ -2,8 +2,8 @@
 // Constantes del proyecto Pollon
 // ============================================================
 
-/** Horas antes del kickoff en que se cierran las predicciones de partidos. 0 = cierra al inicio. */
-export const LOCK_HOURS_BEFORE_KICKOFF = 0;
+/** Horas antes del kickoff en que se cierran las predicciones de partidos. Debe coincidir con v_lock_hours en submit_prediction. */
+export const LOCK_HOURS_BEFORE_KICKOFF = 1;
 
 /** Horas antes del PRIMER partido en que se cierra la predicción de campeón. */
 export const CHAMPION_LOCK_HOURS = 1;
