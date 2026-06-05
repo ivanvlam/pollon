@@ -319,6 +319,10 @@ export interface Database {
     };
     Views: Record<never, never>;
     Functions: {
+      upsert_players_data: {
+        Args: { players: { name: string; team: string }[] };
+        Returns: number;
+      };
       is_pool_member: {
         Args: { p_pool_id: string };
         Returns: boolean;

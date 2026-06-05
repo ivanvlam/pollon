@@ -93,27 +93,21 @@ export async function saveMatchResult(
   return { ok: true };
 }
 
-/** Sincroniza los jugadores de todos los equipos desde TheSportsDB. */
+/** Sincroniza los jugadores via función SECURITY DEFINER (no requiere service role). */
 export async function syncPlayers(poolId: string): Promise<AdminResult & { count?: number }> {
   const auth = await assertAdmin();
   if (!auth.ok) return auth;
 
-  const svc = createServiceRoleClient();
+  const supabase = createClient();
 
-  const players = PLAYERS_DATA;
-  if (players.length === 0) return { ok: false, error: "No hay jugadores en el archivo estático" };
+  const { error } = await supabase.rpc("upsert_players_data", {
+    players: PLAYERS_DATA,
+  });
 
-  // Upsert en lotes de 200 — ignoreDuplicates evita conflictos con (name, team)
-  const BATCH = 200;
-  for (let i = 0; i < players.length; i += BATCH) {
-    const { error } = await svc
-      .from("players")
-      .upsert(players.slice(i, i + BATCH), { onConflict: "name,team", ignoreDuplicates: true });
-    if (error) return { ok: false, error: `Error al insertar lote ${i / BATCH + 1}: ${error.message}` };
-  }
+  if (error) return { ok: false, error: `Error al sincronizar: ${error.message}` };
 
   revalidatePath(`/pool/${poolId}/admin`);
-  return { ok: true, count: players.length };
+  return { ok: true, count: PLAYERS_DATA.length };
 }
 
 /** Marca el goleador real y recalcula puntos. */
