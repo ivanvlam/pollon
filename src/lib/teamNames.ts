@@ -4,6 +4,7 @@ const EN_TO_ES: Record<string, string> = {
   // Sudamérica
   Brazil: "Brasil",
   Peru: "Perú",
+  Paraguay: "Paraguay",
   // Concacaf
   Mexico: "México",
   "United States": "Estados Unidos",

@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { recalculateMatchScores } from "@/lib/scoring-service";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
-import { fetchWorldCupPlayers } from "@/lib/thesportsdb";
+import { PLAYERS_DATA } from "@/lib/players-data";
 
 export type AdminResult = { ok: true } | { ok: false; error: string };
 
@@ -100,8 +100,8 @@ export async function syncPlayers(poolId: string): Promise<AdminResult & { count
 
   const svc = createServiceRoleClient();
 
-  const players = await fetchWorldCupPlayers();
-  if (players.length === 0) return { ok: false, error: "La API no devolvió jugadores" };
+  const players = PLAYERS_DATA;
+  if (players.length === 0) return { ok: false, error: "No hay jugadores en el archivo estático" };
 
   // Borrar todo y reinsertar en lotes de 200
   await svc.from("players").delete().neq("id", "00000000-0000-0000-0000-000000000000");
