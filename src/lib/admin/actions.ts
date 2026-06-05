@@ -104,13 +104,18 @@ export async function syncPlayers(poolId: string): Promise<AdminResult & { count
   if (players.length === 0) return { ok: false, error: "No hay jugadores en el archivo estático" };
 
   // Borrar todo y reinsertar en lotes de 200
-  await svc.from("players").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  const { error: delError } = await svc
+    .from("players")
+    .delete()
+    .neq("id", "00000000-0000-0000-0000-000000000000");
+  if (delError) return { ok: false, error: `Error al limpiar tabla: ${delError.message}` };
+
   const BATCH = 200;
   for (let i = 0; i < players.length; i += BATCH) {
     const { error } = await svc
       .from("players")
-      .insert(players.slice(i, i + BATCH));
-    if (error) return { ok: false, error: "No se pudieron guardar los jugadores" };
+      .upsert(players.slice(i, i + BATCH), { onConflict: "name,team", ignoreDuplicates: true });
+    if (error) return { ok: false, error: `Error al insertar lote ${i / BATCH + 1}: ${error.message}` };
   }
 
   revalidatePath(`/pool/${poolId}/admin`);
