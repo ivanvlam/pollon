@@ -60,7 +60,7 @@ export default async function AdminPage({
 
       {(!matches || matches.length === 0) ? (
         <p className="text-neutral-400">
-          No hay partidos cargados. Usá el botón &quot;Sincronizar partidos&quot; de arriba.
+          No hay partidos cargados. Usa el botón &quot;Sincronizar partidos&quot; de arriba.
         </p>
       ) : (
         <div className="flex flex-col gap-6">

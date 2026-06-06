@@ -28,7 +28,7 @@ export function AdminChampion({ poolId, teams }: Props) {
     <div className="flex flex-col gap-4 rounded-xl border border-neutral-800 p-5">
       <h2 className="font-semibold">Campeón del torneo</h2>
       <p className="text-sm text-neutral-400">
-        Usá esto si la final fue a penales o la API no reportó bien el ganador.
+        Usa esto si la final fue a penales o la API no reportó bien el ganador.
         Recalcula los puntos de campeón para todos los participantes.
       </p>
       <div className="flex items-center gap-3">

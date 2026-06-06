@@ -51,7 +51,7 @@ export default function ComoFuncionaPage() {
             Tus predicciones son las mismas para todas tus pollas
           </span>{" "}
           y se sincronizan automáticamente. Si predices un partido, ese marcador
-          cuenta en cada polla en la que participes — no tienes que cargarlo de
+          cuenta en cada polla en la que participes. No tienes que cargarlo de
           nuevo en cada una.
         </p>
       </Card>
