@@ -9,11 +9,10 @@ import { toSpanish } from "@/lib/teamNames";
 interface Player { name: string; team: string; }
 
 interface Props {
-  poolId: string;
   players: Player[];
 }
 
-export function AdminTopScorer({ poolId, players }: Props) {
+export function AdminTopScorer({ players }: Props) {
   const [matchSyncMsg, setMatchSyncMsg] = useState("");
   const [matchSyncPending, startMatchSync] = useTransition();
 
@@ -40,14 +39,14 @@ export function AdminTopScorer({ poolId, players }: Props) {
 
   function handleMatchSync() {
     startMatchSync(async () => {
-      const r = await syncMatches(poolId);
+      const r = await syncMatches();
       setMatchSyncMsg(r.ok ? `✓ ${(r as { count?: number }).count ?? "?"} partidos sincronizados` : r.error);
     });
   }
 
   function handleSync() {
     startSync(async () => {
-      const r = await syncPlayers(poolId);
+      const r = await syncPlayers();
       setSyncMsg(r.ok ? `✓ ${(r as { count?: number }).count ?? "?"} jugadores sincronizados` : r.error);
     });
   }
@@ -55,7 +54,7 @@ export function AdminTopScorer({ poolId, players }: Props) {
   function handleSave() {
     if (!selected) return;
     startSave(async () => {
-      const r = await setActualTopScorer(poolId, selected);
+      const r = await setActualTopScorer(selected);
       setSaveMsg(r.ok ? "✓ Goleador real guardado y puntos calculados" : r.error);
     });
   }

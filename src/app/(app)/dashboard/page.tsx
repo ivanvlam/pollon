@@ -14,6 +14,7 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
   const uid = user!.id;
+  const isAdmin = user!.email === process.env.ADMIN_EMAIL;
 
   // Timezone guardada (para detectar/guardar la del navegador).
   const { data: profile } = await supabase
@@ -56,6 +57,11 @@ export default async function DashboardPage() {
           <Link href="/champion" className={buttonClasses("secondary", "sm")}>
             🏆 Mi campeón
           </Link>
+          {isAdmin && (
+            <Link href="/admin" className={buttonClasses("secondary", "sm")}>
+              ⚙️ Admin
+            </Link>
+          )}
         </div>
       </section>
 

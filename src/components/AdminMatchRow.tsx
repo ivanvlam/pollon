@@ -9,7 +9,6 @@ import { saveMatchResult, setMatchActive } from "@/lib/admin/actions";
 import type { MatchWinner } from "@/types";
 
 interface Props {
-  poolId: string;
   matchId: string;
   homeTeam: string;
   awayTeam: string;
@@ -21,7 +20,6 @@ interface Props {
 }
 
 export function AdminMatchRow({
-  poolId,
   matchId,
   homeTeam,
   awayTeam,
@@ -39,14 +37,14 @@ export function AdminMatchRow({
 
   function toggleActive() {
     startTransition(async () => {
-      const r = await setMatchActive(poolId, matchId, !isActive);
+      const r = await setMatchActive(matchId, !isActive);
       setMsg(r.ok ? "" : r.error);
     });
   }
 
   function save() {
     startTransition(async () => {
-      const r = await saveMatchResult(poolId, matchId, {
+      const r = await saveMatchResult(matchId, {
         homeScore: Number(home),
         awayScore: Number(away),
         winner: isKnockout ? (win === "" ? null : win) : null,

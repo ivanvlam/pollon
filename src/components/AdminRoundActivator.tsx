@@ -6,19 +6,18 @@ import { Button } from "@/components/ui/Button";
 import { setRoundActive } from "@/lib/admin/actions";
 
 interface Props {
-  poolId: string;
   round: string;
   label: string;
 }
 
-export function AdminRoundActivator({ poolId, round, label }: Props) {
+export function AdminRoundActivator({ round, label }: Props) {
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState("");
 
   function activate() {
     if (!window.confirm(`¿Activar todos los partidos de ${label}? Los participantes podrán empezar a predecir.`)) return;
     startTransition(async () => {
-      const r = await setRoundActive(poolId, round);
+      const r = await setRoundActive(round);
       setMsg(r.ok ? `✓ ${(r as { count?: number }).count ?? "?"} partidos activados` : r.error);
     });
   }

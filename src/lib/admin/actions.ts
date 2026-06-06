@@ -24,6 +24,16 @@ async function assertAdmin(): Promise<AdminResult> {
   return { ok: true };
 }
 
+/** Revalida las vistas afectadas por un cambio en datos del torneo. */
+function revalidateTournament() {
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+  revalidatePath("/pool/[id]", "page");
+  revalidatePath("/pool/[id]/predictions", "page");
+  revalidatePath("/pool/[id]/grupos", "page");
+  revalidatePath("/pool/[id]/bracket", "page");
+}
+
 const resultSchema = z.object({
   homeScore: z.number().int().min(0).max(99),
   awayScore: z.number().int().min(0).max(99),
@@ -32,7 +42,6 @@ const resultSchema = z.object({
 
 /** Activa o desactiva un partido (habilita la UI de predicción). */
 export async function setMatchActive(
-  poolId: string,
   matchId: string,
   active: boolean,
 ): Promise<AdminResult> {
@@ -47,13 +56,12 @@ export async function setMatchActive(
 
   if (error) return { ok: false, error: "No se pudo actualizar el partido" };
 
-  revalidatePath(`/pool/${poolId}/admin`);
+  revalidateTournament();
   return { ok: true };
 }
 
 /** Activa todos los partidos de una ronda eliminatoria de una vez. */
 export async function setRoundActive(
-  poolId: string,
   round: string,
 ): Promise<AdminResult & { count?: number }> {
   const auth = await assertAdmin();
@@ -69,17 +77,16 @@ export async function setRoundActive(
 
   if (error) return { ok: false, error: "No se pudo activar la ronda" };
 
-  revalidatePath(`/pool/${poolId}/admin`);
+  revalidateTournament();
   return { ok: true, count: data?.length ?? 0 };
 }
 
 /**
  * Guarda manualmente el resultado de un partido (status → finished) y
  * dispara el recálculo de scores. Misma lógica que el resultado venido
- * de API-Football.
+ * de la API.
  */
 export async function saveMatchResult(
-  poolId: string,
   matchId: string,
   input: { homeScore: number; awayScore: number; winner: "home" | "away" | null },
 ): Promise<AdminResult> {
@@ -110,13 +117,12 @@ export async function saveMatchResult(
     return { ok: false, error: "Resultado guardado, pero falló el recálculo" };
   }
 
-  revalidatePath(`/pool/${poolId}`);
-  revalidatePath(`/pool/${poolId}/admin`);
+  revalidateTournament();
   return { ok: true };
 }
 
 /** Sincroniza los jugadores via función SECURITY DEFINER (no requiere service role). */
-export async function syncPlayers(poolId: string): Promise<AdminResult & { count?: number }> {
+export async function syncPlayers(): Promise<AdminResult & { count?: number }> {
   const auth = await assertAdmin();
   if (!auth.ok) return auth;
 
@@ -128,17 +134,16 @@ export async function syncPlayers(poolId: string): Promise<AdminResult & { count
 
   if (error) return { ok: false, error: `Error al sincronizar: ${error.message}` };
 
-  revalidatePath(`/pool/${poolId}/admin`);
+  revalidatePath("/admin");
   return { ok: true, count: PLAYERS_DATA.length };
 }
 
 /** Sincroniza el fixture completo desde TheSportsDB (todas las rondas, sin windowing). */
-export async function syncMatches(poolId: string): Promise<AdminResult & { count?: number }> {
+export async function syncMatches(): Promise<AdminResult & { count?: number }> {
   const auth = await assertAdmin();
   if (!auth.ok) return auth;
 
   const { fetchWorldCupFixtures } = await import("@/lib/thesportsdb");
-  const { createServiceRoleClient: svcClient } = await import("@/lib/supabase/server");
 
   let fixtures;
   try {
@@ -149,7 +154,7 @@ export async function syncMatches(poolId: string): Promise<AdminResult & { count
 
   if (fixtures.length === 0) return { ok: false, error: "TheSportsDB no devolvió partidos" };
 
-  const svc = svcClient();
+  const svc = createServiceRoleClient();
   const { error } = await svc.from("matches").upsert(
     fixtures.map((f) => ({
       external_id: f.external_id,
@@ -170,16 +175,12 @@ export async function syncMatches(poolId: string): Promise<AdminResult & { count
 
   if (error) return { ok: false, error: `Error al guardar: ${error.message}` };
 
-  revalidatePath(`/pool/${poolId}/admin`);
-  revalidatePath(`/pool/${poolId}`);
+  revalidateTournament();
   return { ok: true, count: fixtures.length };
 }
 
 /** Marca el campeón real y recalcula puntos. teamName en español (como se almacena en champion_predictions). */
-export async function setActualChampion(
-  poolId: string,
-  teamName: string,
-): Promise<AdminResult> {
+export async function setActualChampion(teamName: string): Promise<AdminResult> {
   const auth = await assertAdmin();
   if (!auth.ok) return auth;
 
@@ -190,16 +191,12 @@ export async function setActualChampion(
     return { ok: false, error: err instanceof Error ? err.message : "Error al calcular" };
   }
 
-  revalidatePath(`/pool/${poolId}/admin`);
-  revalidatePath(`/pool/${poolId}`);
+  revalidateTournament();
   return { ok: true };
 }
 
 /** Marca el goleador real y recalcula puntos. */
-export async function setActualTopScorer(
-  poolId: string,
-  playerName: string,
-): Promise<AdminResult> {
+export async function setActualTopScorer(playerName: string): Promise<AdminResult> {
   const auth = await assertAdmin();
   if (!auth.ok) return auth;
 
@@ -210,7 +207,52 @@ export async function setActualTopScorer(
 
   if (error) return { ok: false, error: `Error al calcular: ${error.message}` };
 
-  revalidatePath(`/pool/${poolId}/admin`);
-  revalidatePath(`/pool/${poolId}`);
+  revalidateTournament();
+  return { ok: true };
+}
+
+// ============================================================
+// Panel global de administración (solo ADMIN_EMAIL)
+// ============================================================
+
+/** Elimina cualquier polla (cleanup de pruebas). Cascada limpia miembros y scores. */
+export async function adminDeletePool(poolId: string): Promise<AdminResult> {
+  const auth = await assertAdmin();
+  if (!auth.ok) return auth;
+
+  const svc = createServiceRoleClient();
+  const { error } = await svc.from("pools").delete().eq("id", poolId);
+
+  if (error) return { ok: false, error: "No se pudo eliminar la polla" };
+
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/**
+ * Elimina cualquier usuario (cleanup de pruebas). Borra de auth.users; la
+ * cascada limpia profile, membresías, predicciones, scores y picks.
+ * No permite que el admin se borre a sí mismo.
+ */
+export async function adminDeleteUser(userId: string): Promise<AdminResult> {
+  const auth = await assertAdmin();
+  if (!auth.ok) return auth;
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user?.id === userId) {
+    return { ok: false, error: "No puedes eliminarte a ti mismo" };
+  }
+
+  const svc = createServiceRoleClient();
+  const { error } = await svc.auth.admin.deleteUser(userId);
+
+  if (error) return { ok: false, error: `No se pudo eliminar el usuario: ${error.message}` };
+
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
   return { ok: true };
 }

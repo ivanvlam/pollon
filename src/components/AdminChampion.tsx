@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/Button";
 import { setActualChampion } from "@/lib/admin/actions";
 
 interface Props {
-  poolId: string;
   teams: string[]; // en español
 }
 
-export function AdminChampion({ poolId, teams }: Props) {
+export function AdminChampion({ teams }: Props) {
   const [selected, setSelected] = useState("");
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState("");
@@ -19,7 +18,7 @@ export function AdminChampion({ poolId, teams }: Props) {
     if (!selected) return;
     if (!window.confirm(`¿Confirmar campeón: ${selected}? Esto recalculará los puntos de todos los participantes.`)) return;
     startTransition(async () => {
-      const r = await setActualChampion(poolId, selected);
+      const r = await setActualChampion(selected);
       setMsg(r.ok ? `✓ Campeón "${selected}" guardado y puntos calculados` : r.error);
     });
   }

@@ -28,7 +28,6 @@ export default async function PoolRankingPage({
     p_pool_id: pool.id,
   });
 
-  const isCreator = user!.email === process.env.ADMIN_EMAIL;
   const isPoolCreator = user!.id === pool.created_by;
   // Una polla con puntos ya registrados no se puede eliminar.
   const hasScores = (ranking ?? []).some((r) => r.total > 0);
@@ -78,14 +77,6 @@ export default async function PoolRankingPage({
         >
           Bracket
         </Link>
-        {isCreator && (
-          <Link
-            href={`/pool/${pool.id}/admin`}
-            className={buttonClasses("secondary", "sm")}
-          >
-            Admin
-          </Link>
-        )}
       </nav>
 
       <section>
