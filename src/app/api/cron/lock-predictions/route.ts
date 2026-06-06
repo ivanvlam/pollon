@@ -7,9 +7,12 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 /**
- * Bloquea las predicciones de partidos que cierran dentro de la ventana
- * de LOCK_HOURS_BEFORE_KICKOFF. También cierra la predicción de campeón
- * 24h antes del primer partido del torneo. Corre cada hora.
+ * Bloquea (is_locked) las predicciones de partidos que cierran dentro de la
+ * ventana de LOCK_HOURS_BEFORE_KICKOFF (1h). El cierre real para editar y la
+ * revelación de picks ajenos se calculan por tiempo (ver submit_prediction /
+ * predictions_visibility); este flag se mantiene para campeón/goleador, cuya
+ * RLS de visibilidad sí lee is_locked. También cierra la predicción de campeón
+ * y goleador 1h antes del primer partido del torneo. Corre cada hora.
  */
 export async function GET(request: NextRequest) {
   if (!verifyCronSecret(request)) {

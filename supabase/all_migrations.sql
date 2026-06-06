@@ -186,6 +186,7 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+
 -- ===== 20260603000002_rls_policies.sql =====
 -- ============================================================
 -- Pollon — Row Level Security
@@ -368,6 +369,7 @@ create policy "scores_select_pool_member" on public.scores
   for select to authenticated
   using (public.is_pool_member(pool_id));
 
+
 -- ===== 20260603000003_ranking_function.sql =====
 -- ============================================================
 -- Pollon — Función de ranking de una polla
@@ -426,6 +428,7 @@ begin
       pr.display_name asc;
 end;
 $$;
+
 
 -- ===== 20260603000004_submit_prediction.sql =====
 -- ============================================================
@@ -498,6 +501,7 @@ begin
 end;
 $$;
 
+
 -- ===== 20260603000005_replace_match_scores.sql =====
 -- ============================================================
 -- Pollon — replace_match_scores (recálculo atómico)
@@ -535,6 +539,7 @@ revoke execute on function public.replace_match_scores(uuid, jsonb) from anon, a
 -- Tras revocar PUBLIC hay que conceder explícitamente al service role,
 -- que es quien la invoca desde el cron / panel admin.
 grant execute on function public.replace_match_scores(uuid, jsonb) to service_role;
+
 
 -- ===== 20260603000006_champion.sql =====
 -- ============================================================
@@ -610,6 +615,7 @@ revoke execute on function public.replace_champion_scores(jsonb) from public;
 revoke execute on function public.replace_champion_scores(jsonb) from anon, authenticated;
 grant execute on function public.replace_champion_scores(jsonb) to service_role;
 
+
 -- ===== 20260603000007_sent_reminders.sql =====
 -- ============================================================
 -- Pollon — Registro de recordatorios enviados (idempotencia)
@@ -631,6 +637,7 @@ create index sent_reminders_match_id_idx on public.sent_reminders (match_id);
 -- RLS activada sin políticas: ningún cliente (anon/authenticated) puede
 -- leer ni escribir. Solo el service role (cron) accede, haciendo bypass.
 alter table public.sent_reminders enable row level security;
+
 
 -- ===== 20260603000008_grants.sql =====
 -- ============================================================
@@ -659,6 +666,7 @@ grant select, insert, update, delete
 -- Nota: NO se tocan los privilegios EXECUTE de funciones. replace_match_scores
 -- y replace_champion_scores siguen revocadas a anon/authenticated y
 -- concedidas solo a service_role (ver sus migraciones).
+
 
 -- ===== 20260603000009_champion_lock_1h.sql =====
 -- ============================================================
@@ -702,6 +710,7 @@ begin
     set team = excluded.team;
 end;
 $$;
+
 
 -- ===== 20260603000010_match_lock_1h.sql =====
 -- ============================================================
@@ -789,3 +798,396 @@ create policy "predictions_visibility" on public.predictions
     )
   );
 
+
+-- ===== 20260605000001_add_round_of_32.sql =====
+-- Mundial 2026 tiene 48 equipos → nueva ronda de 32 antes de octavos.
+alter table matches
+  drop constraint matches_round_check,
+  add constraint matches_round_check check (
+    round in ('group_stage','round_of_32','round_of_16','quarterfinal','semifinal','final')
+  );
+
+
+-- ===== 20260605000002_lock_at_kickoff.sql =====
+-- Las predicciones cierran exactamente al inicio del partido (antes cerraban 1h antes).
+-- También actualiza la política de visibilidad de predicciones ajenas.
+
+create or replace function public.submit_prediction(
+  p_match_id        uuid,
+  p_predicted_home  integer,
+  p_predicted_away  integer,
+  p_predicted_winner text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user    uuid := auth.uid();
+  v_match   public.matches%rowtype;
+  v_pred_id uuid;
+begin
+  if v_user is null then
+    raise exception 'not authenticated';
+  end if;
+
+  select * into v_match from public.matches where id = p_match_id;
+  if not found then
+    raise exception 'match not found';
+  end if;
+
+  if not v_match.is_active then
+    raise exception 'match not active';
+  end if;
+
+  if now() >= v_match.kickoff_at then
+    raise exception 'predictions closed for this match';
+  end if;
+
+  if v_match.round = 'group_stage' then
+    p_predicted_winner := null;
+  end if;
+
+  insert into public.predictions (
+    user_id, match_id, predicted_home, predicted_away, predicted_winner
+  )
+  values (
+    v_user, p_match_id, p_predicted_home, p_predicted_away, p_predicted_winner
+  )
+  on conflict (user_id, match_id) do update
+    set predicted_home   = excluded.predicted_home,
+        predicted_away   = excluded.predicted_away,
+        predicted_winner = excluded.predicted_winner,
+        updated_at       = now()
+  returning id into v_pred_id;
+
+  insert into public.prediction_history (
+    prediction_id, predicted_home, predicted_away, predicted_winner
+  )
+  values (
+    v_pred_id, p_predicted_home, p_predicted_away, p_predicted_winner
+  );
+end;
+$$;
+
+-- Predicciones ajenas se revelan al inicio del partido.
+drop policy if exists "predictions_visibility" on public.predictions;
+
+create policy "predictions_visibility" on public.predictions
+  for select to authenticated
+  using (
+    user_id = auth.uid()
+    or (
+      public.shares_pool_with(user_id)
+      and exists (
+        select 1 from public.matches m
+        where m.id = predictions.match_id
+          and now() >= m.kickoff_at
+      )
+    )
+  );
+
+
+-- ===== 20260605000003_update_ranking_new_scoring.sql =====
+-- Actualiza get_pool_ranking para el nuevo sistema de puntos.
+-- Agrega diff_count (aciertos de 3 pts) como nuevo nivel de desempate.
+-- Desempate: total → exact_count (5pts) → diff_count (3pts) → winner_count (2pts) → campeón → nombre.
+
+create or replace function public.get_pool_ranking(p_pool_id uuid)
+returns table (
+  user_id          uuid,
+  display_name     text,
+  total            bigint,
+  exact_count      bigint,
+  diff_count       bigint,
+  winner_count     bigint,
+  champion_correct boolean
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_pool_member(p_pool_id) then
+    raise exception 'not authorized to view this ranking';
+  end if;
+
+  return query
+    select
+      pm.user_id,
+      pr.display_name,
+      coalesce(sum(s.points), 0)::bigint as total,
+      count(*) filter (
+        where s.reason in ('exact_score', 'exact_qualifier_score')
+      )::bigint as exact_count,
+      count(*) filter (
+        where s.reason in ('correct_diff', 'correct_diff_qualifier')
+      )::bigint as diff_count,
+      count(*) filter (
+        where s.reason in ('correct_winner', 'correct_draw', 'correct_qualifier')
+      )::bigint as winner_count,
+      coalesce(bool_or(s.reason = 'champion'), false) as champion_correct
+    from public.pool_members pm
+    join public.profiles pr on pr.id = pm.user_id
+    left join public.scores s
+      on s.pool_id = pm.pool_id and s.user_id = pm.user_id
+    where pm.pool_id = p_pool_id
+    group by pm.user_id, pr.display_name
+    order by
+      total desc,
+      exact_count desc,
+      diff_count desc,
+      winner_count desc,
+      champion_correct desc,
+      pr.display_name asc;
+end;
+$$;
+
+
+-- ===== 20260605000004_players_top_scorer.sql =====
+-- Jugadores para el dropdown del goleador
+create table public.players (
+  id   uuid primary key default gen_random_uuid(),
+  name text not null,
+  team text not null,
+  unique (name, team)
+);
+
+alter table public.players enable row level security;
+create policy "players_select" on public.players for select using (true);
+
+-- Predicciones de goleador (una por usuario, igual que campeón)
+create table public.top_scorer_predictions (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  player_name text not null,
+  is_locked   boolean not null default false,
+  locked_at   timestamptz,
+  created_at  timestamptz not null default now(),
+  unique (user_id)
+);
+
+alter table public.top_scorer_predictions enable row level security;
+
+create policy "top_scorer_select_own" on public.top_scorer_predictions
+  for select using (user_id = auth.uid());
+
+create policy "top_scorer_insert_own" on public.top_scorer_predictions
+  for insert with check (user_id = auth.uid() and not is_locked);
+
+create policy "top_scorer_update_own" on public.top_scorer_predictions
+  for update using (user_id = auth.uid() and not is_locked);
+
+
+-- ===== 20260605000005_top_scorer_scoring.sql =====
+-- Calcula puntos de goleador. Otorga 10 pts a cada usuario que acertó,
+-- por cada polla en que participa. Idempotente.
+
+create or replace function public.recalculate_top_scorer_scores(p_player_name text)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_ids uuid[];
+  v_rows     record;
+  v_inserted int := 0;
+begin
+  select array_agg(user_id) into v_user_ids
+  from public.top_scorer_predictions
+  where player_name = p_player_name;
+
+  delete from public.scores where reason = 'top_scorer';
+
+  if v_user_ids is null then
+    return json_build_object('inserted', 0);
+  end if;
+
+  for v_rows in
+    select pm.user_id, pm.pool_id
+    from public.pool_members pm
+    where pm.user_id = any(v_user_ids)
+  loop
+    insert into public.scores (user_id, pool_id, match_id, points, reason)
+    values (v_rows.user_id, v_rows.pool_id, null, 10, 'top_scorer');
+    v_inserted := v_inserted + 1;
+  end loop;
+
+  return json_build_object('inserted', v_inserted);
+end;
+$$;
+
+revoke execute on function public.recalculate_top_scorer_scores(text) from public, anon, authenticated;
+grant execute on function public.recalculate_top_scorer_scores(text) to service_role;
+
+
+-- ===== 20260606000001_players_grant_write.sql =====
+-- La tabla players solo tenía política SELECT.
+-- El service_role necesita GRANT explícito de escritura para el sync de jugadores.
+grant insert, update, delete on public.players to service_role;
+
+
+-- ===== 20260606000002_upsert_players_fn.sql =====
+-- Función SECURITY DEFINER para sincronizar jugadores sin requerir service role.
+-- Corre como postgres (dueño de la tabla), cualquier usuario autenticado puede invocarla.
+create or replace function public.upsert_players_data(players jsonb)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.players (name, team)
+  select (p->>'name')::text, (p->>'team')::text
+  from jsonb_array_elements(players) as p
+  on conflict (name, team) do nothing;
+
+  return (select count(*) from public.players)::integer;
+end;
+$$;
+
+grant execute on function public.upsert_players_data(jsonb) to authenticated;
+
+
+-- ===== 20260606000003_players_grant_select.sql =====
+-- Permite que usuarios autenticados y anónimos lean la tabla de jugadores.
+-- La política RLS players_select (using true) ya existe, pero sin este grant
+-- el motor de PostgreSQL deniega el acceso antes de evaluar RLS.
+grant select on public.players to authenticated, anon;
+
+
+-- ===== 20260606000004_join_pool_fn.sql =====
+-- Función SECURITY DEFINER para unirse a una polla por invite_code.
+-- El client anon/authenticated no puede hacer SELECT en pools ajenas (RLS),
+-- pero esta función corre como el owner (definer) y sí puede.
+create or replace function public.join_pool_by_code(p_invite_code text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_pool_id uuid;
+begin
+  select id into v_pool_id
+  from public.pools
+  where invite_code = p_invite_code;
+
+  if v_pool_id is null then
+    return null;
+  end if;
+
+  insert into public.pool_members (pool_id, user_id)
+  values (v_pool_id, auth.uid())
+  on conflict (pool_id, user_id) do nothing;
+
+  return v_pool_id;
+end;
+$$;
+
+grant execute on function public.join_pool_by_code(text) to authenticated;
+
+
+-- ===== 20260606000005_top_scorer_grants.sql =====
+-- top_scorer_predictions fue creada después del GRANT global (grants.sql),
+-- así que authenticated no heredó los permisos. Grant explícito necesario.
+grant select, insert, update on public.top_scorer_predictions to authenticated;
+
+
+-- ===== 20260606000006_lock_1h_before_each_match.sql =====
+-- ============================================================
+-- Pollon — Cierre de predicciones: 1h antes de CADA partido
+-- ============================================================
+-- Contexto: la migración 20260605000002_lock_at_kickoff cambió el cierre
+-- a "exactamente al kickoff" (0h). Esto restaura el comportamiento
+-- deseado: cada partido cierra 1 hora antes de SU propio kickoff_at, y
+-- las predicciones ajenas se revelan a esa misma hora.
+--
+-- El cierre es por partido (kickoff_at de cada uno), NO global. La
+-- predicción de campeón y goleador se cierra 1h antes del PRIMER partido
+-- del torneo y se maneja aparte (submit_champion / isChampionLocked).
+--
+-- Debe coincidir con LOCK_HOURS_BEFORE_KICKOFF = 1 en src/lib/constants.ts.
+
+-- 1) submit_prediction: rechazar a partir de kickoff - 1h.
+create or replace function public.submit_prediction(
+  p_match_id        uuid,
+  p_predicted_home  integer,
+  p_predicted_away  integer,
+  p_predicted_winner text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user    uuid := auth.uid();
+  v_match   public.matches%rowtype;
+  v_pred_id uuid;
+  v_lock_hours constant integer := 1;  -- 1h antes de cada partido
+begin
+  if v_user is null then
+    raise exception 'not authenticated';
+  end if;
+
+  select * into v_match from public.matches where id = p_match_id;
+  if not found then
+    raise exception 'match not found';
+  end if;
+
+  if not v_match.is_active then
+    raise exception 'match not active';
+  end if;
+
+  if now() >= v_match.kickoff_at - make_interval(hours => v_lock_hours) then
+    raise exception 'predictions closed for this match';
+  end if;
+
+  if v_match.round = 'group_stage' then
+    p_predicted_winner := null;
+  end if;
+
+  insert into public.predictions (
+    user_id, match_id, predicted_home, predicted_away, predicted_winner
+  )
+  values (
+    v_user, p_match_id, p_predicted_home, p_predicted_away, p_predicted_winner
+  )
+  on conflict (user_id, match_id) do update
+    set predicted_home   = excluded.predicted_home,
+        predicted_away   = excluded.predicted_away,
+        predicted_winner = excluded.predicted_winner,
+        updated_at       = now()
+  returning id into v_pred_id;
+
+  insert into public.prediction_history (
+    prediction_id, predicted_home, predicted_away, predicted_winner
+  )
+  values (
+    v_pred_id, p_predicted_home, p_predicted_away, p_predicted_winner
+  );
+end;
+$$;
+
+-- 2) Visibilidad de predicciones ajenas basada en TIEMPO (kickoff - 1h),
+--    no en el flag is_locked. Así la revelación es inmediata y coincide
+--    exactamente con el momento de cierre, sin depender del cron.
+drop policy if exists "predictions_visibility" on public.predictions;
+
+create policy "predictions_visibility" on public.predictions
+  for select to authenticated
+  using (
+    user_id = auth.uid()
+    or (
+      public.shares_pool_with(user_id)
+      and exists (
+        select 1 from public.matches m
+        where m.id = predictions.match_id
+          and now() >= m.kickoff_at - make_interval(hours => 1)
+      )
+    )
+  );

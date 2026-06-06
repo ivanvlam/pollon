@@ -6,10 +6,10 @@
 // submit_champion validan con now() del servidor), pero el cliente y los
 // Server Components usan estas funciones para mostrar estado y countdown.
 //
-// IMPORTANTE: el cierre es una duración ABSOLUTA (24h = 86 400 s) antes
-// del kickoff, calculada sobre epoch UTC. Por eso es inmune a DST y a la
-// timezone del usuario, siempre que kickoff_at venga como ISO con offset
-// (Supabase devuelve timestamptz con 'Z'/offset).
+// IMPORTANTE: el cierre es una duración ABSOLUTA (LOCK_HOURS_BEFORE_KICKOFF,
+// = 1h) antes del kickoff de CADA partido, calculada sobre epoch UTC. Por eso
+// es inmune a DST y a la timezone del usuario, siempre que kickoff_at venga
+// como ISO con offset (Supabase devuelve timestamptz con 'Z'/offset).
 
 import { CHAMPION_LOCK_HOURS, LOCK_HOURS_BEFORE_KICKOFF } from "@/lib/constants";
 

@@ -158,7 +158,7 @@ export function PredictionsClient({
     });
 
     return result;
-  }, [matches, search, groupFilter, sort, predFilter, myPredByMatch]);
+  }, [matches, search, groupFilter, sort, predFilter, savedMatchIds]);
 
   // Sin filtros: agrupar por ronda. Con filtros: lista plana.
   const sections = useMemo(() => {
@@ -178,6 +178,7 @@ export function PredictionsClient({
         <input
           type="search"
           placeholder="Buscar por país…"
+          aria-label="Buscar partido por país"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder-neutral-500 outline-none focus:border-emerald-600"
@@ -196,6 +197,7 @@ export function PredictionsClient({
             <button
               key={key}
               type="button"
+              aria-pressed={sort === key}
               className={chip(sort === key)}
               onClick={() => setSort(key)}
             >
@@ -216,6 +218,7 @@ export function PredictionsClient({
             <button
               key={key}
               type="button"
+              aria-pressed={predFilter === key}
               className={chip(predFilter === key)}
               onClick={() => setPredFilter(key)}
             >
@@ -228,6 +231,7 @@ export function PredictionsClient({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
+              aria-pressed={groupFilter === null}
               className={chip(groupFilter === null)}
               onClick={() => setGroupFilter(null)}
             >
@@ -237,6 +241,7 @@ export function PredictionsClient({
               <button
                 key={g}
                 type="button"
+                aria-pressed={groupFilter === g}
                 className={chip(groupFilter === g)}
                 onClick={() => setGroupFilter(groupFilter === g ? null : g)}
               >

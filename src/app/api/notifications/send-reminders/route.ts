@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic";
 const REMINDER_WINDOW_HOURS = 2;
 
 /**
- * Busca partidos cuyo cierre (kickoff - 24h) cae en las próximas 2h,
- * encuentra usuarios sin predicción para esos partidos y les envía un
- * recordatorio. Corre cada hora.
+ * Busca partidos cuyo cierre (kickoff - LOCK_HOURS_BEFORE_KICKOFF, = 1h) cae
+ * en las próximas 2h, encuentra usuarios sin predicción para esos partidos y
+ * les envía un recordatorio. Corre cada hora.
  */
 export async function GET(request: NextRequest) {
   if (!verifyCronSecret(request)) {
@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
   const appUrl = process.env.APP_URL ?? "";
   const now = Date.now();
 
-  // El cierre ocurre a kickoff - 24h. Queremos partidos cuyo cierre cae
-  // entre ahora y ahora + 2h, es decir kickoff en [now+24h, now+26h].
+  // El cierre ocurre a kickoff - 1h. Queremos partidos cuyo cierre cae
+  // entre ahora y ahora + 2h, es decir kickoff en [now+1h, now+3h].
   const lockMs = LOCK_HOURS_BEFORE_KICKOFF * 3600_000;
   const fromIso = new Date(now + lockMs).toISOString();
   const toIso = new Date(now + lockMs + REMINDER_WINDOW_HOURS * 3600_000).toISOString();
