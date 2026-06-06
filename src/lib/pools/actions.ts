@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { nanoid } from "nanoid";
 
+import { backfillUserPoolScores } from "@/lib/scoring-service";
 import { createClient } from "@/lib/supabase/server";
 import { createPoolSchema } from "@/lib/validations";
 
@@ -71,12 +72,52 @@ export async function joinPool(inviteCode: string): Promise<PoolActionState> {
     p_invite_code: inviteCode,
   });
 
-  if (error || !poolId) {
+  if (error) {
+    if (error.message.includes("tournament ended")) {
+      return { error: "El torneo ya terminó: no puedes unirte a nuevas pollas" };
+    }
     return { error: "Código de invitación inválido" };
+  }
+  if (!poolId) return { error: "Código de invitación inválido" };
+
+  // Tus predicciones son globales y se hicieron a tiempo: cuentan aunque te
+  // unas a mitad de torneo. No bloquea la unión si falla.
+  try {
+    await backfillUserPoolScores(user.id, poolId);
+  } catch {
+    /* el admin puede recalcular si hiciera falta */
   }
 
   revalidatePath("/dashboard");
   redirect(`/pool/${poolId}`);
+}
+
+/** Expulsa a un participante de la polla. Solo el creador. */
+export async function removeMember(
+  poolId: string,
+  userId: string,
+): Promise<PoolActionState> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const { error } = await supabase.rpc("remove_pool_member", {
+    p_pool_id: poolId,
+    p_user_id: userId,
+  });
+
+  if (error) {
+    if (error.message.includes("not authorized")) return { error: "No tienes permiso" };
+    if (error.message.includes("cannot remove creator")) {
+      return { error: "No puedes expulsar al creador" };
+    }
+    return { error: "No se pudo expulsar al participante" };
+  }
+
+  revalidatePath(`/pool/${poolId}`);
+  return null;
 }
 
 /**

@@ -154,3 +154,76 @@ export async function recalculateChampionScores(
 
   return { inserted: rows.length };
 }
+
+/**
+ * Rellena los puntos de un usuario en una polla a la que se acaba de unir,
+ * para todos los partidos YA finalizados. Sus predicciones son globales y se
+ * hicieron a tiempo, así que cuentan aunque se una a mitad de torneo.
+ *
+ * Solo cubre partidos: campeón y goleador se deciden recién al final y no se
+ * puede unir después de la final, así que nunca están definidos al unirse.
+ *
+ * Idempotente: borra los scores del usuario en esa polla y los reinserta.
+ */
+export async function backfillUserPoolScores(
+  userId: string,
+  poolId: string,
+): Promise<{ inserted: number }> {
+  const supabase = createServiceRoleClient();
+
+  const [{ data: matches }, { data: preds }] = await Promise.all([
+    supabase
+      .from("matches")
+      .select("id, round, home_score, away_score, winner")
+      .eq("status", "finished"),
+    supabase
+      .from("predictions")
+      .select("match_id, predicted_home, predicted_away, predicted_winner")
+      .eq("user_id", userId),
+  ]);
+
+  const predByMatch = new Map((preds ?? []).map((p) => [p.match_id, p]));
+
+  const rows: {
+    user_id: string;
+    pool_id: string;
+    match_id: string;
+    points: number;
+    reason: string;
+  }[] = [];
+
+  for (const m of matches ?? []) {
+    const pred = predByMatch.get(m.id);
+    if (!pred) continue;
+    const score = calculateMatchScore(
+      {
+        round: m.round as Round,
+        home_score: m.home_score,
+        away_score: m.away_score,
+        winner: m.winner as MatchWinner | null,
+      },
+      {
+        predicted_home: pred.predicted_home,
+        predicted_away: pred.predicted_away,
+        predicted_winner: pred.predicted_winner as MatchWinner | null,
+      },
+    );
+    if (!score) continue;
+    rows.push({
+      user_id: userId,
+      pool_id: poolId,
+      match_id: m.id,
+      points: score.points,
+      reason: score.reason,
+    });
+  }
+
+  await supabase.from("scores").delete().eq("user_id", userId).eq("pool_id", poolId);
+
+  if (rows.length > 0) {
+    const { error } = await supabase.from("scores").insert(rows);
+    if (error) throw new Error(`backfill falló: ${error.message}`);
+  }
+
+  return { inserted: rows.length };
+}
