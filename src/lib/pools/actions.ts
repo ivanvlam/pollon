@@ -92,6 +92,35 @@ export async function joinPool(inviteCode: string): Promise<PoolActionState> {
   redirect(`/pool/${poolId}`);
 }
 
+/** Cambia el nombre de la polla. Solo el creador (enforced por RLS). */
+export async function renamePool(
+  poolId: string,
+  name: string,
+): Promise<PoolActionState> {
+  const parsed = createPoolSchema.safeParse({ name });
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0]?.message ?? "Nombre inválido" };
+  }
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const { error } = await supabase
+    .from("pools")
+    .update({ name: parsed.data.name })
+    .eq("id", poolId);
+
+  if (error) return { error: "No se pudo cambiar el nombre" };
+
+  revalidatePath(`/pool/${poolId}`);
+  revalidatePath(`/pool/${poolId}/manage`);
+  revalidatePath("/dashboard");
+  return null;
+}
+
 /** Expulsa a un participante de la polla. Solo el creador. */
 export async function removeMember(
   poolId: string,
@@ -117,6 +146,7 @@ export async function removeMember(
   }
 
   revalidatePath(`/pool/${poolId}`);
+  revalidatePath(`/pool/${poolId}/manage`);
   return null;
 }
 

@@ -2,8 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CopyInviteButton } from "@/components/CopyInviteButton";
-import { DeletePoolButton } from "@/components/DeletePoolButton";
-import { RemoveMemberButton } from "@/components/RemoveMemberButton";
 import { buttonClasses } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,8 +28,6 @@ export default async function PoolRankingPage({
   });
 
   const isPoolCreator = user!.id === pool.created_by;
-  // Una polla con puntos ya registrados no se puede eliminar.
-  const hasScores = (ranking ?? []).some((r) => r.total > 0);
 
   return (
     <div className="flex flex-col gap-8">
@@ -54,7 +50,9 @@ export default async function PoolRankingPage({
         <div className="flex flex-wrap items-center gap-2">
           <CopyInviteButton inviteCode={pool.invite_code} />
           {isPoolCreator && (
-            <DeletePoolButton poolId={pool.id} hasScores={hasScores} />
+            <Link href={`/pool/${pool.id}/manage`} className={buttonClasses("secondary", "sm")}>
+              Administrar
+            </Link>
           )}
         </div>
       </header>
@@ -100,7 +98,6 @@ export default async function PoolRankingPage({
                   <th scope="col" className="w-28 py-2 text-center" title="Marcador exacto (5 pts)">Exactos</th>
                   <th scope="col" className="w-28 py-2 text-center" title="Diferencia de goles correcta (3 pts)">Dif</th>
                   <th scope="col" className="w-28 py-2 text-center" title="Solo ganador / clasificado acertado (2 pts)">Aciertos</th>
-                  {isPoolCreator && <th scope="col" className="py-2 text-right">Acción</th>}
                 </tr>
               </thead>
               <tbody>
@@ -132,13 +129,6 @@ export default async function PoolRankingPage({
                     <td className="w-28 py-2 text-center text-neutral-400">
                       {row.winner_count}
                     </td>
-                    {isPoolCreator && (
-                      <td className="py-2 text-right">
-                        {row.user_id !== user!.id && (
-                          <RemoveMemberButton poolId={pool.id} userId={row.user_id} />
-                        )}
-                      </td>
-                    )}
                   </tr>
                 ))}
               </tbody>
