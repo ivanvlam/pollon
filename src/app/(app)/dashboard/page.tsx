@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CreatePoolForm } from "@/components/CreatePoolForm";
 import { JoinPoolForm } from "@/components/JoinPoolForm";
 import { TimezoneSync } from "@/components/TimezoneSync";
+import { buttonClasses } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Mis pollas" };
@@ -49,16 +50,10 @@ export default async function DashboardPage() {
       <section className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Mis pollas</h1>
         <div className="flex items-center gap-2">
-          <Link
-            href="/como-funciona"
-            className="rounded-lg px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-800"
-          >
+          <Link href="/como-funciona" className={buttonClasses("ghost", "sm")}>
             ¿Cómo funciona?
           </Link>
-          <Link
-            href="/champion"
-            className="rounded-lg border border-neutral-700 px-4 py-2 text-sm font-medium transition hover:bg-neutral-800"
-          >
+          <Link href="/champion" className={buttonClasses("secondary", "sm")}>
             🏆 Mi campeón
           </Link>
         </div>

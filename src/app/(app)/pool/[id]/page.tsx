@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { CopyInviteButton } from "@/components/CopyInviteButton";
 import { DeletePoolButton } from "@/components/DeletePoolButton";
+import { buttonClasses } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function PoolRankingPage({
@@ -58,29 +59,29 @@ export default async function PoolRankingPage({
         </div>
       </header>
 
-      <nav className="flex gap-4 text-sm">
+      <nav className="flex flex-wrap gap-2">
         <Link
           href={`/pool/${pool.id}/predictions`}
-          className="text-emerald-400 hover:underline"
+          className={buttonClasses("secondary", "sm")}
         >
           Predicciones
         </Link>
         <Link
           href={`/pool/${pool.id}/grupos`}
-          className="text-emerald-400 hover:underline"
+          className={buttonClasses("secondary", "sm")}
         >
           Grupos
         </Link>
         <Link
           href={`/pool/${pool.id}/bracket`}
-          className="text-emerald-400 hover:underline"
+          className={buttonClasses("secondary", "sm")}
         >
           Bracket
         </Link>
         {isCreator && (
           <Link
             href={`/pool/${pool.id}/admin`}
-            className="text-emerald-400 hover:underline"
+            className={buttonClasses("secondary", "sm")}
           >
             Admin
           </Link>
