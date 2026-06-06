@@ -34,6 +34,23 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   );
 }
 
+function Highlight({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
+      <p className="text-xs text-neutral-500">{label}</p>
+      <p className="mt-1 truncate font-semibold text-neutral-100">{value}</p>
+      {sub && <p className="text-xs text-neutral-500">{sub}</p>}
+    </div>
+  );
+}
+
+/** Devuelve la clave con mayor valor de un mapa de conteos. */
+function topKey(map: Map<string, number>): { key: string; n: number } | null {
+  let best: { key: string; n: number } | null = null;
+  for (const [key, n] of map) if (!best || n > best.n) best = { key, n };
+  return best;
+}
+
 export default async function GlobalAdminPage() {
   const supabase = createClient();
   const {
@@ -48,20 +65,24 @@ export default async function GlobalAdminPage() {
     { data: pools },
     { data: members },
     { data: scoreRows },
-    { count: predCount },
+    { data: predRows },
     { data: matches },
     { data: players },
+    { data: champPicks },
+    { data: scorerPicks },
   ] = await Promise.all([
     svc.from("profiles").select("id, display_name, created_at"),
     svc.from("pools").select("id, name, created_at, created_by"),
     svc.from("pool_members").select("pool_id, user_id"),
-    svc.from("scores").select("pool_id"),
-    svc.from("predictions").select("*", { count: "exact", head: true }),
+    svc.from("scores").select("pool_id, user_id, points"),
+    svc.from("predictions").select("user_id"),
     svc
       .from("matches")
-      .select("id, round, home_team, away_team, kickoff_at, is_active, home_score, away_score, winner")
+      .select("id, round, home_team, away_team, kickoff_at, is_active, home_score, away_score, winner, status")
       .order("kickoff_at", { ascending: true }),
     svc.from("players").select("name, team").order("name"),
+    svc.from("champion_predictions").select("team"),
+    svc.from("top_scorer_predictions").select("player_name"),
   ]);
 
   // Emails desde Auth admin (paginado).
@@ -76,6 +97,7 @@ export default async function GlobalAdminPage() {
   const allProfiles = profiles ?? [];
   const allPools = pools ?? [];
   const allMembers = members ?? [];
+  const allMatches = matches ?? [];
 
   const userCount = allProfiles.length;
   const poolCount = allPools.length;
@@ -90,10 +112,55 @@ export default async function GlobalAdminPage() {
   const poolsWithScores = new Set((scoreRows ?? []).map((s) => s.pool_id));
   const nameById = new Map(allProfiles.map((p) => [p.id, p.display_name]));
 
-  const avgPoolsPerUser = userCount ? (membershipCount / userCount).toFixed(1) : "0";
-  const avgMembersPerPool = poolCount ? (membershipCount / poolCount).toFixed(1) : "0";
-  const usersWithoutPool = allProfiles.filter((p) => !poolsByUser.has(p.id)).length;
-  const activePools = allPools.filter((p) => poolsWithScores.has(p.id)).length;
+  // Predicciones por usuario.
+  const predCount = (predRows ?? []).length;
+  const predsByUser = new Map<string, number>();
+  for (const p of predRows ?? []) {
+    predsByUser.set(p.user_id, (predsByUser.get(p.user_id) ?? 0) + 1);
+  }
+  const activeUsers = predsByUser.size;
+
+  // Puntos por usuario: el puntaje es el mismo en todas sus pollas, así que
+  // tomamos el total de una polla (el máximo, por robustez ante backfills).
+  const totalByUserPool = new Map<string, number>();
+  for (const s of scoreRows ?? []) {
+    const k = `${s.user_id}|${s.pool_id}`;
+    totalByUserPool.set(k, (totalByUserPool.get(k) ?? 0) + (s.points ?? 0));
+  }
+  const pointsByUser = new Map<string, number>();
+  for (const [k, v] of totalByUserPool) {
+    const uid = k.slice(0, k.indexOf("|"));
+    pointsByUser.set(uid, Math.max(pointsByUser.get(uid) ?? 0, v));
+  }
+
+  // Promedios y agregados.
+  const participants = allProfiles.filter((p) => poolsByUser.has(p.id)).length;
+  const totalPoints = [...pointsByUser.values()].reduce((a, b) => a + b, 0);
+  const avgPoints = participants ? (totalPoints / participants).toFixed(1) : "0";
+  const avgPredsPerUser = userCount ? (predCount / userCount).toFixed(1) : "0";
+  const usersWithoutPool = userCount - participants;
+  const activePoolsCount = allPools.filter((p) => poolsWithScores.has(p.id)).length;
+  const participationPct = userCount ? Math.round((activeUsers / userCount) * 100) : 0;
+
+  const totalMatches = allMatches.length;
+  const finishedMatches = allMatches.filter((m) => m.status === "finished").length;
+  const activeMatches = allMatches.filter((m) => m.is_active).length;
+  const avgPredsPerActiveMatch = activeMatches ? (predCount / activeMatches).toFixed(1) : "0";
+
+  // Campeón / goleador: conteos y favoritos.
+  const champByTeam = new Map<string, number>();
+  for (const c of champPicks ?? []) champByTeam.set(c.team, (champByTeam.get(c.team) ?? 0) + 1);
+  const scorerByPlayer = new Map<string, number>();
+  for (const s of scorerPicks ?? []) scorerByPlayer.set(s.player_name, (scorerByPlayer.get(s.player_name) ?? 0) + 1);
+  const champCount = (champPicks ?? []).length;
+  const scorerCount = (scorerPicks ?? []).length;
+  const topChampion = topKey(champByTeam);
+  const topScorerPick = topKey(scorerByPlayer);
+
+  // Destacados.
+  const leader = topKey(pointsByUser);
+  const mostPredictions = topKey(predsByUser);
+  const biggestPool = topKey(membersByPool);
 
   const poolsSorted = [...allPools].sort((a, b) => a.name.localeCompare(b.name));
   const usersSorted = [...allProfiles].sort((a, b) =>
@@ -101,7 +168,7 @@ export default async function GlobalAdminPage() {
   );
 
   const teams = [
-    ...new Set((matches ?? []).flatMap((m) => [m.home_team, m.away_team])),
+    ...new Set(allMatches.flatMap((m) => [m.home_team, m.away_team])),
   ]
     .sort()
     .map(toSpanish);
@@ -121,12 +188,51 @@ export default async function GlobalAdminPage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Participantes" value={userCount} />
           <Stat label="Pollas" value={poolCount} />
-          <Stat label="Predicciones" value={predCount ?? 0} />
+          <Stat label="Predicciones" value={predCount} />
+          <Stat label="Predicciones por usuario (prom.)" value={avgPredsPerUser} />
+          <Stat label="Puntos promedio por participante" value={avgPoints} />
+          <Stat label="Usuarios activos" value={`${activeUsers} (${participationPct}%)`} />
           <Stat label="Membresías totales" value={membershipCount} />
-          <Stat label="Pollas por usuario (prom.)" value={avgPoolsPerUser} />
-          <Stat label="Participantes por polla (prom.)" value={avgMembersPerPool} />
-          <Stat label="Pollas con puntos" value={activePools} />
+          <Stat label="Pollas por usuario (prom.)" value={userCount ? (membershipCount / userCount).toFixed(1) : "0"} />
+          <Stat label="Participantes por polla (prom.)" value={poolCount ? (membershipCount / poolCount).toFixed(1) : "0"} />
+          <Stat label="Partidos (finalizados / total)" value={`${finishedMatches} / ${totalMatches}`} />
+          <Stat label="Predicciones por partido activo (prom.)" value={avgPredsPerActiveMatch} />
+          <Stat label="Pollas con puntos" value={activePoolsCount} />
           <Stat label="Usuarios sin polla" value={usersWithoutPool} />
+          <Stat label="Eligieron campeón" value={champCount} />
+          <Stat label="Eligieron goleador" value={scorerCount} />
+        </div>
+      </section>
+
+      {/* Destacados */}
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-semibold">Destacados</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <Highlight
+            label="Líder global (más puntos)"
+            value={leader ? (nameById.get(leader.key) ?? "?") : "s/d"}
+            sub={leader ? `${leader.n} pts` : undefined}
+          />
+          <Highlight
+            label="Más predicciones"
+            value={mostPredictions ? (nameById.get(mostPredictions.key) ?? "?") : "s/d"}
+            sub={mostPredictions ? `${mostPredictions.n} predicciones` : undefined}
+          />
+          <Highlight
+            label="Polla más grande"
+            value={biggestPool ? (allPools.find((p) => p.id === biggestPool.key)?.name ?? "?") : "s/d"}
+            sub={biggestPool ? `${biggestPool.n} participantes` : undefined}
+          />
+          <Highlight
+            label="Campeón más elegido"
+            value={topChampion ? toSpanish(topChampion.key) : "s/d"}
+            sub={topChampion ? `${topChampion.n} votos` : undefined}
+          />
+          <Highlight
+            label="Goleador más elegido"
+            value={topScorerPick ? topScorerPick.key : "s/d"}
+            sub={topScorerPick ? `${topScorerPick.n} votos` : undefined}
+          />
         </div>
       </section>
 
@@ -172,13 +278,18 @@ export default async function GlobalAdminPage() {
       {/* Gestión de usuarios */}
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Usuarios ({userCount})</h2>
+        <p className="text-xs text-neutral-500">
+          El puntaje de un usuario es el mismo en todas sus pollas.
+        </p>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[36rem] text-left text-sm">
+          <table className="w-full min-w-[42rem] text-left text-sm">
             <thead className="border-b border-neutral-800 text-neutral-400">
               <tr>
                 <th scope="col" className="py-2">Nombre</th>
                 <th scope="col" className="py-2">Email</th>
                 <th scope="col" className="py-2 text-center">Pollas</th>
+                <th scope="col" className="py-2 text-center">Predic.</th>
+                <th scope="col" className="py-2 text-center">Puntos</th>
                 <th scope="col" className="py-2">Registrado</th>
                 <th scope="col" className="py-2 text-right">Acción</th>
               </tr>
@@ -194,6 +305,8 @@ export default async function GlobalAdminPage() {
                     </td>
                     <td className="py-2 text-neutral-400">{emailById.get(u.id) ?? "s/d"}</td>
                     <td className="py-2 text-center text-neutral-400">{poolsByUser.get(u.id) ?? 0}</td>
+                    <td className="py-2 text-center text-neutral-400">{predsByUser.get(u.id) ?? 0}</td>
+                    <td className="py-2 text-center text-neutral-400">{pointsByUser.get(u.id) ?? 0}</td>
                     <td className="py-2 text-neutral-400">{fmtDate(u.created_at)}</td>
                     <td className="py-2 text-right">
                       {isMe ? (
@@ -223,14 +336,14 @@ export default async function GlobalAdminPage() {
           resultados manualmente si la API no los provee.
         </p>
 
-        {!matches || matches.length === 0 ? (
+        {allMatches.length === 0 ? (
           <p className="text-neutral-400">
             No hay partidos cargados. Usa el botón &quot;Cargar partidos&quot; de arriba.
           </p>
         ) : (
           <div className="flex flex-col gap-6">
             {ROUNDS.filter((r) => r !== "group_stage").map((round) => {
-              const roundMatches = matches.filter((m) => m.round === round);
+              const roundMatches = allMatches.filter((m) => m.round === round);
               if (roundMatches.length === 0) return null;
               const allActive = roundMatches.every((m) => m.is_active);
               return (
@@ -260,7 +373,7 @@ export default async function GlobalAdminPage() {
 
             <div className="flex flex-col gap-3">
               <h3 className="font-semibold text-neutral-300">Fase de grupos</h3>
-              {matches
+              {allMatches
                 .filter((m) => m.round === "group_stage")
                 .map((match) => (
                   <AdminMatchRow
