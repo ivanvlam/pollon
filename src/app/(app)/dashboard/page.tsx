@@ -68,10 +68,14 @@ export default async function DashboardPage() {
       <section>
         <h2 className="sr-only">Listado de pollas</h2>
         {pools.length === 0 ? (
-          <p className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 text-neutral-300">
-            Crea o únete a una polla para empezar a predecir. Tus predicciones
-            cuentan en todas las pollas en las que participes.
-          </p>
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-8 text-center">
+            <p className="text-2xl font-bold text-neutral-100">
+              Crea o únete a una polla para empezar a predecir
+            </p>
+            <p className="mt-2 text-base text-neutral-400">
+              Tus predicciones cuentan en todas las pollas en las que participes.
+            </p>
+          </div>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {pools.map((pool) => {
