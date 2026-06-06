@@ -1,9 +1,9 @@
 name: Send reminders
 
-# Envía recordatorios de cierre de predicción. Cada hora.
+# Envía recordatorios de cierre de predicción.
+# INACTIVO: planificado para una próxima versión (requiere Resend).
+# El cron horario está desactivado; queda solo el disparo manual.
 on:
-  schedule:
-    - cron: "0 * * * *"
   workflow_dispatch: {}
 
 jobs:
