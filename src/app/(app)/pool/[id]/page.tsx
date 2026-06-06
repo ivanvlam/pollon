@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import { CopyInviteButton } from "@/components/CopyInviteButton";
 import { DeletePoolButton } from "@/components/DeletePoolButton";
-import { LeavePoolButton } from "@/components/LeavePoolButton";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function PoolRankingPage({
@@ -24,16 +23,14 @@ export default async function PoolRankingPage({
 
   if (!pool) notFound();
 
-  const [{ data: ranking, error }, { count: memberCount }] = await Promise.all([
-    supabase.rpc("get_pool_ranking", { p_pool_id: pool.id }),
-    supabase
-      .from("pool_members")
-      .select("id", { count: "exact", head: true })
-      .eq("pool_id", pool.id),
-  ]);
+  const { data: ranking, error } = await supabase.rpc("get_pool_ranking", {
+    p_pool_id: pool.id,
+  });
 
   const isCreator = user!.email === process.env.ADMIN_EMAIL;
   const isPoolCreator = user!.id === pool.created_by;
+  // Una polla con puntos ya registrados no se puede eliminar.
+  const hasScores = (ranking ?? []).some((r) => r.total > 0);
 
   return (
     <div className="flex flex-col gap-8">
@@ -55,9 +52,8 @@ export default async function PoolRankingPage({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <CopyInviteButton inviteCode={pool.invite_code} />
-          {!isPoolCreator && <LeavePoolButton poolId={pool.id} />}
-          {isPoolCreator && (memberCount ?? 0) <= 1 && (
-            <DeletePoolButton poolId={pool.id} />
+          {isPoolCreator && (
+            <DeletePoolButton poolId={pool.id} hasScores={hasScores} />
           )}
         </div>
       </header>
@@ -105,12 +101,12 @@ export default async function PoolRankingPage({
             <table className="w-full min-w-[24rem] text-left text-sm">
               <thead className="border-b border-neutral-800 text-neutral-400">
                 <tr>
-                  <th className="py-2 pr-2">#</th>
-                  <th className="py-2">Jugador</th>
-                  <th className="w-28 py-2 text-center" title="Puntos totales">Pts</th>
-                  <th className="w-28 py-2 text-center" title="Marcador exacto (5 pts)">Exactos</th>
-                  <th className="w-28 py-2 text-center" title="Diferencia de goles correcta (3 pts)">Dif</th>
-                  <th className="w-28 py-2 text-center" title="Solo ganador / clasificado acertado (2 pts)">Aciertos</th>
+                  <th scope="col" className="py-2 pr-2">#</th>
+                  <th scope="col" className="py-2">Jugador</th>
+                  <th scope="col" className="w-28 py-2 text-center" title="Puntos totales">Pts</th>
+                  <th scope="col" className="w-28 py-2 text-center" title="Marcador exacto (5 pts)">Exactos</th>
+                  <th scope="col" className="w-28 py-2 text-center" title="Diferencia de goles correcta (3 pts)">Dif</th>
+                  <th scope="col" className="w-28 py-2 text-center" title="Solo ganador / clasificado acertado (2 pts)">Aciertos</th>
                 </tr>
               </thead>
               <tbody>

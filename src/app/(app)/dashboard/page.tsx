@@ -21,26 +21,26 @@ export default async function DashboardPage() {
     .eq("id", uid)
     .maybeSingle();
 
-  // Pollas de las que el usuario es miembro.
-  const { data: memberships } = await supabase
-    .from("pool_members")
-    .select("pool:pools(id, name, created_by)")
-    .eq("user_id", uid);
+  // Pollas + ranking en UNA sola llamada (sin N+1). Devuelve una fila por
+  // (polla, miembro) ya ordenada por posición.
+  const { data: rankingRows } = await supabase.rpc("get_my_pools_ranking");
 
-  const pools = (memberships ?? [])
-    .map((m) => m.pool)
-    .filter((p): p is NonNullable<typeof p> => p !== null);
+  // Agrupar por polla, preservando el orden por posición de la RPC.
+  const byPool = new Map<
+    string,
+    { name: string; created_by: string; rows: NonNullable<typeof rankingRows> }
+  >();
+  for (const r of rankingRows ?? []) {
+    const entry =
+      byPool.get(r.pool_id) ??
+      { name: r.pool_name, created_by: r.pool_created_by, rows: [] };
+    entry.rows.push(r);
+    byPool.set(r.pool_id, entry);
+  }
 
-  // Ranking de cada polla (para mostrar participantes y tu posición).
-  const rankings = await Promise.all(
-    pools.map(async (p) => {
-      const { data } = await supabase.rpc("get_pool_ranking", {
-        p_pool_id: p.id,
-      });
-      return { poolId: p.id, rows: data ?? [] };
-    }),
-  );
-  const rankingByPool = new Map(rankings.map((r) => [r.poolId, r.rows]));
+  const pools = [...byPool.entries()]
+    .map(([id, e]) => ({ id, name: e.name, created_by: e.created_by, rows: e.rows }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className="flex flex-col gap-10">
@@ -73,7 +73,7 @@ export default async function DashboardPage() {
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {pools.map((pool) => {
-              const rows = rankingByPool.get(pool.id) ?? [];
+              const rows = pool.rows;
               const count = rows.length;
               const myIndex = rows.findIndex((r) => r.user_id === uid);
               const myRow = myIndex >= 0 ? rows[myIndex] : null;

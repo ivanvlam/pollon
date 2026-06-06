@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { nanoid } from "nanoid";
 
-import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { createPoolSchema } from "@/lib/validations";
 
 export type PoolActionState = { error: string } | null;
@@ -79,27 +79,12 @@ export async function joinPool(inviteCode: string): Promise<PoolActionState> {
   redirect(`/pool/${poolId}`);
 }
 
-/** Sale de una polla (borra la membresía propia; RLS lo permite). */
-export async function leavePool(poolId: string): Promise<PoolActionState> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
-
-  const { error } = await supabase
-    .from("pool_members")
-    .delete()
-    .eq("pool_id", poolId)
-    .eq("user_id", user.id);
-
-  if (error) return { error: "No se pudo salir de la polla" };
-
-  revalidatePath("/dashboard");
-  redirect("/dashboard");
-}
-
-/** Elimina una polla. Solo el creador puede hacerlo y únicamente si está solo. */
+/**
+ * Elimina una polla. Solo el creador puede hacerlo, y puede hacerlo siempre
+ * (con o sin otros participantes). El borrado cascada limpia membresías y
+ * puntajes; las predicciones son globales y sobreviven. Validación y delete
+ * son atómicos dentro de la RPC delete_pool (SECURITY DEFINER).
+ */
 export async function deletePool(poolId: string): Promise<PoolActionState> {
   const supabase = createClient();
   const {
@@ -107,24 +92,16 @@ export async function deletePool(poolId: string): Promise<PoolActionState> {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const { data: pool } = await supabase
-    .from("pools")
-    .select("created_by")
-    .eq("id", poolId)
-    .maybeSingle();
+  const { error } = await supabase.rpc("delete_pool", { p_pool_id: poolId });
 
-  if (!pool) return { error: "Polla no encontrada" };
-  if (pool.created_by !== user.id) return { error: "No tienes permiso" };
-
-  const { count } = await supabase
-    .from("pool_members")
-    .select("id", { count: "exact", head: true })
-    .eq("pool_id", poolId);
-
-  if ((count ?? 0) > 1) return { error: "No puedes eliminar una polla con más de un participante" };
-
-  const { error } = await supabase.from("pools").delete().eq("id", poolId);
-  if (error) return { error: "No se pudo eliminar la polla" };
+  if (error) {
+    if (error.message.includes("not authorized")) return { error: "No tienes permiso" };
+    if (error.message.includes("pool not found")) return { error: "Polla no encontrada" };
+    if (error.message.includes("has scores")) {
+      return { error: "No se puede eliminar: ya hay participantes con puntos" };
+    }
+    return { error: "No se pudo eliminar la polla" };
+  }
 
   revalidatePath("/dashboard");
   redirect("/dashboard");

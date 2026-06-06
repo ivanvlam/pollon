@@ -20,6 +20,43 @@ export default function ComoFuncionaPage() {
       </p>
 
       <Card className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Cómo se usa</h2>
+        <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm text-neutral-300">
+          <li>
+            Crea una polla y comparte el código de invitación, o únete a una
+            con el código que te pasen.
+          </li>
+          <li>
+            Entra a <span className="font-medium">Predicciones</span> y carga tu
+            marcador para cada partido. En eliminatorias, si empatas, elige
+            quién clasifica.
+          </li>
+          <li>
+            <span className="font-medium">Se guarda solo:</span> no hay botón de
+            enviar. Puedes cambiar tu predicción cuantas veces quieras hasta que
+            el partido cierre (1 hora antes del inicio).
+          </li>
+          <li>
+            Elige tu <span className="font-medium">campeón</span> y{" "}
+            <span className="font-medium">goleador</span> del torneo antes del
+            primer partido.
+          </li>
+          <li>
+            Sigue el <span className="font-medium">ranking</span> de cada polla
+            a medida que se juegan los partidos.
+          </li>
+        </ol>
+        <p className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm text-neutral-300">
+          <span className="font-medium text-emerald-400">
+            Tus predicciones son las mismas para todas tus pollas
+          </span>{" "}
+          y se sincronizan automáticamente. Si predices un partido, ese marcador
+          cuenta en cada polla en la que participes — no tienes que cargarlo de
+          nuevo en cada una.
+        </p>
+      </Card>
+
+      <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Fase de grupos</h2>
         <ul className="flex flex-col gap-2 text-sm text-neutral-300">
           <li>

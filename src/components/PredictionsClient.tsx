@@ -7,9 +7,10 @@ import { LockCountdown } from "@/components/LockCountdown";
 import { PredictionForm } from "@/components/PredictionForm";
 import { Card } from "@/components/ui/Card";
 import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
+import { calculateMatchScore } from "@/lib/scoring";
 import { toSpanish } from "@/lib/teamNames";
 import { isPredictionLocked } from "@/lib/timing";
-import type { MatchWinner } from "@/types";
+import type { MatchWinner, ScoreReason } from "@/types";
 
 interface MatchData {
   id: string;
@@ -57,6 +58,28 @@ const ROUND_LABELS: Record<Round, string> = {
 
 const fmt = (h: number | null, a: number | null) =>
   h === null || a === null ? "-" : `${h}-${a}`;
+
+// Fecha/hora del partido en la timezone del navegador, legible (ej. "sáb 14 jun, 15:00").
+const DATE_FMT = new Intl.DateTimeFormat("es", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+// Etiqueta corta de por qué se otorgaron los puntos.
+const REASON_LABELS: Record<ScoreReason, string> = {
+  exact_score: "Exacto",
+  correct_diff: "Diferencia",
+  correct_winner: "Ganador",
+  correct_draw: "Empate",
+  exact_qualifier_score: "Exacto",
+  correct_diff_qualifier: "Diferencia",
+  correct_qualifier: "Clasificado",
+  champion: "Campeón",
+  top_scorer: "Goleador",
+};
 
 // TheSportsDB devuelve "Group A", la app está en español → "Grupo A"
 const displayGroup = (name: string) => name.replace(/^Group\s+/i, "Grupo ");
@@ -273,13 +296,30 @@ export function PredictionsClient({
               const others = othersByMatch.get(match.id) ?? [];
               const finished = match.status === "finished";
               const myPoints = pointsByMatch[match.id];
+              // Razón del puntaje, derivada con la misma función pura del backend.
+              const myScore =
+                finished && mine
+                  ? calculateMatchScore(
+                      {
+                        round: match.round,
+                        home_score: match.home_score,
+                        away_score: match.away_score,
+                        winner: match.winner as MatchWinner | null,
+                      },
+                      {
+                        predicted_home: mine.predicted_home,
+                        predicted_away: mine.predicted_away,
+                        predicted_winner: mine.predicted_winner as MatchWinner | null,
+                      },
+                    )
+                  : null;
 
               return (
                 <Card key={match.id} id={`m-${match.id}`} className="scroll-mt-20 p-4">
                   <div className="mb-3 flex items-center justify-between text-xs text-neutral-500">
                     <span>{match.group_name ? displayGroup(match.group_name) : ROUND_LABELS[match.round]}</span>
                     <span>
-                      {new Date(match.kickoff_at).toLocaleString()}
+                      {DATE_FMT.format(new Date(match.kickoff_at))}
                       {" · "}
                       {finished ? (
                         <span className="font-medium text-neutral-300">
@@ -319,9 +359,9 @@ export function PredictionsClient({
                           {toSpanish(match.away_team)}
                           <Flag team={match.away_team} />
                         </span>
-                        {myPoints !== undefined && (
+                        {myScore && (
                           <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                            +{myPoints} pts
+                            {REASON_LABELS[myScore.reason]} · +{myPoints ?? myScore.points} pts
                           </span>
                         )}
                       </div>

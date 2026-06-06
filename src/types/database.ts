@@ -372,6 +372,22 @@ export interface Database {
         Args: { p_player_name: string };
         Returns: Json;
       };
+      get_my_pools_ranking: {
+        Args: Record<never, never>;
+        Returns: {
+          pool_id: string;
+          pool_name: string;
+          pool_created_by: string;
+          user_id: string;
+          display_name: string;
+          total: number;
+          rank: number;
+        }[];
+      };
+      delete_pool: {
+        Args: { p_pool_id: string };
+        Returns: undefined;
+      };
     };
     Enums: Record<never, never>;
     CompositeTypes: Record<never, never>;
