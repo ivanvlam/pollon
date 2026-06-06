@@ -33,6 +33,9 @@ export async function submitPrediction(input: {
     if (error.message.includes("not active")) {
       return { ok: false, error: "Este partido aún no está habilitado" };
     }
+    if (error.message.includes("no pool")) {
+      return { ok: false, error: "Necesitas estar en una polla para predecir" };
+    }
     return { ok: false, error: "No se pudo guardar la predicción" };
   }
 

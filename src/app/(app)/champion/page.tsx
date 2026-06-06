@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChampionCountdown } from "@/components/ChampionCountdown";
 import { ChampionForm } from "@/components/ChampionForm";
 import { TopScorerForm } from "@/components/TopScorerForm";
+import { buttonClasses } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/server";
 import { toSpanish } from "@/lib/teamNames";
 import { isChampionLocked } from "@/lib/timing";
@@ -18,12 +19,16 @@ export default async function ChampionPage() {
     { data: topScorerPick },
     { data: matches },
     { data: players },
+    { count: poolCount },
   ] = await Promise.all([
     supabase.from("champion_predictions").select("team, is_locked").eq("user_id", user!.id).maybeSingle(),
     supabase.from("top_scorer_predictions").select("player_name, is_locked").eq("user_id", user!.id).maybeSingle(),
     supabase.from("matches").select("home_team, away_team, kickoff_at"),
     supabase.from("players").select("name, team").order("name"),
+    supabase.from("pool_members").select("pool_id", { count: "exact", head: true }).eq("user_id", user!.id),
   ]);
+
+  const inAnyPool = (poolCount ?? 0) > 0;
 
   const teams = [
     ...new Set((matches ?? []).flatMap((m) => [m.home_team, m.away_team])),
@@ -52,6 +57,20 @@ export default async function ChampionPage() {
         </p>
       </div>
 
+      {!inAnyPool ? (
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-6 text-center">
+          <p className="text-neutral-200">
+            Necesitas estar en una polla para empezar a predecir.
+          </p>
+          <p className="mt-1 text-sm text-neutral-500">
+            Crea una o únete con un código desde tu panel.
+          </p>
+          <Link href="/dashboard" className={`${buttonClasses("primary", "sm")} mt-4`}>
+            Ir a mis pollas
+          </Link>
+        </div>
+      ) : (
+        <>
       {/* Campeón */}
       <section className="flex flex-col gap-3 rounded-xl border border-neutral-800 p-5">
         <div className="flex items-center justify-between">
@@ -100,6 +119,8 @@ export default async function ChampionPage() {
           />
         )}
       </section>
+        </>
+      )}
     </div>
   );
 }

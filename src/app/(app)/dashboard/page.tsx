@@ -68,8 +68,9 @@ export default async function DashboardPage() {
       <section>
         <h2 className="sr-only">Listado de pollas</h2>
         {pools.length === 0 ? (
-          <p className="text-neutral-400">
-            Aún no estás en ninguna polla. Crea una o únete con un código.
+          <p className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 text-neutral-300">
+            Crea o únete a una polla para empezar a predecir. Tus predicciones
+            cuentan en todas las pollas en las que participes.
           </p>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">

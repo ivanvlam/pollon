@@ -24,6 +24,9 @@ export async function submitChampion(team: string): Promise<ChampionResult> {
   });
 
   if (error) {
+    if (error.message.includes("no pool")) {
+      return { ok: false, error: "Necesitas estar en una polla para predecir" };
+    }
     if (error.message.includes("closed")) {
       return { ok: false, error: "La predicción de campeón ya cerró" };
     }

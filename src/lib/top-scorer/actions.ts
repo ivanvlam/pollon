@@ -21,6 +21,14 @@ export async function submitTopScorer(playerName: string): Promise<TopScorerResu
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "No autenticado" };
 
+  const { count: poolCount } = await supabase
+    .from("pool_members")
+    .select("pool_id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+  if ((poolCount ?? 0) === 0) {
+    return { ok: false, error: "Necesitas estar en una polla para predecir" };
+  }
+
   const { data: firstMatch } = await supabase
     .from("matches")
     .select("kickoff_at")
