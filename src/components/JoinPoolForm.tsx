@@ -29,7 +29,6 @@ export function JoinPoolForm() {
         name="inviteCode"
         placeholder="Código de invitación"
         aria-label="Código de invitación"
-        required
       />
       <FieldError>{state?.error}</FieldError>
       <SubmitButton />
