@@ -6,7 +6,7 @@ import { Flag } from "@/components/Flag";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { saveMatchResult, setMatchActive } from "@/lib/admin/actions";
-import type { MatchWinner } from "@/types";
+import type { MatchStatus, MatchWinner } from "@/types";
 
 interface Props {
   matchId: string;
@@ -14,6 +14,7 @@ interface Props {
   awayTeam: string;
   isKnockout: boolean;
   isActive: boolean;
+  status: MatchStatus;
   homeScore: number | null;
   awayScore: number | null;
   winner: MatchWinner | null;
@@ -25,6 +26,7 @@ export function AdminMatchRow({
   awayTeam,
   isKnockout,
   isActive,
+  status,
   homeScore,
   awayScore,
   winner,
@@ -34,6 +36,16 @@ export function AdminMatchRow({
   const [win, setWin] = useState<MatchWinner | "">(winner ?? "");
   const [msg, setMsg] = useState("");
   const [pending, startTransition] = useTransition();
+
+  // Empate a 90' en eliminatoria → se definió por penales y la API gratuita
+  // no entrega el clasificado: necesita que el admin lo marque a mano.
+  const needsQualifier =
+    isKnockout &&
+    status === "finished" &&
+    winner === null &&
+    homeScore !== null &&
+    awayScore !== null &&
+    homeScore === awayScore;
 
   function toggleActive() {
     startTransition(async () => {
@@ -54,7 +66,16 @@ export function AdminMatchRow({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-neutral-800 p-3">
+    <div
+      className={`flex flex-col gap-3 rounded-lg border p-3 ${
+        needsQualifier ? "border-amber-500/60 bg-amber-500/5" : "border-neutral-800"
+      }`}
+    >
+      {needsQualifier && (
+        <p className="flex items-center gap-1.5 text-xs font-medium text-amber-400">
+          ⚠️ Empate a 90&apos; — falta marcar quién clasificó (penales)
+        </p>
+      )}
       <div className="flex items-center justify-between gap-3">
         <span className="flex items-center gap-2 text-sm font-medium">
           <Flag team={homeTeam} />

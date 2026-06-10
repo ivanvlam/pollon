@@ -30,9 +30,14 @@ export default async function ChampionPage() {
 
   const inAnyPool = (poolCount ?? 0) > 0;
 
+  // Traducir a español ANTES de ordenar, para que el selector quede en orden
+  // alfabético español (con localeCompare 'es' para acentos). Dedup en español
+  // por si dos nombres en inglés mapean al mismo (ej. USA / United States).
   const teams = [
-    ...new Set((matches ?? []).flatMap((m) => [m.home_team, m.away_team])),
-  ].sort().map(toSpanish);
+    ...new Set(
+      (matches ?? []).flatMap((m) => [m.home_team, m.away_team]).map(toSpanish),
+    ),
+  ].sort((a, b) => a.localeCompare(b, "es"));
 
   const firstKickoff =
     (matches ?? []).map((m) => m.kickoff_at).sort((a, b) => a.localeCompare(b))[0] ?? null;

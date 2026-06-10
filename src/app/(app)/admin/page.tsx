@@ -10,7 +10,7 @@ import { adminDeletePool, adminDeleteUser } from "@/lib/admin/actions";
 import { isKnockoutRound, ROUNDS } from "@/lib/constants";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { toSpanish } from "@/lib/teamNames";
-import type { MatchWinner, Round } from "@/types";
+import type { MatchStatus, MatchWinner, Round } from "@/types";
 
 export const metadata = { title: "Admin" };
 
@@ -362,6 +362,7 @@ export default async function GlobalAdminPage() {
                       awayTeam={match.away_team}
                       isKnockout={isKnockoutRound(match.round as Round)}
                       isActive={match.is_active}
+                      status={match.status as MatchStatus}
                       homeScore={match.home_score}
                       awayScore={match.away_score}
                       winner={match.winner as MatchWinner | null}
@@ -383,6 +384,7 @@ export default async function GlobalAdminPage() {
                     awayTeam={match.away_team}
                     isKnockout={false}
                     isActive={match.is_active}
+                    status={match.status as MatchStatus}
                     homeScore={match.home_score}
                     awayScore={match.away_score}
                     winner={match.winner as MatchWinner | null}
