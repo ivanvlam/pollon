@@ -8,10 +8,10 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 /**
- * Sincroniza fixture y resultados desde API-Football.
- * - upsert en matches por external_id
+ * Sincroniza fixture y resultados desde TheSportsDB.
+ * - upsert en matches por external_id (los ya 'finished' no se re-escriben)
  * - si un partido pasó a 'finished', recalcula sus scores
- * Corre cada 5 min durante el torneo (GitHub Actions).
+ * Corre cada 15 min durante el torneo (GitHub Actions).
  */
 export async function GET(request: NextRequest) {
   if (!verifyCronSecret(request)) {
@@ -82,29 +82,39 @@ export async function GET(request: NextRequest) {
     (existing ?? []).map((m) => [m.external_id, m.status]),
   );
 
-  // Upsert de todos los fixtures.
-  // Fase de grupos se activa automáticamente (equipos ya conocidos).
-  // Eliminatorias quedan inactivas hasta que el admin las habilite manualmente.
-  const { error: upsertErr } = await supabase.from("matches").upsert(
-    fixtures.map((f) => ({
-      external_id: f.external_id,
-      round: f.round,
-      group_name: f.group_name,
-      home_team: f.home_team,
-      away_team: f.away_team,
-      kickoff_at: f.kickoff_at,
-      status: f.status,
-      home_score: f.home_score,
-      away_score: f.away_score,
-      winner: f.winner,
-      updated_at: new Date().toISOString(),
-      ...(f.round === "group_stage" ? { is_active: true } : {}),
-    })),
-    { onConflict: "external_id" },
+  // Una vez que un partido está 'finished', el resultado lo gobierna el admin
+  // (la API gratuita no entrega el ganador por penales: deriveWinner devuelve
+  // null en empate a 90', borrando un winner puesto a mano). No re-escribimos
+  // partidos ya finalizados; las transiciones a 'finished' sí se procesan.
+  const toUpsert = fixtures.filter(
+    (f) => prevStatus.get(f.external_id) !== "finished",
   );
 
-  if (upsertErr) {
-    return NextResponse.json({ error: upsertErr.message }, { status: 500 });
+  // Upsert de los fixtures no finalizados.
+  // Fase de grupos se activa automáticamente (equipos ya conocidos).
+  // Eliminatorias quedan inactivas hasta que el admin las habilite manualmente.
+  if (toUpsert.length > 0) {
+    const { error: upsertErr } = await supabase.from("matches").upsert(
+      toUpsert.map((f) => ({
+        external_id: f.external_id,
+        round: f.round,
+        group_name: f.group_name,
+        home_team: f.home_team,
+        away_team: f.away_team,
+        kickoff_at: f.kickoff_at,
+        status: f.status,
+        home_score: f.home_score,
+        away_score: f.away_score,
+        winner: f.winner,
+        updated_at: new Date().toISOString(),
+        ...(f.round === "group_stage" ? { is_active: true } : {}),
+      })),
+      { onConflict: "external_id" },
+    );
+
+    if (upsertErr) {
+      return NextResponse.json({ error: upsertErr.message }, { status: 500 });
+    }
   }
 
   // Recalcular los que recién pasaron a 'finished'.

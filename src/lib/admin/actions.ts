@@ -155,8 +155,24 @@ export async function syncMatches(): Promise<AdminResult & { count?: number }> {
   if (fixtures.length === 0) return { ok: false, error: "TheSportsDB no devolvió partidos" };
 
   const svc = createServiceRoleClient();
+
+  // Los partidos ya 'finished' los gobierna el admin (la API gratuita no da
+  // el ganador por penales). No los re-escribimos para no borrar un winner
+  // puesto a mano.
+  const { data: finished } = await svc
+    .from("matches")
+    .select("external_id")
+    .eq("status", "finished");
+  const finishedIds = new Set((finished ?? []).map((m) => m.external_id));
+  const toUpsert = fixtures.filter((f) => !finishedIds.has(f.external_id));
+
+  if (toUpsert.length === 0) {
+    revalidateTournament();
+    return { ok: true, count: 0 };
+  }
+
   const { error } = await svc.from("matches").upsert(
-    fixtures.map((f) => ({
+    toUpsert.map((f) => ({
       external_id: f.external_id,
       round: f.round,
       group_name: f.group_name,
@@ -176,7 +192,7 @@ export async function syncMatches(): Promise<AdminResult & { count?: number }> {
   if (error) return { ok: false, error: `Error al guardar: ${error.message}` };
 
   revalidateTournament();
-  return { ok: true, count: fixtures.length };
+  return { ok: true, count: toUpsert.length };
 }
 
 /** Marca el campeón real y recalcula puntos. teamName en español (como se almacena en champion_predictions). */

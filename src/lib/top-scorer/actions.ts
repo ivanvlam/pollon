@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { z } from "zod";
 
-import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { isChampionLocked } from "@/lib/timing";
 
 export type TopScorerResult = { ok: true } | { ok: false; error: string };
@@ -50,25 +50,5 @@ export async function submitTopScorer(playerName: string): Promise<TopScorerResu
   if (error) return { ok: false, error: "No se pudo guardar tu goleador" };
 
   revalidatePath("/champion");
-  return { ok: true };
-}
-
-export async function setActualTopScorer(playerName: string): Promise<TopScorerResult> {
-  const parsed = schema.safeParse({ player_name: playerName });
-  if (!parsed.success) return { ok: false, error: "Jugador inválido" };
-
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || user.email !== process.env.ADMIN_EMAIL) {
-    return { ok: false, error: "No autorizado" };
-  }
-
-  const svc = createServiceRoleClient();
-  const { error } = await svc.rpc("recalculate_top_scorer_scores", {
-    p_player_name: parsed.data.player_name,
-  });
-
-  if (error) return { ok: false, error: `Error al calcular: ${error.message}` };
-
   return { ok: true };
 }
