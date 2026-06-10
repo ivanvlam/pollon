@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { CreatePoolForm } from "@/components/CreatePoolForm";
+import { HomeReminders } from "@/components/HomeReminders";
 import { JoinPoolForm } from "@/components/JoinPoolForm";
 import { TimezoneSync } from "@/components/TimezoneSync";
 import { buttonClasses } from "@/components/ui/Button";
@@ -26,6 +27,36 @@ export default async function DashboardPage() {
   // Pollas + ranking en UNA sola llamada (sin N+1). Devuelve una fila por
   // (polla, miembro) ya ordenada por posición.
   const { data: rankingRows } = await supabase.rpc("get_my_pools_ranking");
+
+  // Datos para los recordatorios del inicio (campeón/goleador + próximo partido).
+  const nowIso = new Date().toISOString();
+  const [
+    { data: championPick },
+    { data: topScorerPick },
+    { data: firstMatch },
+    { data: nextMatch },
+  ] = await Promise.all([
+    supabase.from("champion_predictions").select("team").eq("user_id", uid).maybeSingle(),
+    supabase.from("top_scorer_predictions").select("player_name").eq("user_id", uid).maybeSingle(),
+    supabase.from("matches").select("kickoff_at").order("kickoff_at", { ascending: true }).limit(1).maybeSingle(),
+    supabase
+      .from("matches")
+      .select("id, home_team, away_team, kickoff_at")
+      .eq("is_active", true)
+      .gt("kickoff_at", nowIso)
+      .order("kickoff_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const { data: nextPred } = nextMatch
+    ? await supabase
+        .from("predictions")
+        .select("predicted_home, predicted_away, predicted_winner")
+        .eq("user_id", uid)
+        .eq("match_id", nextMatch.id)
+        .maybeSingle()
+    : { data: null };
 
   // Agrupar por polla, preservando el orden por posición de la RPC.
   const byPool = new Map<
@@ -64,6 +95,34 @@ export default async function DashboardPage() {
           )}
         </div>
       </section>
+
+      {pools.length > 0 && (
+        <HomeReminders
+          firstKickoffAt={firstMatch?.kickoff_at ?? null}
+          hasChampion={Boolean(championPick?.team)}
+          hasTopScorer={Boolean(topScorerPick?.player_name)}
+          nextMatch={
+            nextMatch
+              ? {
+                  id: nextMatch.id,
+                  homeTeam: nextMatch.home_team,
+                  awayTeam: nextMatch.away_team,
+                  kickoffAt: nextMatch.kickoff_at,
+                }
+              : null
+          }
+          nextPrediction={
+            nextPred
+              ? {
+                  home: nextPred.predicted_home,
+                  away: nextPred.predicted_away,
+                  winner: nextPred.predicted_winner,
+                }
+              : null
+          }
+          predictPoolId={pools[0]?.id ?? null}
+        />
+      )}
 
       <section>
         <h2 className="sr-only">Listado de pollas</h2>
