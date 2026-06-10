@@ -105,7 +105,12 @@ export default async function PoolRankingPage({
                   <tr key={row.user_id} className="border-b border-neutral-900">
                     <td className="py-2 pr-2 text-neutral-500">{i + 1}</td>
                     <td className="py-2">
-                      {row.display_name}
+                      <Link
+                        href={`/pool/${pool.id}/player/${row.user_id}`}
+                        className="font-medium text-neutral-100 hover:text-emerald-400 hover:underline"
+                      >
+                        {row.display_name}
+                      </Link>
                       {row.user_id === user!.id && (
                         <span className="ml-2 text-xs text-emerald-400">
                           (tú)

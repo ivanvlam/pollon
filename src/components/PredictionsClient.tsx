@@ -2,15 +2,18 @@
 
 import { useMemo, useState } from "react";
 
+import Link from "next/link";
+
 import { Flag } from "@/components/Flag";
 import { LockCountdown } from "@/components/LockCountdown";
 import { PredictionForm } from "@/components/PredictionForm";
 import { Card } from "@/components/ui/Card";
 import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
+import { REASON_LABELS, ROUND_LABELS } from "@/lib/labels";
 import { calculateMatchScore } from "@/lib/scoring";
 import { toSpanish } from "@/lib/teamNames";
 import { isPredictionLocked } from "@/lib/timing";
-import type { MatchWinner, ScoreReason } from "@/types";
+import type { MatchWinner } from "@/types";
 
 interface MatchData {
   id: string;
@@ -47,15 +50,6 @@ interface Props {
 type SortKey = "kickoff_asc" | "kickoff_desc" | "group_asc" | "group_desc";
 type PredFilter = "all" | "with" | "without";
 
-const ROUND_LABELS: Record<Round, string> = {
-  group_stage: "Fase de grupos",
-  round_of_32: "Dieciseisavos de final",
-  round_of_16: "Octavos de final",
-  quarterfinal: "Cuartos de final",
-  semifinal: "Semifinales",
-  final: "Final",
-};
-
 const fmt = (h: number | null, a: number | null) =>
   h === null || a === null ? "-" : `${h}-${a}`;
 
@@ -68,19 +62,6 @@ const DATE_FMT = new Intl.DateTimeFormat("es", {
   minute: "2-digit",
 });
 
-// Etiqueta corta de por qué se otorgaron los puntos.
-const REASON_LABELS: Record<ScoreReason, string> = {
-  exact_score: "Exacto",
-  correct_diff: "Diferencia",
-  correct_winner: "Ganador",
-  correct_draw: "Empate",
-  exact_qualifier_score: "Exacto",
-  correct_diff_qualifier: "Diferencia",
-  correct_qualifier: "Clasificado",
-  champion: "Campeón",
-  top_scorer: "Goleador",
-};
-
 // TheSportsDB devuelve "Group A", la app está en español → "Grupo A"
 const displayGroup = (name: string) => name.replace(/^Group\s+/i, "Grupo ");
 
@@ -92,7 +73,7 @@ const chip = (active: boolean) =>
   }`;
 
 export function PredictionsClient({
-  poolId: _poolId,
+  poolId,
   uid,
   matches,
   allPreds,
@@ -368,7 +349,12 @@ export function PredictionsClient({
 
                       <ul className="flex flex-col gap-1 text-sm">
                         <li className="flex justify-between text-neutral-300">
-                          <span>Tú</span>
+                          <Link
+                            href={`/pool/${poolId}/player/${uid}`}
+                            className="hover:text-emerald-400 hover:underline"
+                          >
+                            Tú
+                          </Link>
                           <span>
                             {mine
                               ? `${fmt(mine.predicted_home, mine.predicted_away)}${
@@ -384,7 +370,12 @@ export function PredictionsClient({
                             key={p.user_id}
                             className="flex justify-between text-neutral-400"
                           >
-                            <span>{nameById[p.user_id] ?? "?"}</span>
+                            <Link
+                              href={`/pool/${poolId}/player/${p.user_id}`}
+                              className="hover:text-emerald-400 hover:underline"
+                            >
+                              {nameById[p.user_id] ?? "?"}
+                            </Link>
                             <span>
                               {fmt(p.predicted_home, p.predicted_away)}
                               {p.predicted_winner
