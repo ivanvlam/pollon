@@ -6,9 +6,16 @@ import type { Round } from "@/types";
 
 export default async function PredictionsPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams: { from?: string };
 }) {
+  // Si se llega desde la tarjeta "Próximo partido" del inicio, el botón
+  // Volver regresa al dashboard en vez de al ranking de la polla.
+  const fromHome = searchParams.from === "home";
+  const backHref = fromHome ? "/dashboard" : `/pool/${params.id}`;
+  const backLabel = fromHome ? "← Volver al inicio" : "← Volver al ranking";
   const supabase = createClient();
   const {
     data: { user },
@@ -60,10 +67,10 @@ export default async function PredictionsPage({
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Predicciones</h1>
         <Link
-          href={`/pool/${params.id}`}
+          href={backHref}
           className="text-sm text-neutral-400 hover:text-white"
         >
-          ← Volver al ranking
+          {backLabel}
         </Link>
       </header>
 

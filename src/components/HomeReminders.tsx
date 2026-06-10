@@ -141,7 +141,7 @@ export function NextMatchCard({
         </span>
         {predictPoolId && (
           <Link
-            href={`/pool/${predictPoolId}/predictions#m-${nextMatch.id}`}
+            href={`/pool/${predictPoolId}/predictions?from=home#m-${nextMatch.id}`}
             className="shrink-0 font-medium text-emerald-400 hover:underline"
           >
             Predecir →
