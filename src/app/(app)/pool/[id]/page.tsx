@@ -27,6 +27,13 @@ export default async function PoolRankingPage({
     p_pool_id: pool.id,
   });
 
+  const { data: myProfile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user!.id)
+    .maybeSingle();
+  const inviterName = myProfile?.display_name ?? "Alguien";
+
   const isPoolCreator = user!.id === pool.created_by;
 
   return (
@@ -48,7 +55,11 @@ export default async function PoolRankingPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <CopyInviteButton inviteCode={pool.invite_code} />
+          <CopyInviteButton
+            inviteCode={pool.invite_code}
+            poolName={pool.name}
+            inviterName={inviterName}
+          />
           {isPoolCreator && (
             <Link href={`/pool/${pool.id}/manage`} className={buttonClasses("secondary", "sm")}>
               Administrar
