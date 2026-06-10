@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { CreatePoolForm } from "@/components/CreatePoolForm";
-import { HomeReminders } from "@/components/HomeReminders";
+import { ChampionReminder, NextMatchCard } from "@/components/HomeReminders";
 import { JoinPoolForm } from "@/components/JoinPoolForm";
 import { TimezoneSync } from "@/components/TimezoneSync";
 import { buttonClasses } from "@/components/ui/Button";
@@ -97,30 +97,10 @@ export default async function DashboardPage() {
       </section>
 
       {pools.length > 0 && (
-        <HomeReminders
+        <ChampionReminder
           firstKickoffAt={firstMatch?.kickoff_at ?? null}
           hasChampion={Boolean(championPick?.team)}
           hasTopScorer={Boolean(topScorerPick?.player_name)}
-          nextMatch={
-            nextMatch
-              ? {
-                  id: nextMatch.id,
-                  homeTeam: nextMatch.home_team,
-                  awayTeam: nextMatch.away_team,
-                  kickoffAt: nextMatch.kickoff_at,
-                }
-              : null
-          }
-          nextPrediction={
-            nextPred
-              ? {
-                  home: nextPred.predicted_home,
-                  away: nextPred.predicted_away,
-                  winner: nextPred.predicted_winner,
-                }
-              : null
-          }
-          predictPoolId={pools[0]?.id ?? null}
         />
       )}
 
@@ -195,6 +175,27 @@ export default async function DashboardPage() {
           <JoinPoolForm />
         </section>
       </div>
+
+      {pools.length > 0 && nextMatch && (
+        <NextMatchCard
+          nextMatch={{
+            id: nextMatch.id,
+            homeTeam: nextMatch.home_team,
+            awayTeam: nextMatch.away_team,
+            kickoffAt: nextMatch.kickoff_at,
+          }}
+          nextPrediction={
+            nextPred
+              ? {
+                  home: nextPred.predicted_home,
+                  away: nextPred.predicted_away,
+                  winner: nextPred.predicted_winner,
+                }
+              : null
+          }
+          predictPoolId={pools[0]?.id ?? null}
+        />
+      )}
     </div>
   );
 }

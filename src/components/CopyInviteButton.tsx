@@ -17,7 +17,7 @@ export function CopyInviteButton({
 
   async function copy() {
     const url = `${window.location.origin}/join/${inviteCode}`;
-    const message = `${inviterName} te ha invitado a unirte a la polla "${poolName}"! ⚽\n${url}`;
+    const message = `¡${inviterName} te ha invitado a unirte a la polla "${poolName}"! ⚽\n${url}`;
     try {
       await navigator.clipboard.writeText(message);
       setCopied(true);
