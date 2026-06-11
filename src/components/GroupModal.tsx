@@ -8,7 +8,7 @@ import { LockCountdown } from "@/components/LockCountdown";
 import { PredictionForm } from "@/components/PredictionForm";
 import type { StandingRow } from "@/lib/standings";
 import { toSpanish } from "@/lib/teamNames";
-import { isPredictionLocked } from "@/lib/timing";
+import { hasMatchStarted, isPredictionLocked } from "@/lib/timing";
 
 interface Props {
   name: string;
@@ -100,6 +100,7 @@ export function GroupModal({ name, standings, matches, onClose }: Props) {
             </h3>
             {matches.map((match) => {
               const locked = isPredictionLocked(match.kickoff_at);
+              const started = match.status === "live" || hasMatchStarted(match.kickoff_at);
               const finished = match.status === "finished";
               const canPredict = match.is_active && !locked;
               const homeEs = toSpanish(match.home_team);
@@ -113,8 +114,10 @@ export function GroupModal({ name, standings, matches, onClose }: Props) {
                       <span className="font-medium text-neutral-300">
                         Final {fmt(match.home_score, match.away_score)}
                       </span>
-                    ) : locked ? (
+                    ) : started ? (
                       <span>Empezó</span>
+                    ) : locked ? (
+                      <span className="text-neutral-500">Cerrado</span>
                     ) : (
                       <LockCountdown kickoffAt={match.kickoff_at} />
                     )}

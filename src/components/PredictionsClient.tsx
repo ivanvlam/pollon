@@ -12,7 +12,7 @@ import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
 import { REASON_LABELS, ROUND_LABELS } from "@/lib/labels";
 import { calculateMatchScore } from "@/lib/scoring";
 import { toSpanish } from "@/lib/teamNames";
-import { isPredictionLocked } from "@/lib/timing";
+import { hasMatchStarted, isPredictionLocked } from "@/lib/timing";
 import type { MatchWinner } from "@/types";
 
 interface MatchData {
@@ -272,6 +272,7 @@ export function PredictionsClient({
           <div className="flex flex-col gap-4">
             {section.matches.map((match) => {
               const locked = isPredictionLocked(match.kickoff_at);
+              const started = match.status === "live" || hasMatchStarted(match.kickoff_at);
               const knockout = isKnockoutRound(match.round);
               const mine = myPredByMatch.get(match.id);
               const others = othersByMatch.get(match.id) ?? [];
@@ -306,8 +307,10 @@ export function PredictionsClient({
                         <span className="font-medium text-neutral-300">
                           Final {fmt(match.home_score, match.away_score)}
                         </span>
-                      ) : locked ? (
+                      ) : started ? (
                         <span>Empezó</span>
+                      ) : locked ? (
+                        <span className="text-neutral-500">Cerrado</span>
                       ) : (
                         <LockCountdown kickoffAt={match.kickoff_at} />
                       )}

@@ -40,6 +40,20 @@ export function isPredictionLocked(
   return now >= lock;
 }
 
+/**
+ * ¿El partido ya comenzó (se alcanzó el kickoff)? Distinto de estar cerrado:
+ * la predicción cierra 1h ANTES, así que entre el cierre y el kickoff el
+ * partido está bloqueado pero todavía no empezó. Fecha inválida → false.
+ */
+export function hasMatchStarted(
+  kickoffAt: string,
+  now: number = Date.now(),
+): boolean {
+  const k = parseKickoff(kickoffAt);
+  if (Number.isNaN(k)) return false;
+  return now >= k;
+}
+
 /** ms hasta el cierre. Negativo si ya cerró. NaN si la fecha es inválida. */
 export function msUntilLock(
   kickoffAt: string,

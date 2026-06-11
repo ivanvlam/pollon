@@ -4,6 +4,7 @@ import {
   CHAMPION_LOCK_MS,
   LOCK_MS,
   formatCountdown,
+  hasMatchStarted,
   isChampionLocked,
   isPredictionLocked,
   msUntilLock,
@@ -44,6 +45,22 @@ describe("isPredictionLocked — bordes exactos", () => {
 
   it("fail-closed: fecha inválida → cerrado", () => {
     expect(isPredictionLocked("no-es-fecha", LOCK - 100_000)).toBe(true);
+  });
+});
+
+describe("hasMatchStarted — el partido empieza en el kickoff, no en el cierre", () => {
+  it("NO empezó durante la ventana de cierre (1h antes, bloqueado pero sin comenzar)", () => {
+    expect(hasMatchStarted(KICKOFF, LOCK)).toBe(false);
+    expect(hasMatchStarted(KICKOFF, KICKOFF_MS - 1)).toBe(false);
+  });
+
+  it("empezó en el instante exacto del kickoff (>=)", () => {
+    expect(hasMatchStarted(KICKOFF, KICKOFF_MS)).toBe(true);
+    expect(hasMatchStarted(KICKOFF, KICKOFF_MS + 1)).toBe(true);
+  });
+
+  it("fecha inválida → no empezó", () => {
+    expect(hasMatchStarted("no-es-fecha", KICKOFF_MS + 1)).toBe(false);
   });
 });
 
