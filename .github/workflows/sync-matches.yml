@@ -1,10 +1,12 @@
 name: Sync matches
 
 # Sincroniza fixture y resultados desde TheSportsDB cada 10 minutos.
-# La ruta hace skip si no hay partidos en la ventana [-20min, +2.75h], y pide
+# La ruta hace skip si no hay partidos en la ventana [-3h, +2.75h], y pide
 # solo la(s) sub-ronda(s) en juego (1 request/corrida en grupos), así que en
 # la práctica solo consume cuota durante ventanas de partido.
-# Con clave gratuita (100 req/día): ~70 req en el día más cargado de grupos.
+# NOTA: GitHub Actions atrasa los cron programados (suele correr ~cada hora,
+# no cada 10 min). Para frescura real de 10 min usar un cron externo confiable
+# (ej. cron-job.org) apuntando al mismo endpoint.
 on:
   schedule:
     - cron: "*/10 * * * *"

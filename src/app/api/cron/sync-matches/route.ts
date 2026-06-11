@@ -20,12 +20,13 @@ export async function GET(request: NextRequest) {
 
   const supabase = createServiceRoleClient();
 
-  // Solo llamamos a la API si hay partidos live o en la ventana [-20min, +2.75h].
-  // La predicción ya cerró 1h antes, así que no hace falta sondear horas antes;
-  // +2.75h cubre el partido completo más alargue. Fuera de esa ventana
-  // devolvemos ok sin consumir cuota.
+  // Solo llamamos a la API si hay partidos live o en la ventana [-3h, +2.75h].
+  // El lookback de 3h es CLAVE: cubre un partido en curso (90' + entretiempo +
+  // alargue) aunque el cron se haya atrasado y todavía no lo hayamos marcado
+  // 'live'. Con una ventana más corta, un partido que arrancó hace rato cae en
+  // un agujero y nunca se sincroniza. Fuera de la ventana: ok sin consumir cuota.
   const now = new Date();
-  const windowStart = new Date(now.getTime() - 20 * 60 * 1000).toISOString();
+  const windowStart = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
   const windowEnd = new Date(now.getTime() + 2.75 * 60 * 60 * 1000).toISOString();
 
   const [{ count: totalMatches }, { data: liveMatches }, { data: windowMatches }] = await Promise.all([
