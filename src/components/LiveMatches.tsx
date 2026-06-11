@@ -10,6 +10,7 @@ export interface LiveMatchRow {
   home_score: number | null;
   away_score: number | null;
   live_minute: string | null;
+  pred: { predicted_home: number | null; predicted_away: number | null } | null;
 }
 
 /**
@@ -46,25 +47,42 @@ export function LiveMatches({
       <ul className="flex flex-col gap-2">
         {matches.map((m) => {
           const minute = formatLiveMinute(m.live_minute);
+          const hasPred =
+            m.pred &&
+            (m.pred.predicted_home !== null || m.pred.predicted_away !== null);
           return (
             <li
               key={m.id}
-              className="flex items-center justify-between gap-3 rounded-lg bg-neutral-900/50 px-3 py-2 text-sm"
+              className="rounded-lg bg-neutral-900/50 px-3 py-2 text-sm"
             >
-              <span className="flex items-center gap-2 font-medium">
-                <Flag team={m.home_team} />
-                {toSpanish(m.home_team)}
-              </span>
-              <span className="flex shrink-0 items-center gap-2">
-                <span className="font-semibold text-neutral-100">
-                  {m.home_score ?? 0} - {m.away_score ?? 0}
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex items-center gap-2 font-medium">
+                  <Flag team={m.home_team} />
+                  {toSpanish(m.home_team)}
                 </span>
-                {minute && <span className="text-xs text-red-400">{minute}</span>}
-              </span>
-              <span className="flex items-center justify-end gap-2 text-right font-medium">
-                {toSpanish(m.away_team)}
-                <Flag team={m.away_team} />
-              </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className="font-semibold text-neutral-100">
+                    {m.home_score ?? 0} - {m.away_score ?? 0}
+                  </span>
+                  {minute && <span className="text-xs text-red-400">{minute}</span>}
+                </span>
+                <span className="flex items-center justify-end gap-2 text-right font-medium">
+                  {toSpanish(m.away_team)}
+                  <Flag team={m.away_team} />
+                </span>
+              </div>
+              <p className="mt-1.5 text-center text-xs text-neutral-500">
+                {hasPred ? (
+                  <>
+                    Tu predicción:{" "}
+                    <span className="text-neutral-300">
+                      {m.pred!.predicted_home ?? "-"}-{m.pred!.predicted_away ?? "-"}
+                    </span>
+                  </>
+                ) : (
+                  "No predijiste este partido"
+                )}
+              </p>
             </li>
           );
         })}

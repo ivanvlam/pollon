@@ -65,7 +65,29 @@ export default async function DashboardPage() {
   }, 0);
   const agoMin = latestUpdate ? Math.floor((Date.now() - latestUpdate) / 60_000) : null;
   const updatedAgoLabel =
-    agoMin === null ? null : agoMin <= 0 ? "act. recién" : `act. hace ${agoMin} min`;
+    agoMin === null ? null : agoMin <= 0 ? "actualizado recién" : `actualizado hace ${agoMin} min`;
+
+  // Tu predicción para los partidos en vivo (para mostrarla en la tarjeta).
+  const liveIds = live.map((m) => m.id);
+  const { data: livePreds } = liveIds.length
+    ? await supabase
+        .from("predictions")
+        .select("match_id, predicted_home, predicted_away")
+        .eq("user_id", uid)
+        .in("match_id", liveIds)
+    : { data: [] };
+  const predByLiveMatch = new Map(
+    (livePreds ?? []).map((p) => [p.match_id, p]),
+  );
+  const liveRows = live.map((m) => ({
+    id: m.id,
+    home_team: m.home_team,
+    away_team: m.away_team,
+    home_score: m.home_score,
+    away_score: m.away_score,
+    live_minute: m.live_minute,
+    pred: predByLiveMatch.get(m.id) ?? null,
+  }));
 
   const { data: nextPred } = nextMatch
     ? await supabase
@@ -114,7 +136,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <LiveMatches matches={live} updatedAgoLabel={updatedAgoLabel} />
+      <LiveMatches matches={liveRows} updatedAgoLabel={updatedAgoLabel} />
 
       {pools.length > 0 && (
         <ChampionReminder
