@@ -18,6 +18,12 @@ jobs:
     steps:
       - name: Call sync-matches endpoint
         run: |
-          curl --fail --silent --show-error \
+          code=$(curl -s -o /tmp/body -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.APP_URL }}/api/cron/sync-matches"
+            "${{ secrets.APP_URL }}/api/cron/sync-matches")
+          echo "HTTP status: $code"
+          echo "--- response body (first 400 bytes) ---"
+          head -c 400 /tmp/body || true
+          echo
+          # Falla solo si no es 2xx, para que el workflow refleje errores reales.
+          [ "${code:0:1}" = "2" ]
