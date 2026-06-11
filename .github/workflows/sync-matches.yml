@@ -20,11 +20,6 @@ jobs:
         run: |
           # -L sigue redirects (Vercel devuelve 308 http→https / apex→www);
           # --location-trusted conserva el header Authorization tras el redirect.
-          code=$(curl -s -L --location-trusted -o /tmp/body -w "%{http_code}" \
+          curl --fail --location-trusted -L --silent --show-error \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.APP_URL }}/api/cron/sync-matches")
-          echo "HTTP status (final): $code"
-          echo "--- response body (first 400 bytes) ---"
-          head -c 400 /tmp/body || true
-          echo
-          [ "${code:0:1}" = "2" ]
+            "${{ secrets.APP_URL }}/api/cron/sync-matches"
