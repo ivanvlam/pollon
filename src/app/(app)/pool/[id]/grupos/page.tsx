@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { GroupCard, type GroupMatchRow } from "@/components/GroupCard";
+import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
 import { createClient } from "@/lib/supabase/server";
 import { computeGroupStandings, type GroupMatch } from "@/lib/standings";
 
@@ -20,7 +21,7 @@ export default async function GroupsPage({
   const { data: matches } = await supabase
     .from("matches")
     .select(
-      "id, group_name, home_team, away_team, kickoff_at, status, home_score, away_score, is_active",
+      "id, group_name, home_team, away_team, kickoff_at, status, home_score, away_score, is_active, live_minute",
     )
     .eq("round", "group_stage")
     .order("kickoff_at", { ascending: true });
@@ -57,6 +58,7 @@ export default async function GroupsPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <MatchLiveRefresh matches={all} />
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Grupos</h1>
         <Link
@@ -87,6 +89,7 @@ export default async function GroupsPage({
             status: m.status,
             home_score: m.home_score,
             away_score: m.away_score,
+            live_minute: m.live_minute,
             is_active: m.is_active,
             pred: predByMatch.get(m.id) ?? null,
             myPoints: pointsByMatch.get(m.id),

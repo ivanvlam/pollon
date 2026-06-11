@@ -6,6 +6,7 @@ import { Flag } from "@/components/Flag";
 import type { GroupMatchRow } from "@/components/GroupCard";
 import { LockCountdown } from "@/components/LockCountdown";
 import { PredictionForm } from "@/components/PredictionForm";
+import { formatLiveMinute } from "@/lib/liveMinute";
 import type { StandingRow } from "@/lib/standings";
 import { toSpanish } from "@/lib/teamNames";
 import { hasMatchStarted, isPredictionLocked } from "@/lib/timing";
@@ -113,6 +114,21 @@ export function GroupModal({ name, standings, matches, onClose }: Props) {
                     {finished ? (
                       <span className="font-medium text-neutral-300">
                         Final {fmt(match.home_score, match.away_score)}
+                      </span>
+                    ) : match.status === "live" ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                        <span className="font-medium text-red-400">EN VIVO</span>
+                        {match.home_score !== null && match.away_score !== null && (
+                          <span className="text-neutral-200">
+                            {fmt(match.home_score, match.away_score)}
+                          </span>
+                        )}
+                        {formatLiveMinute(match.live_minute) && (
+                          <span className="text-neutral-400">
+                            {formatLiveMinute(match.live_minute)}
+                          </span>
+                        )}
                       </span>
                     ) : started ? (
                       <span>Empezó</span>

@@ -10,6 +10,7 @@ import { PredictionForm } from "@/components/PredictionForm";
 import { Card } from "@/components/ui/Card";
 import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
 import { REASON_LABELS, ROUND_LABELS } from "@/lib/labels";
+import { formatLiveMinute } from "@/lib/liveMinute";
 import { calculateMatchScore } from "@/lib/scoring";
 import { toSpanish } from "@/lib/teamNames";
 import { hasMatchStarted, isPredictionLocked } from "@/lib/timing";
@@ -27,6 +28,7 @@ interface MatchData {
   away_score: number | null;
   winner: string | null;
   is_active: boolean;
+  live_minute: string | null;
 }
 
 interface PredData {
@@ -306,6 +308,21 @@ export function PredictionsClient({
                       {finished ? (
                         <span className="font-medium text-neutral-300">
                           Final {fmt(match.home_score, match.away_score)}
+                        </span>
+                      ) : match.status === "live" ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                          <span className="font-medium text-red-400">EN VIVO</span>
+                          {match.home_score !== null && match.away_score !== null && (
+                            <span className="text-neutral-200">
+                              {fmt(match.home_score, match.away_score)}
+                            </span>
+                          )}
+                          {formatLiveMinute(match.live_minute) && (
+                            <span className="text-neutral-400">
+                              {formatLiveMinute(match.live_minute)}
+                            </span>
+                          )}
                         </span>
                       ) : started ? (
                         <span>Empezó</span>

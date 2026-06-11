@@ -106,6 +106,8 @@ export interface Database {
           winner: string | null;
           is_active: boolean;
           updated_at: string;
+          sdb_round: number | null;
+          live_minute: string | null;
         };
         Insert: {
           id?: string;
@@ -121,6 +123,8 @@ export interface Database {
           winner?: string | null;
           is_active?: boolean;
           updated_at?: string;
+          sdb_round?: number | null;
+          live_minute?: string | null;
         };
         Update: {
           id?: string;
@@ -136,6 +140,8 @@ export interface Database {
           winner?: string | null;
           is_active?: boolean;
           updated_at?: string;
+          sdb_round?: number | null;
+          live_minute?: string | null;
         };
         Relationships: [];
       };

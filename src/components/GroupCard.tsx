@@ -17,6 +17,7 @@ export interface GroupMatchRow {
   status: string;
   home_score: number | null;
   away_score: number | null;
+  live_minute: string | null;
   is_active: boolean;
   pred: { predicted_home: number | null; predicted_away: number | null } | null;
   myPoints: number | undefined;

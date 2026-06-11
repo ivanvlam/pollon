@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
 import { PredictionsClient } from "@/components/PredictionsClient";
 import { createClient } from "@/lib/supabase/server";
 import type { Round } from "@/types";
@@ -25,7 +26,7 @@ export default async function PredictionsPage({
   const { data: matches } = await supabase
     .from("matches")
     .select(
-      "id, round, group_name, home_team, away_team, kickoff_at, status, home_score, away_score, winner, is_active",
+      "id, round, group_name, home_team, away_team, kickoff_at, status, home_score, away_score, winner, is_active, live_minute",
     )
     .eq("is_active", true)
     .order("kickoff_at", { ascending: true });
@@ -64,6 +65,7 @@ export default async function PredictionsPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <MatchLiveRefresh matches={matches ?? []} />
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Predicciones</h1>
         <Link

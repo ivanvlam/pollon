@@ -41,6 +41,8 @@ export interface ExternalMatch {
   home_score: number | null;
   away_score: number | null;
   winner: MatchWinner | null;
+  sdb_round: number; // número de ronda de TheSportsDB (1,2,3,16,32,125,150,200)
+  live_minute: string | null; // minuto de juego (strProgress), solo si está live
 }
 
 interface SdbEvent {
@@ -53,6 +55,7 @@ interface SdbEvent {
   dateEvent: string | null;
   strTime: string | null;
   strStatus: string | null;
+  strProgress: string | null;
   strGroup: string | null;
 }
 
@@ -94,10 +97,11 @@ function deriveWinner(
   return null; // empate a 90': el clasificado (penales) no lo da esta API
 }
 
-function toExternal(ev: SdbEvent, round: Round): ExternalMatch {
+function toExternal(ev: SdbEvent, round: Round, sdbRound: number): ExternalMatch {
   const status = mapStatus(ev.strStatus);
   const home = parseScore(ev.intHomeScore);
   const away = parseScore(ev.intAwayScore);
+  const progress = ev.strProgress?.trim();
   return {
     external_id: ev.idEvent,
     round,
@@ -112,6 +116,9 @@ function toExternal(ev: SdbEvent, round: Round): ExternalMatch {
     home_score: home,
     away_score: away,
     winner: deriveWinner(status, home, away),
+    sdb_round: sdbRound,
+    // Solo guardamos minuto si el partido está en vivo y la API lo provee.
+    live_minute: status === "live" && progress ? progress : null,
   };
 }
 
@@ -202,7 +209,7 @@ export async function fetchWorldCupFixtures(sdbRounds?: number[]): Promise<Exter
       );
       if (!res.ok) return [];
       const json = (await res.json()) as { events: SdbEvent[] | null };
-      return (json.events ?? []).map((ev) => toExternal(ev, round));
+      return (json.events ?? []).map((ev) => toExternal(ev, round, r));
     }),
   );
 

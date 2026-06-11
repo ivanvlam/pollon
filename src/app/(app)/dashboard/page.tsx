@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CreatePoolForm } from "@/components/CreatePoolForm";
 import { ChampionReminder, NextMatchCard } from "@/components/HomeReminders";
 import { JoinPoolForm } from "@/components/JoinPoolForm";
+import { LiveMatches } from "@/components/LiveMatches";
 import { TimezoneSync } from "@/components/TimezoneSync";
 import { buttonClasses } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/server";
@@ -35,6 +36,7 @@ export default async function DashboardPage() {
     { data: topScorerPick },
     { data: firstMatch },
     { data: nextMatch },
+    { data: liveMatches },
   ] = await Promise.all([
     supabase.from("champion_predictions").select("team").eq("user_id", uid).maybeSingle(),
     supabase.from("top_scorer_predictions").select("player_name").eq("user_id", uid).maybeSingle(),
@@ -47,7 +49,23 @@ export default async function DashboardPage() {
       .order("kickoff_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("matches")
+      .select("id, home_team, away_team, home_score, away_score, live_minute, updated_at")
+      .eq("status", "live")
+      .order("kickoff_at", { ascending: true }),
   ]);
+
+  // Latencia: hace cuánto el cron escribió por última vez (partido live más
+  // recientemente actualizado). El auto-refresco no gasta cuota de la API.
+  const live = liveMatches ?? [];
+  const latestUpdate = live.reduce<number>((max, m) => {
+    const t = m.updated_at ? new Date(m.updated_at).getTime() : 0;
+    return t > max ? t : max;
+  }, 0);
+  const agoMin = latestUpdate ? Math.floor((Date.now() - latestUpdate) / 60_000) : null;
+  const updatedAgoLabel =
+    agoMin === null ? null : agoMin <= 0 ? "act. recién" : `act. hace ${agoMin} min`;
 
   const { data: nextPred } = nextMatch
     ? await supabase
@@ -95,6 +113,8 @@ export default async function DashboardPage() {
           )}
         </div>
       </section>
+
+      <LiveMatches matches={live} updatedAgoLabel={updatedAgoLabel} />
 
       {pools.length > 0 && (
         <ChampionReminder

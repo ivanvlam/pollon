@@ -20,46 +20,44 @@ export async function GET(request: NextRequest) {
 
   const supabase = createServiceRoleClient();
 
-  // Solo llamamos a la API si hay partidos live o en la ventana [-3h, +2h].
-  // Fuera de esa ventana devolvemos ok sin consumir cuota.
+  // Solo llamamos a la API si hay partidos live o en la ventana [-20min, +2.75h].
+  // La predicción ya cerró 1h antes, así que no hace falta sondear horas antes;
+  // +2.75h cubre el partido completo más alargue. Fuera de esa ventana
+  // devolvemos ok sin consumir cuota.
   const now = new Date();
-  const windowStart = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
-  const windowEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString();
+  const windowStart = new Date(now.getTime() - 20 * 60 * 1000).toISOString();
+  const windowEnd = new Date(now.getTime() + 2.75 * 60 * 60 * 1000).toISOString();
 
   const [{ count: totalMatches }, { data: liveMatches }, { data: windowMatches }] = await Promise.all([
     supabase.from("matches").select("*", { count: "exact", head: true }),
-    supabase.from("matches").select("round").eq("status", "live"),
-    supabase.from("matches").select("round")
+    supabase.from("matches").select("round, sdb_round").eq("status", "live"),
+    supabase.from("matches").select("round, sdb_round")
       .gte("kickoff_at", windowStart)
       .lte("kickoff_at", windowEnd)
       .neq("status", "finished"),
   ]);
 
-  const activeRounds = new Set([
-    ...(liveMatches ?? []).map((m) => m.round),
-    ...(windowMatches ?? []).map((m) => m.round),
-  ]);
+  const activeMatches = [...(liveMatches ?? []), ...(windowMatches ?? [])];
 
   // Si no hay partidos en la DB (primera carga), fetchear todo el fixture.
   // Si hay partidos pero ninguno en ventana activa, salir sin llamar a la API.
   const isBootstrap = (totalMatches ?? 0) === 0;
-  if (!isBootstrap && activeRounds.size === 0) {
+  if (!isBootstrap && activeMatches.length === 0) {
     return NextResponse.json({ ok: true, synced: 0, skipped: true });
   }
 
-  // Mapea los rounds de la app a los números de ronda de TheSportsDB.
-  const ROUND_TO_SDB: Record<string, number[]> = {
-    group_stage: [1, 2, 3],
-    round_of_32: [32],
-    round_of_16: [16],
-    quarterfinal: [125],
-    semifinal: [150],
-    final: [200],
-  };
+  // Pedimos SOLO las sub-rondas SDB realmente en juego (1 request típico en
+  // grupos) en vez de expandir siempre a [1,2,3]. Fallback a [1,2,3] si alguna
+  // fila de grupos todavía no tiene sdb_round (primer sync post-migración).
+  const sdbSet = new Set<number>();
+  let groupNeedsFallback = false;
+  for (const m of activeMatches) {
+    if (m.sdb_round != null) sdbSet.add(m.sdb_round);
+    else if (m.round === "group_stage") groupNeedsFallback = true;
+  }
+  if (groupNeedsFallback) [1, 2, 3].forEach((r) => sdbSet.add(r));
   // Bootstrap: pedir todas las rondas. Normal: solo las activas.
-  const sdbRounds = isBootstrap
-    ? undefined
-    : [...activeRounds].flatMap((r) => ROUND_TO_SDB[r] ?? []);
+  const sdbRounds = isBootstrap ? undefined : [...sdbSet];
 
   let fixtures;
   try {
@@ -106,6 +104,8 @@ export async function GET(request: NextRequest) {
         home_score: f.home_score,
         away_score: f.away_score,
         winner: f.winner,
+        sdb_round: f.sdb_round,
+        live_minute: f.live_minute,
         updated_at: new Date().toISOString(),
         ...(f.round === "group_stage" ? { is_active: true } : {}),
       })),
