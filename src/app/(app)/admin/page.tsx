@@ -81,8 +81,8 @@ export default async function GlobalAdminPage() {
       .select("id, round, home_team, away_team, kickoff_at, is_active, home_score, away_score, winner, status")
       .order("kickoff_at", { ascending: true }),
     svc.from("players").select("name, team").order("name"),
-    svc.from("champion_predictions").select("team"),
-    svc.from("top_scorer_predictions").select("player_name"),
+    svc.from("champion_predictions").select("user_id, team"),
+    svc.from("top_scorer_predictions").select("user_id, player_name"),
   ]);
 
   // Emails desde Auth admin (paginado).
@@ -152,6 +152,9 @@ export default async function GlobalAdminPage() {
   for (const c of champPicks ?? []) champByTeam.set(c.team, (champByTeam.get(c.team) ?? 0) + 1);
   const scorerByPlayer = new Map<string, number>();
   for (const s of scorerPicks ?? []) scorerByPlayer.set(s.player_name, (scorerByPlayer.get(s.player_name) ?? 0) + 1);
+  // Quién ya eligió campeón / goleador (para la tabla de usuarios).
+  const champByUser = new Set((champPicks ?? []).map((c) => c.user_id));
+  const scorerByUser = new Set((scorerPicks ?? []).map((s) => s.user_id));
   const champCount = (champPicks ?? []).length;
   const scorerCount = (scorerPicks ?? []).length;
   const topChampion = topKey(champByTeam);
@@ -265,7 +268,11 @@ export default async function GlobalAdminPage() {
                     </td>
                     <td className="py-2 text-neutral-400">{fmtDate(p.created_at)}</td>
                     <td className="py-2 text-right">
-                      <AdminDeleteButton action={adminDeletePool.bind(null, p.id)} />
+                      <AdminDeleteButton
+                        action={adminDeletePool.bind(null, p.id)}
+                        title={`¿Eliminar la polla ${p.name}?`}
+                        description="Se eliminará para todos los participantes (membresías y puntos). Las predicciones son globales y se conservan. No se puede deshacer."
+                      />
                     </td>
                   </tr>
                 ))}
@@ -282,7 +289,7 @@ export default async function GlobalAdminPage() {
           El puntaje de un usuario es el mismo en todas sus pollas.
         </p>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[42rem] text-left text-sm">
+          <table className="w-full min-w-[52rem] text-left text-sm">
             <thead className="border-b border-neutral-800 text-neutral-400">
               <tr>
                 <th scope="col" className="py-2">Nombre</th>
@@ -290,6 +297,8 @@ export default async function GlobalAdminPage() {
                 <th scope="col" className="py-2 text-center">Pollas</th>
                 <th scope="col" className="py-2 text-center">Predic.</th>
                 <th scope="col" className="py-2 text-center">Puntos</th>
+                <th scope="col" className="py-2 text-center" title="Eligió campeón">Campeón</th>
+                <th scope="col" className="py-2 text-center" title="Eligió goleador">Goleador</th>
                 <th scope="col" className="py-2">Registrado</th>
                 <th scope="col" className="py-2 text-right">Acción</th>
               </tr>
@@ -307,12 +316,30 @@ export default async function GlobalAdminPage() {
                     <td className="py-2 text-center text-neutral-400">{poolsByUser.get(u.id) ?? 0}</td>
                     <td className="py-2 text-center text-neutral-400">{predsByUser.get(u.id) ?? 0}</td>
                     <td className="py-2 text-center text-neutral-400">{pointsByUser.get(u.id) ?? 0}</td>
+                    <td className="py-2 text-center">
+                      {champByUser.has(u.id) ? (
+                        <span className="text-emerald-400" title="Eligió campeón">✓</span>
+                      ) : (
+                        <span className="text-neutral-600">—</span>
+                      )}
+                    </td>
+                    <td className="py-2 text-center">
+                      {scorerByUser.has(u.id) ? (
+                        <span className="text-emerald-400" title="Eligió goleador">✓</span>
+                      ) : (
+                        <span className="text-neutral-600">—</span>
+                      )}
+                    </td>
                     <td className="py-2 text-neutral-400">{fmtDate(u.created_at)}</td>
                     <td className="py-2 text-right">
                       {isMe ? (
                         <span className="text-xs text-neutral-600">tú</span>
                       ) : (
-                        <AdminDeleteButton action={adminDeleteUser.bind(null, u.id)} />
+                        <AdminDeleteButton
+                          action={adminDeleteUser.bind(null, u.id)}
+                          title={`¿Eliminar a ${u.display_name ?? "este usuario"}?`}
+                          description="Se eliminará la cuenta y todos sus datos (predicciones, membresías y puntos). No se puede deshacer."
+                        />
                       )}
                     </td>
                   </tr>
