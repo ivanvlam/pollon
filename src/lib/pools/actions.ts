@@ -151,6 +151,33 @@ export async function removeMember(
 }
 
 /**
+ * El participante abandona la polla por su cuenta. El creador no puede
+ * abandonar (debe usar deletePool). La RPC leave_pool (SECURITY DEFINER) borra
+ * su membresía y sus puntos en esa polla de forma atómica; las predicciones
+ * son globales y sobreviven.
+ */
+export async function leavePool(poolId: string): Promise<PoolActionState> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const { error } = await supabase.rpc("leave_pool", { p_pool_id: poolId });
+
+  if (error) {
+    if (error.message.includes("creator cannot leave")) {
+      return { error: "El creador no puede abandonar la polla" };
+    }
+    if (error.message.includes("pool not found")) return { error: "Polla no encontrada" };
+    return { error: "No se pudo abandonar la polla" };
+  }
+
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
+}
+
+/**
  * Elimina una polla. Solo el creador puede hacerlo, y puede hacerlo siempre
  * (con o sin otros participantes). El borrado cascada limpia membresías y
  * puntajes; las predicciones son globales y sobreviven. Validación y delete

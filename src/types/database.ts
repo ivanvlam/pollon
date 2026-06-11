@@ -388,6 +388,10 @@ export interface Database {
         Args: { p_pool_id: string };
         Returns: undefined;
       };
+      leave_pool: {
+        Args: { p_pool_id: string };
+        Returns: undefined;
+      };
       remove_pool_member: {
         Args: { p_pool_id: string; p_user_id: string };
         Returns: undefined;

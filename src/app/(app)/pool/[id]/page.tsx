@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CopyInviteButton } from "@/components/CopyInviteButton";
+import { LeavePoolButton } from "@/components/LeavePoolButton";
 import { buttonClasses } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/server";
 
@@ -167,6 +168,12 @@ export default async function PoolRankingPage({
           </>
         )}
       </section>
+
+      {!isPoolCreator && (
+        <div className="mt-2 flex justify-center border-t border-neutral-900 pt-6">
+          <LeavePoolButton poolId={pool.id} />
+        </div>
+      )}
     </div>
   );
 }
