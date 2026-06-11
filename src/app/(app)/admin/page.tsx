@@ -23,7 +23,7 @@ const ROUND_LABELS: Record<string, string> = {
 };
 
 const fmtDate = (s: string | null) =>
-  s ? new Date(s).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" }) : "s/d";
+  s ? new Date(s).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" }) : "Sin Datos";
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
@@ -210,27 +210,27 @@ export default async function GlobalAdminPage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Highlight
             label="Líder global (más puntos)"
-            value={leader ? (nameById.get(leader.key) ?? "?") : "s/d"}
+            value={leader ? (nameById.get(leader.key) ?? "?") : "Sin Datos"}
             sub={leader ? `${leader.n} pts` : undefined}
           />
           <Highlight
             label="Más predicciones"
-            value={mostPredictions ? (nameById.get(mostPredictions.key) ?? "?") : "s/d"}
+            value={mostPredictions ? (nameById.get(mostPredictions.key) ?? "?") : "Sin Datos"}
             sub={mostPredictions ? `${mostPredictions.n} predicciones` : undefined}
           />
           <Highlight
             label="Polla más grande"
-            value={biggestPool ? (allPools.find((p) => p.id === biggestPool.key)?.name ?? "?") : "s/d"}
+            value={biggestPool ? (allPools.find((p) => p.id === biggestPool.key)?.name ?? "?") : "Sin Datos"}
             sub={biggestPool ? `${biggestPool.n} participantes` : undefined}
           />
           <Highlight
             label="Campeón más elegido"
-            value={topChampion ? toSpanish(topChampion.key) : "s/d"}
+            value={topChampion ? toSpanish(topChampion.key) : "Sin Datos"}
             sub={topChampion ? `${topChampion.n} votos` : undefined}
           />
           <Highlight
             label="Goleador más elegido"
-            value={topScorerPick ? topScorerPick.key : "s/d"}
+            value={topScorerPick ? topScorerPick.key : "Sin Datos"}
             sub={topScorerPick ? `${topScorerPick.n} votos` : undefined}
           />
         </div>
@@ -303,7 +303,7 @@ export default async function GlobalAdminPage() {
                       {u.display_name}
                       {isMe && <span className="ml-2 text-xs text-emerald-400">(tú)</span>}
                     </td>
-                    <td className="py-2 text-neutral-400">{emailById.get(u.id) ?? "s/d"}</td>
+                    <td className="py-2 text-neutral-400">{emailById.get(u.id) ?? "Sin Datos"}</td>
                     <td className="py-2 text-center text-neutral-400">{poolsByUser.get(u.id) ?? 0}</td>
                     <td className="py-2 text-center text-neutral-400">{predsByUser.get(u.id) ?? 0}</td>
                     <td className="py-2 text-center text-neutral-400">{pointsByUser.get(u.id) ?? 0}</td>
