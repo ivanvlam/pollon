@@ -38,8 +38,8 @@ export default function ComoFuncionaPage() {
           </li>
           <li>
             Elige tu <span className="font-medium">campeón</span> y{" "}
-            <span className="font-medium">goleador</span> del torneo antes del
-            primer partido.
+            <span className="font-medium">goleador</span> del torneo hasta 2
+            horas después del inicio del primer partido.
           </li>
           <li>
             Sigue el <span className="font-medium">ranking</span> de cada polla
@@ -107,8 +107,8 @@ export default function ComoFuncionaPage() {
             <span className="font-semibold text-emerald-400">10 pts</span>: si aciertas el goleador del torneo.
           </li>
           <li className="text-neutral-500">
-            Ambas predicciones se cierran 1 hora antes del primer partido e
-            son independientes de las predicciones de partidos.
+            Ambas predicciones se cierran 2 horas después del inicio del primer
+            partido y son independientes de las predicciones de partidos.
           </li>
         </ul>
       </Card>

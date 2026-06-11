@@ -58,7 +58,7 @@ export default async function ChampionPage() {
       <div className="flex items-center gap-3">
         <ChampionCountdown firstKickoffAt={firstKickoff} />
         <p className="text-sm text-neutral-500">
-          Ambas predicciones cierran 1 hora antes del primer partido
+          Ambas predicciones cierran 2 horas después del inicio del primer partido
         </p>
       </div>
 

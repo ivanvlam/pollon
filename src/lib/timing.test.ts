@@ -85,8 +85,8 @@ describe("msUntilLock", () => {
   });
 });
 
-describe("isChampionLocked — cierra 1h antes del primer partido", () => {
-  const CH_LOCK = KICKOFF_MS - CHAMPION_LOCK_MS; // 1h antes del kickoff
+describe("isChampionLocked — cierra según CHAMPION_LOCK_HOURS (hoy: kickoff + 2h)", () => {
+  const CH_LOCK = KICKOFF_MS - CHAMPION_LOCK_MS; // derivado de la constante
 
   it("ABIERTO si no hay fixture (null)", () => {
     expect(isChampionLocked(null, Date.now())).toBe(false);

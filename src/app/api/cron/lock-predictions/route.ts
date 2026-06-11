@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
  * revelación de picks ajenos se calculan por tiempo (ver submit_prediction /
  * predictions_visibility); este flag se mantiene para campeón/goleador, cuya
  * RLS de visibilidad sí lee is_locked. También cierra la predicción de campeón
- * y goleador 1h antes del primer partido del torneo. Corre cada hora.
+ * y goleador según CHAMPION_LOCK_HOURS (hoy: 2h después del inicio del primer
+ * partido del torneo). Corre cada hora.
  */
 export async function GET(request: NextRequest) {
   if (!verifyCronSecret(request)) {
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
     locked = data?.length ?? 0;
   }
 
-  // Cierre de predicción de campeón: 24h antes del primer partido.
+  // Cierre de predicción de campeón/goleador (CHAMPION_LOCK_HOURS).
   const { data: firstMatch } = await supabase
     .from("matches")
     .select("kickoff_at")

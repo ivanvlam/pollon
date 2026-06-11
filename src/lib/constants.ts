@@ -5,8 +5,14 @@
 /** Horas antes del kickoff en que se cierran las predicciones de partidos. Debe coincidir con v_lock_hours en submit_prediction. */
 export const LOCK_HOURS_BEFORE_KICKOFF = 1;
 
-/** Horas antes del PRIMER partido en que se cierra la predicción de campeón. */
-export const CHAMPION_LOCK_HOURS = 1;
+/**
+ * Horas antes del PRIMER partido en que se cierra la predicción de campeón y
+ * goleador. Negativo = DESPUÉS del kickoff. Hoy = -2 → cierra 2h después del
+ * inicio del primer partido. Debe coincidir con v_lock_hours en submit_champion
+ * y con el offset de specials_revealed (la revelación de picks ajenos ocurre en
+ * el mismo instante que el cierre, por fairness).
+ */
+export const CHAMPION_LOCK_HOURS = -2;
 
 /** Puntos por acertar el campeón del Mundial. */
 export const CHAMPION_POINTS = 15;
