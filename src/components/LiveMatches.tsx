@@ -74,16 +74,16 @@ export function LiveMatches({
 
           return (
             <li key={m.id} className="rounded-lg bg-neutral-900/50 px-4 py-3">
-              {/* Marcador centrado con banderas a los lados */}
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <Flag team={m.home_team} />
-                  <span className="text-sm font-medium leading-tight">
+              {/* nombre bandera | marcador | bandera nombre */}
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2">
+                <div className="flex items-center justify-end gap-1.5">
+                  <span className="text-right text-sm font-medium leading-tight">
                     {toSpanish(m.home_team)}
                   </span>
+                  <Flag team={m.home_team} />
                 </div>
 
-                <div className="flex flex-col items-center gap-0.5 px-3">
+                <div className="flex flex-col items-center gap-0.5 px-2">
                   <span className="text-2xl font-bold tabular-nums text-neutral-100">
                     {m.home_score ?? 0} – {m.away_score ?? 0}
                   </span>
@@ -94,11 +94,11 @@ export function LiveMatches({
                   )}
                 </div>
 
-                <div className="flex items-center justify-end gap-2">
-                  <span className="text-right text-sm font-medium leading-tight">
+                <div className="flex items-center gap-1.5">
+                  <Flag team={m.away_team} />
+                  <span className="text-sm font-medium leading-tight">
                     {toSpanish(m.away_team)}
                   </span>
-                  <Flag team={m.away_team} />
                 </div>
               </div>
 
