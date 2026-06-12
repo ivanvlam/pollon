@@ -32,17 +32,11 @@ export default async function PoolHistorialPage({
       .not("match_id", "is", null),
   ]);
 
-  const matchIds = [
-    ...new Set((allScores ?? []).map((s) => s.match_id as string)),
-  ];
-  const { data: finishedMatches } =
-    matchIds.length > 0
-      ? await supabase
-          .from("matches")
-          .select("id, home_team, away_team, kickoff_at")
-          .in("id", matchIds)
-          .order("kickoff_at", { ascending: true })
-      : { data: [] };
+  const { data: finishedMatches } = await supabase
+    .from("matches")
+    .select("id, home_team, away_team, kickoff_at")
+    .eq("status", "finished")
+    .order("kickoff_at", { ascending: true });
 
   const members: ChartMember[] = (ranking ?? []).map((r, i) => ({
     id: r.user_id,
@@ -88,6 +82,8 @@ export default async function PoolHistorialPage({
     history.push({
       label: `${toSpanish(m.home_team).slice(0, 3)}-${toSpanish(m.away_team).slice(0, 3)}`,
       fullLabel: `${toSpanish(m.home_team)} vs ${toSpanish(m.away_team)}`,
+      homeTeam: m.home_team,
+      awayTeam: m.away_team,
       rankings: rankMap,
       pointsEarned: earned,
       cumulativePoints: { ...running },

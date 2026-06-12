@@ -2,9 +2,13 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 
+import { flagUrl, teamFlagCode } from "@/lib/flags";
+
 export interface HistoryPoint {
   label: string;
   fullLabel: string;
+  homeTeam: string;
+  awayTeam: string;
   rankings: Record<string, number>;
   pointsEarned: Record<string, number>;
   cumulativePoints: Record<string, number>;
@@ -22,9 +26,8 @@ interface Props {
   members: ChartMember[];
 }
 
-// Tailwind 400-range palette — readable on dark backgrounds, coherent with the site
 const COLORS = [
-  "#34d399", // emerald-400 (site accent)
+  "#34d399", // emerald-400
   "#60a5fa", // blue-400
   "#fbbf24", // amber-400
   "#f87171", // red-400
@@ -38,14 +41,16 @@ const COLORS = [
   "#4ade80", // green-400
 ];
 
-const MIN_COL = 48;
-const ROW_H = 52;
-const PAD_L = 148;
-const PAD_R = 162;
-const PAD_T = 20;
-const PAD_B = 42;
-const DOT_R = 5.5;
-const LINE_W = 1.5;
+const MIN_COL = 64;
+const ROW_H = 76;
+const PAD_L = 185;
+const PAD_R = 172;
+const PAD_T = 24;
+const PAD_B = 40;
+const DOT_R = 8;
+const LINE_W = 3;
+const FLAG_W = 22;
+const FLAG_H = 16;
 
 export function RankingHistoryChart({ history, members }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -81,14 +86,13 @@ export function RankingHistoryChart({ history, members }: Props) {
   const buildPath = (uid: string) => {
     const pts = history.map((h, i) => ({ x: cx(i), y: ry(h.rankings[uid] ?? N) }));
     let d = `M ${pts[0]!.x},${pts[0]!.y}`;
-    for (let i = 1; i < pts.length; i++) {
-      d += ` L ${pts[i]!.x},${pts[i]!.y}`;
-    }
+    for (let i = 1; i < pts.length; i++) d += ` L ${pts[i]!.x},${pts[i]!.y}`;
     return d;
   };
 
   const trunc = (s: string, n = 18) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
-  const every = nC <= 12 ? 1 : nC <= 24 ? 2 : nC <= 48 ? 4 : 8;
+  const every = nC <= 24 ? 1 : nC <= 48 ? 2 : 4;
+  const flagY = PAD_T + N * ROW_H + 10;
 
   const selPt = sel !== null ? history[sel] : null;
 
@@ -113,7 +117,7 @@ export function RankingHistoryChart({ history, members }: Props) {
               y1={ry(i + 1)}
               x2={cx(nC - 1)}
               y2={ry(i + 1)}
-              stroke="#222"
+              stroke="#252525"
               strokeWidth={1}
             />
           ))}
@@ -126,7 +130,7 @@ export function RankingHistoryChart({ history, members }: Props) {
               y1={PAD_T}
               x2={cx(i)}
               y2={PAD_T + N * ROW_H}
-              stroke="#1a1a1a"
+              stroke="#2a2a2a"
               strokeWidth={1}
             />
           ))}
@@ -144,21 +148,6 @@ export function RankingHistoryChart({ history, members }: Props) {
             />
           )}
 
-          {/* Rank position labels */}
-          {Array.from({ length: N }, (_, i) => (
-            <text
-              key={i}
-              x={PAD_L - 14}
-              y={ry(i + 1) + 4}
-              textAnchor="end"
-              fontSize={12}
-              fontWeight="600"
-              fill="#404040"
-            >
-              {i + 1}°
-            </text>
-          ))}
-
           {/* Lines (drawn under dots) */}
           {members.map((m) => (
             <path
@@ -169,7 +158,7 @@ export function RankingHistoryChart({ history, members }: Props) {
               strokeLinecap="round"
               strokeLinejoin="round"
               fill="none"
-              opacity={0.55}
+              opacity={0.65}
             />
           ))}
 
@@ -183,7 +172,7 @@ export function RankingHistoryChart({ history, members }: Props) {
                 r={DOT_R}
                 fill={colorOf(m.id)}
                 stroke="#0d0d0d"
-                strokeWidth={1.5}
+                strokeWidth={2}
               />
             )),
           )}
@@ -192,10 +181,10 @@ export function RankingHistoryChart({ history, members }: Props) {
           {members.map((m) => (
             <text
               key={m.id}
-              x={PAD_L - 26}
-              y={ry(history[0]!.rankings[m.id] ?? N) + 4}
+              x={PAD_L - 22}
+              y={ry(history[0]!.rankings[m.id] ?? N) + 5}
               textAnchor="end"
-              fontSize={11}
+              fontSize={15}
               fontWeight="500"
               fill={colorOf(m.id)}
             >
@@ -206,38 +195,51 @@ export function RankingHistoryChart({ history, members }: Props) {
           {/* Right labels: name + current rank + current points */}
           {members.map((m) => {
             const endRank = history[history.length - 1]!.rankings[m.id] ?? N;
-            const x = cx(nC - 1) + 18;
+            const x = cx(nC - 1) + 20;
             const color = colorOf(m.id);
             return (
               <g key={m.id}>
-                <text x={x} y={ry(endRank) - 4} fontSize={11} fontWeight="500" fill={color}>
+                <text x={x} y={ry(endRank) - 3} fontSize={14} fontWeight="500" fill={color}>
                   {trunc(m.name, 14)}
                 </text>
-                <text x={x} y={ry(endRank) + 10} fontSize={9} fill="#505050">
+                <text x={x} y={ry(endRank) + 13} fontSize={11} fill="#555">
                   #{m.currentRank} · {m.currentPoints} pts
                 </text>
               </g>
             );
           })}
 
-          {/* X-axis match labels */}
-          {history.map((h, i) =>
-            i % every !== 0 ? null : (
-              <g key={i} transform={`translate(${cx(i)}, ${PAD_T + N * ROW_H + 6})`}>
-                <line x1={0} y1={0} x2={0} y2={5} stroke="#2e2e2e" strokeWidth={1} />
-                <text
-                  transform="rotate(-40)"
-                  x={0}
-                  y={13}
-                  textAnchor="end"
-                  fontSize={9}
-                  fill="#5a5a5a"
-                >
-                  {h.label}
-                </text>
+          {/* X-axis flags */}
+          {history.map((h, i) => {
+            if (i % every !== 0) return null;
+            const homeCode = teamFlagCode(h.homeTeam);
+            const awayCode = teamFlagCode(h.awayTeam);
+            const gapX = 2;
+            const totalW = FLAG_W * 2 + gapX;
+            const startX = cx(i) - totalW / 2;
+            return (
+              <g key={i}>
+                {homeCode && (
+                  <image
+                    href={flagUrl(homeCode)}
+                    x={startX}
+                    y={flagY}
+                    width={FLAG_W}
+                    height={FLAG_H}
+                  />
+                )}
+                {awayCode && (
+                  <image
+                    href={flagUrl(awayCode)}
+                    x={startX + FLAG_W + gapX}
+                    y={flagY}
+                    width={FLAG_W}
+                    height={FLAG_H}
+                  />
+                )}
               </g>
-            ),
-          )}
+            );
+          })}
 
           {/* Clickable hit areas */}
           {history.map((_, i) => {
@@ -274,10 +276,7 @@ export function RankingHistoryChart({ history, members }: Props) {
           </div>
           <div className="flex flex-col gap-2">
             {[...members]
-              .sort(
-                (a, b) =>
-                  (selPt.rankings[a.id] ?? N) - (selPt.rankings[b.id] ?? N),
-              )
+              .sort((a, b) => (selPt.rankings[a.id] ?? N) - (selPt.rankings[b.id] ?? N))
               .map((m) => {
                 const earned = selPt.pointsEarned[m.id] ?? 0;
                 const cumul = selPt.cumulativePoints[m.id] ?? 0;
@@ -287,10 +286,7 @@ export function RankingHistoryChart({ history, members }: Props) {
                     <span className="w-6 shrink-0 text-right text-xs tabular-nums text-neutral-500">
                       {rank}°
                     </span>
-                    <span
-                      className="flex-1 truncate font-medium"
-                      style={{ color: colorOf(m.id) }}
-                    >
+                    <span className="flex-1 truncate font-medium" style={{ color: colorOf(m.id) }}>
                       {m.name}
                     </span>
                     <span
