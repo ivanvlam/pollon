@@ -54,8 +54,8 @@ const PAD_T = 24;
 const PAD_B = 42;
 const DOT_R = 8;
 const LINE_W = 3;
-const FLAG_W = 22;
-const FLAG_H = 16;
+const FLAG_W = 18;
+const FLAG_H = 13;
 
 const DATE_FMT = new Intl.DateTimeFormat("es", {
   weekday: "short",
