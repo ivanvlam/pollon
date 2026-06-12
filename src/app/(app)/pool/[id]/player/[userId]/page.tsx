@@ -4,10 +4,11 @@ import { notFound } from "next/navigation";
 import { Flag } from "@/components/Flag";
 import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
 import { REASON_LABELS, ROUND_LABELS } from "@/lib/labels";
+import { calculateMatchScore, type MatchScore } from "@/lib/scoring";
 import { createClient } from "@/lib/supabase/server";
 import { toSpanish } from "@/lib/teamNames";
 import { isChampionLocked, isPredictionLocked } from "@/lib/timing";
-import type { ScoreReason } from "@/types";
+import type { MatchWinner, ScoreReason } from "@/types";
 
 const fmt = (h: number | null, a: number | null) =>
   h === null || a === null ? "—" : `${h}-${a}`;
@@ -223,6 +224,13 @@ export default async function PlayerProfilePage({
                   const locked = isPredictionLocked(m.kickoff_at);
                   const knockout = isKnockoutRound(m.round as Round);
                   const finished = m.status === "finished";
+                  const isLiveScored = m.status === "live" && m.home_score !== null;
+                  const liveScore: MatchScore | null = isLiveScored && pred
+                    ? calculateMatchScore(
+                        { round: m.round as Round, home_score: m.home_score, away_score: m.away_score, winner: m.winner as MatchWinner | null },
+                        { predicted_home: pred.predicted_home, predicted_away: pred.predicted_away, predicted_winner: pred.predicted_winner as MatchWinner | null },
+                      )
+                    : null;
                   // Solo otros usuarios antes del cierre quedan ocultos: para
                   // ellos la RLS no devuelve la predicción todavía.
                   const hidden = !isSelf && !locked && !pred;
@@ -268,6 +276,16 @@ export default async function PlayerProfilePage({
                           <span className="rounded bg-neutral-500/15 px-2 py-0.5 text-xs font-medium text-neutral-500">
                             0 puntos
                           </span>
+                        ) : (isLiveScored && pred) ? (
+                          liveScore ? (
+                            <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                              {REASON_LABELS[liveScore.reason]} · +{liveScore.points} pts
+                            </span>
+                          ) : (
+                            <span className="rounded bg-neutral-500/15 px-2 py-0.5 text-xs font-medium text-neutral-500">
+                              0 puntos
+                            </span>
+                          )
                         ) : null}
                       </div>
 
