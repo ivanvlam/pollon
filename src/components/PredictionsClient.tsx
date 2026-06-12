@@ -379,7 +379,7 @@ export function PredictionsClient({
                         {playerRows.map(({ userId, isMe, pred, score }) => (
                           <li
                             key={userId}
-                            className={`grid grid-cols-[1fr_1fr_auto] items-center gap-x-2 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
+                            className={`flex items-center justify-between gap-2 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
                           >
                             <Link
                               href={`/pool/${poolId}/player/${userId}`}
@@ -387,16 +387,21 @@ export function PredictionsClient({
                             >
                               {isMe ? "Tú" : (nameById[userId] ?? "?")}
                             </Link>
-                            <span className="text-center tabular-nums">
-                              {pred
-                                ? `${fmt(pred.predicted_home, pred.predicted_away)}${
-                                    pred.predicted_winner
-                                      ? ` · ${pred.predicted_winner === "home" ? toSpanish(match.home_team) : toSpanish(match.away_team)}`
-                                      : ""
-                                  }`
-                                : "sin predicción"}
-                            </span>
-                            <div>
+                            <div className="flex items-center gap-2">
+                              {pred ? (
+                                <span className="flex items-center gap-0.5 tabular-nums">
+                                  <span className="inline-block w-5 text-right">{pred.predicted_home ?? "–"}</span>
+                                  <span className="px-0.5">–</span>
+                                  <span className="inline-block w-5">{pred.predicted_away ?? "–"}</span>
+                                  {pred.predicted_winner && (
+                                    <span className="ml-1">
+                                      · {pred.predicted_winner === "home" ? toSpanish(match.home_team) : toSpanish(match.away_team)}
+                                    </span>
+                                  )}
+                                </span>
+                              ) : (
+                                <span>sin predicción</span>
+                              )}
                               {scored && pred && (
                                 score ? (
                                   <span className="inline-flex justify-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400 min-w-[5rem]">
