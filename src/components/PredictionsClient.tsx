@@ -222,9 +222,9 @@ export function PredictionsClient({
           <div className="flex items-center rounded-lg border border-neutral-700 overflow-hidden text-xs">
             {(
               [
+                ["all", "Todos"],
                 ["pending", "Pendientes"],
                 ["finished", "Terminados"],
-                ["all", "Todos"],
               ] as [StatusFilter, string][]
             ).map(([key, label]) => (
               <button
