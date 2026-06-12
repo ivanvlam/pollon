@@ -399,11 +399,11 @@ export function PredictionsClient({
                               </span>
                               {scored && pred && (
                                 score ? (
-                                  <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
+                                  <span className="inline-flex justify-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400 min-w-[5rem]">
                                     +{isMe ? (myPoints ?? score.points) : score.points} puntos
                                   </span>
                                 ) : (
-                                  <span className="rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
+                                  <span className="inline-flex justify-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500 min-w-[5rem]">
                                     0 puntos
                                   </span>
                                 )
