@@ -30,7 +30,7 @@ export function LiveMatches({
   if (matches.length === 0) return null;
 
   return (
-    <section className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+    <section className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
       <MatchLiveRefresh matches={[{ status: "live" }]} />
       <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="inline-flex items-center gap-1.5">
