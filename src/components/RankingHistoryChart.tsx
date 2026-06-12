@@ -273,7 +273,7 @@ export function RankingHistoryChart({ history, members }: Props) {
       </div>
 
       <p className="text-center text-xs text-neutral-600">
-        Toca un partido para ver los detalles
+        Aprieta las banderas para ver los detalles del partido
       </p>
 
       {/* Detail panel */}
