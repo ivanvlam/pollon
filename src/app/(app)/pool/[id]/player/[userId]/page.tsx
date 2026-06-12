@@ -160,12 +160,12 @@ export default async function PlayerProfilePage({
         <div className="mt-2 flex flex-wrap gap-6 text-sm">
           <div>
             <span className="text-2xl font-bold text-emerald-400">{row?.total ?? 0}</span>{" "}
-            <span className="text-neutral-500">pts</span>
+            <span className="text-neutral-500">puntos</span>
           </div>
           <div className="flex gap-4 text-neutral-400">
-            <span title="Marcador exacto · 5 pts">Exactos: {row?.exact_count ?? 0}</span>
-            <span title="Misma diferencia · 3 pts">Dif: {row?.diff_count ?? 0}</span>
-            <span title="Solo ganador/clasificado · 2 pts">
+            <span title="Marcador exacto · 5 puntos">Exactos: {row?.exact_count ?? 0}</span>
+            <span title="Misma diferencia · 3 puntos">Dif: {row?.diff_count ?? 0}</span>
+            <span title="Solo ganador/clasificado · 2 puntos">
               Aciertos: {row?.winner_count ?? 0}
             </span>
           </div>
@@ -179,7 +179,7 @@ export default async function PlayerProfilePage({
             <h2 className="text-sm font-semibold text-neutral-300">Campeón</h2>
             {championScore && (
               <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                +{championScore.points} pts
+                +{championScore.points} puntos
               </span>
             )}
           </div>
@@ -192,7 +192,7 @@ export default async function PlayerProfilePage({
             <h2 className="text-sm font-semibold text-neutral-300">Goleador</h2>
             {topScorerScore && (
               <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                +{topScorerScore.points} pts
+                +{topScorerScore.points} puntos
               </span>
             )}
           </div>
@@ -259,7 +259,7 @@ export default async function PlayerProfilePage({
                         </span>
                         {score && (
                           <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                            {REASON_LABELS[score.reason as ScoreReason]} · +{score.points} pts
+                            {REASON_LABELS[score.reason as ScoreReason]} · +{score.points} puntos
                           </span>
                         )}
                       </div>

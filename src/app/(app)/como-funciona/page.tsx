@@ -60,15 +60,15 @@ export default function ComoFuncionaPage() {
         <h2 className="text-lg font-semibold">Fase de grupos</h2>
         <ul className="flex flex-col gap-2 text-sm text-neutral-300">
           <li>
-            <span className="font-semibold text-emerald-400">5 pts</span>:
+            <span className="font-semibold text-emerald-400">5 puntos</span>:
             marcador exacto (predices 2-1 y termina 2-1).
           </li>
           <li>
-            <span className="font-semibold text-emerald-400">3 pts</span>:
+            <span className="font-semibold text-emerald-400">3 puntos</span>:
             aciertas el tipo de resultado y la diferencia de goles, pero no el marcador exacto (predices 2-0 y termina 3-1).
           </li>
           <li>
-            <span className="font-semibold text-emerald-400">2 pts</span>:
+            <span className="font-semibold text-emerald-400">2 puntos</span>:
             aciertas solo el ganador o el empate.
           </li>
           <li className="text-neutral-500">Son excluyentes: se aplica el nivel más alto.</li>
@@ -79,15 +79,15 @@ export default function ComoFuncionaPage() {
         <h2 className="text-lg font-semibold">Fase eliminatoria</h2>
         <ul className="flex flex-col gap-2 text-sm text-neutral-300">
           <li>
-            <span className="font-semibold text-emerald-400">5 pts</span>:
+            <span className="font-semibold text-emerald-400">5 puntos</span>:
             marcador exacto a 90 minutos + aciertas quién clasifica.
           </li>
           <li>
-            <span className="font-semibold text-emerald-400">3 pts</span>:
+            <span className="font-semibold text-emerald-400">3 puntos</span>:
             tipo de resultado + diferencia de goles correcta + quién clasifica.
           </li>
           <li>
-            <span className="font-semibold text-emerald-400">2 pts</span>:
+            <span className="font-semibold text-emerald-400">2 puntos</span>:
             solo aciertas quién clasifica.
           </li>
           <li className="text-neutral-500">
@@ -101,10 +101,10 @@ export default function ComoFuncionaPage() {
         <h2 className="text-lg font-semibold">Campeón y Goleador</h2>
         <ul className="flex flex-col gap-2 text-sm text-neutral-300">
           <li>
-            <span className="font-semibold text-emerald-400">15 pts</span>: si aciertas el campeón del Mundial.
+            <span className="font-semibold text-emerald-400">15 puntos</span>: si aciertas el campeón del Mundial.
           </li>
           <li>
-            <span className="font-semibold text-emerald-400">10 pts</span>: si aciertas el goleador del torneo.
+            <span className="font-semibold text-emerald-400">10 puntos</span>: si aciertas el goleador del torneo.
           </li>
           <li className="text-neutral-500">
             Ambas predicciones se cierran 2 horas después del inicio del primer
@@ -125,7 +125,7 @@ export default function ComoFuncionaPage() {
             polla.
           </li>
           <li className="text-neutral-500">
-            Desempate: más exactos (5 pts) → más diferencias acertadas (3 pts) → más ganadores (2 pts) → campeón acertado → orden alfabético.
+            Desempate: más exactos (5 puntos) → más diferencias acertadas (3 puntos) → más ganadores (2 puntos) → campeón acertado → orden alfabético.
           </li>
         </ul>
       </Card>

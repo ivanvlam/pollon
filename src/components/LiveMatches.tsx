@@ -112,10 +112,10 @@ export function LiveMatches({
                     </span>
                     {liveScore ? (
                       <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 font-medium text-emerald-400">
-                        +{liveScore.points} pts
+                        +{liveScore.points} puntos
                       </span>
                     ) : (
-                      <span className="text-neutral-600">· 0 pts</span>
+                      <span className="text-neutral-600">· 0 puntos</span>
                     )}
                   </>
                 ) : (

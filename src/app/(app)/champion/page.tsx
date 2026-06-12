@@ -79,7 +79,7 @@ export default async function ChampionPage() {
       {/* Campeón */}
       <section className="flex flex-col gap-3 rounded-xl border border-neutral-800 p-5">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold">Campeón del Mundial <span className="text-emerald-400">+15 pts</span></h2>
+          <h2 className="font-semibold">Campeón del Mundial <span className="text-emerald-400">+15 puntos</span></h2>
         </div>
         <p className="text-sm text-neutral-400">
           Elige quién crees que ganará el Mundial 2026. Independiente de la predicción de la final.
@@ -101,7 +101,7 @@ export default async function ChampionPage() {
       {/* Goleador */}
       <section className="flex flex-col gap-3 rounded-xl border border-neutral-800 p-5">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold">Goleador del Mundial <span className="text-emerald-400">+10 pts</span></h2>
+          <h2 className="font-semibold">Goleador del Mundial <span className="text-emerald-400">+10 puntos</span></h2>
         </div>
         <p className="text-sm text-neutral-400">
           Elige quién crees que será el máximo goleador del torneo.

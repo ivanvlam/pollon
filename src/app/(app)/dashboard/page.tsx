@@ -190,7 +190,7 @@ export default async function DashboardPage() {
                       </span>
                       {myRow && (
                         <span className="text-emerald-400">
-                          Vas {myIndex + 1}º · {myRow.total} pts
+                          Vas {myIndex + 1}º · {myRow.total} puntos
                         </span>
                       )}
                     </div>

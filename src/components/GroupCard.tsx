@@ -36,14 +36,19 @@ export function GroupCard({ name, standings, matches, yourPoints }: Props) {
   const pendingCount = matches.filter(
     (m) => m.is_active && !isPredictionLocked(m.kickoff_at) && !m.pred,
   ).length;
+  const hasScores = matches.some((m) => m.myPoints !== undefined);
 
   return (
     <>
       <Card className="flex flex-col gap-4 p-5">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold">{name}</h2>
-          {yourPoints > 0 && (
-            <span className="text-sm text-emerald-400">{yourPoints} pts</span>
+          {hasScores && (
+            yourPoints > 0 ? (
+              <span className="text-sm text-emerald-400">{yourPoints} puntos</span>
+            ) : (
+              <span className="text-sm text-neutral-600">0 puntos</span>
+            )
           )}
         </div>
 

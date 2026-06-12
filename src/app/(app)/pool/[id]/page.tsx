@@ -107,9 +107,9 @@ export default async function PoolRankingPage({
                   <th scope="col" className="py-2 pr-2">#</th>
                   <th scope="col" className="py-2">Jugador</th>
                   <th scope="col" className="w-28 py-2 text-center" title="Puntos totales">Pts</th>
-                  <th scope="col" className="w-28 py-2 text-center" title="Marcador exacto (5 pts)">Exactos</th>
-                  <th scope="col" className="w-28 py-2 text-center" title="Diferencia de goles correcta (3 pts)">Dif</th>
-                  <th scope="col" className="w-28 py-2 text-center" title="Solo ganador / clasificado acertado (2 pts)">Aciertos</th>
+                  <th scope="col" className="w-28 py-2 text-center" title="Marcador exacto (5 puntos)">Exactos</th>
+                  <th scope="col" className="w-28 py-2 text-center" title="Diferencia de goles correcta (3 puntos)">Dif</th>
+                  <th scope="col" className="w-28 py-2 text-center" title="Solo ganador / clasificado acertado (2 puntos)">Aciertos</th>
                 </tr>
               </thead>
               <tbody>
@@ -154,15 +154,15 @@ export default async function PoolRankingPage({
           <dl className="mt-8 grid grid-cols-3 divide-x divide-neutral-800 text-center text-xs text-neutral-500">
             <div className="flex flex-col gap-0.5 px-3">
               <dt className="font-medium text-neutral-300">Exactos</dt>
-              <dd>Marcador exacto · 5 pts</dd>
+              <dd>Marcador exacto · 5 puntos</dd>
             </div>
             <div className="flex flex-col gap-0.5 px-3">
               <dt className="font-medium text-neutral-300">Dif</dt>
-              <dd>Misma diferencia · 3 pts</dd>
+              <dd>Misma diferencia · 3 puntos</dd>
             </div>
             <div className="flex flex-col gap-0.5 px-3">
               <dt className="font-medium text-neutral-300">Aciertos</dt>
-              <dd>Solo ganador · 2 pts</dd>
+              <dd>Solo ganador · 2 puntos</dd>
             </div>
           </dl>
           </>

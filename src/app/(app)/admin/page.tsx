@@ -214,7 +214,7 @@ export default async function GlobalAdminPage() {
           <Highlight
             label="Líder global (más puntos)"
             value={leader ? (nameById.get(leader.key) ?? "?") : "Sin Datos"}
-            sub={leader ? `${leader.n} pts` : undefined}
+            sub={leader ? `${leader.n} puntos` : undefined}
           />
           <Highlight
             label="Más predicciones"

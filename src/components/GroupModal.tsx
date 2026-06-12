@@ -19,7 +19,14 @@ interface Props {
 }
 
 const fmt = (h: number | null, a: number | null) =>
-  h === null || a === null ? "- : -" : `${h} : ${a}`;
+  h === null || a === null ? "– – –" : `${h} – ${a}`;
+
+const fmtDate = (iso: string) => {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString("es", { day: "numeric", month: "short" });
+  const time = d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+  return `${day} · ${time}`;
+};
 
 export function GroupModal({ name, standings, matches, onClose }: Props) {
   useEffect(() => {
@@ -110,7 +117,7 @@ export function GroupModal({ name, standings, matches, onClose }: Props) {
               return (
                 <div key={match.id} className="rounded-xl border border-neutral-800 p-3">
                   <div className="mb-3 flex items-center justify-between text-xs text-neutral-500">
-                    <span>{new Date(match.kickoff_at).toLocaleString()}</span>
+                    <span>{fmtDate(match.kickoff_at)}</span>
                     {finished ? (
                       <span className="font-medium text-neutral-300">
                         Final {fmt(match.home_score, match.away_score)}
@@ -151,29 +158,34 @@ export function GroupModal({ name, standings, matches, onClose }: Props) {
                     />
                   ) : (
                     <div className="text-sm">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="flex min-w-0 items-center gap-1.5">
+                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-1">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="truncate text-right">{homeEs}</span>
                           <Flag team={match.home_team} className="shrink-0" />
-                          <span className="truncate">{homeEs}</span>
-                        </span>
-                        <span className="tabular-nums text-neutral-300">
-                          {match.pred?.predicted_home ?? "–"}
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between gap-2">
-                        <span className="flex min-w-0 items-center gap-1.5">
+                        </div>
+                        <div className="flex flex-col items-center px-2">
+                          {match.pred ? (
+                            <span className="text-xl font-bold tabular-nums text-neutral-200">
+                              {match.pred.predicted_home ?? "–"}{" – "}{match.pred.predicted_away ?? "–"}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-neutral-600">sin predicción</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
                           <Flag team={match.away_team} className="shrink-0" />
                           <span className="truncate">{awayEs}</span>
-                        </span>
-                        <span className="tabular-nums text-neutral-300">
-                          {match.pred?.predicted_away ?? "–"}
-                        </span>
+                        </div>
                       </div>
                       {match.myPoints !== undefined && (
-                        <div className="mt-1.5 text-right">
-                          <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs text-emerald-400">
-                            +{match.myPoints} pts
-                          </span>
+                        <div className="mt-2 text-center">
+                          {match.myPoints > 0 ? (
+                            <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
+                              +{match.myPoints} puntos
+                            </span>
+                          ) : (
+                            <span className="text-xs text-neutral-600">0 puntos</span>
+                          )}
                         </div>
                       )}
                     </div>
