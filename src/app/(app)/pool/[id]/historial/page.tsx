@@ -34,7 +34,7 @@ export default async function PoolHistorialPage({
 
   const { data: finishedMatches } = await supabase
     .from("matches")
-    .select("id, home_team, away_team, kickoff_at")
+    .select("id, home_team, away_team, kickoff_at, home_score, away_score")
     .eq("status", "finished")
     .order("kickoff_at", { ascending: true });
 
@@ -84,6 +84,9 @@ export default async function PoolHistorialPage({
       fullLabel: `${toSpanish(m.home_team)} vs ${toSpanish(m.away_team)}`,
       homeTeam: m.home_team,
       awayTeam: m.away_team,
+      kickoffAt: m.kickoff_at,
+      homeScore: m.home_score,
+      awayScore: m.away_score,
       rankings: rankMap,
       pointsEarned: earned,
       cumulativePoints: { ...running },

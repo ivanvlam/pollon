@@ -2,13 +2,18 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 
+import { Flag } from "@/components/Flag";
 import { flagUrl, teamFlagCode } from "@/lib/flags";
+import { toSpanish } from "@/lib/teamNames";
 
 export interface HistoryPoint {
   label: string;
   fullLabel: string;
   homeTeam: string;
   awayTeam: string;
+  kickoffAt: string;
+  homeScore: number | null;
+  awayScore: number | null;
   rankings: Record<string, number>;
   pointsEarned: Record<string, number>;
   cumulativePoints: Record<string, number>;
@@ -27,30 +32,38 @@ interface Props {
 }
 
 const COLORS = [
-  "#34d399", // emerald-400
-  "#60a5fa", // blue-400
-  "#fbbf24", // amber-400
-  "#f87171", // red-400
-  "#a78bfa", // violet-400
-  "#f472b6", // pink-400
-  "#2dd4bf", // teal-400
-  "#fb923c", // orange-400
-  "#a3e635", // lime-400
-  "#38bdf8", // sky-400
-  "#c084fc", // purple-400
-  "#4ade80", // green-400
+  "#34d399",
+  "#60a5fa",
+  "#fbbf24",
+  "#f87171",
+  "#a78bfa",
+  "#f472b6",
+  "#2dd4bf",
+  "#fb923c",
+  "#a3e635",
+  "#38bdf8",
+  "#c084fc",
+  "#4ade80",
 ];
 
-const MIN_COL = 64;
-const ROW_H = 76;
+const MIN_COL = 90;
+const ROW_H = 48;
 const PAD_L = 185;
 const PAD_R = 172;
 const PAD_T = 24;
-const PAD_B = 40;
+const PAD_B = 42;
 const DOT_R = 8;
 const LINE_W = 3;
 const FLAG_W = 22;
 const FLAG_H = 16;
+
+const DATE_FMT = new Intl.DateTimeFormat("es", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 export function RankingHistoryChart({ history, members }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -92,12 +105,12 @@ export function RankingHistoryChart({ history, members }: Props) {
 
   const trunc = (s: string, n = 18) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
   const every = nC <= 24 ? 1 : nC <= 48 ? 2 : 4;
-  const flagY = PAD_T + N * ROW_H + 10;
+  const flagY = PAD_T + N * ROW_H + 12;
 
   const selPt = sel !== null ? history[sel] : null;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div
         ref={wrapRef}
         className="overflow-x-auto rounded-xl border border-neutral-800 bg-neutral-950"
@@ -148,7 +161,7 @@ export function RankingHistoryChart({ history, members }: Props) {
             />
           )}
 
-          {/* Lines (drawn under dots) */}
+          {/* Lines */}
           {members.map((m) => (
             <path
               key={m.id}
@@ -192,7 +205,7 @@ export function RankingHistoryChart({ history, members }: Props) {
             </text>
           ))}
 
-          {/* Right labels: name + current rank + current points */}
+          {/* Right labels: name + rank + points */}
           {members.map((m) => {
             const endRank = history[history.length - 1]!.rankings[m.id] ?? N;
             const x = cx(nC - 1) + 20;
@@ -202,7 +215,7 @@ export function RankingHistoryChart({ history, members }: Props) {
                 <text x={x} y={ry(endRank) - 3} fontSize={14} fontWeight="500" fill={color}>
                   {trunc(m.name, 14)}
                 </text>
-                <text x={x} y={ry(endRank) + 13} fontSize={11} fill="#555">
+                <text x={x} y={ry(endRank) + 13} fontSize={13} fontWeight="600" fill="#909090">
                   #{m.currentRank} · {m.currentPoints} pts
                 </text>
               </g>
@@ -214,28 +227,26 @@ export function RankingHistoryChart({ history, members }: Props) {
             if (i % every !== 0) return null;
             const homeCode = teamFlagCode(h.homeTeam);
             const awayCode = teamFlagCode(h.awayTeam);
-            const gapX = 2;
-            const totalW = FLAG_W * 2 + gapX;
-            const startX = cx(i) - totalW / 2;
+            const gap = 8;
+            const totalFW = FLAG_W * 2 + gap;
+            const startX = cx(i) - totalFW / 2;
             return (
               <g key={i}>
                 {homeCode && (
-                  <image
-                    href={flagUrl(homeCode)}
-                    x={startX}
-                    y={flagY}
-                    width={FLAG_W}
-                    height={FLAG_H}
-                  />
+                  <image href={flagUrl(homeCode)} x={startX} y={flagY} width={FLAG_W} height={FLAG_H} />
                 )}
+                <text
+                  x={cx(i)}
+                  y={flagY + FLAG_H / 2 + 1}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize={9}
+                  fill="#555"
+                >
+                  -
+                </text>
                 {awayCode && (
-                  <image
-                    href={flagUrl(awayCode)}
-                    x={startX + FLAG_W + gapX}
-                    y={flagY}
-                    width={FLAG_W}
-                    height={FLAG_H}
-                  />
+                  <image href={flagUrl(awayCode)} x={startX + FLAG_W + gap} y={flagY} width={FLAG_W} height={FLAG_H} />
                 )}
               </g>
             );
@@ -261,20 +272,48 @@ export function RankingHistoryChart({ history, members }: Props) {
         </svg>
       </div>
 
+      <p className="text-center text-xs text-neutral-600">
+        Toca un partido para ver los detalles
+      </p>
+
       {/* Detail panel */}
       {selPt && (
         <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-4 text-sm">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="font-semibold text-neutral-200">{selPt.fullLabel}</span>
+          {/* Match header */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2">
+                <div className="flex items-center justify-end gap-1.5 min-w-0">
+                  <span className="text-sm font-medium text-right leading-tight truncate">
+                    {toSpanish(selPt.homeTeam)}
+                  </span>
+                  <Flag team={selPt.homeTeam} className="shrink-0" />
+                </div>
+                <span className="text-xl font-bold tabular-nums whitespace-nowrap px-1 text-neutral-100">
+                  {selPt.homeScore ?? "–"}&nbsp;–&nbsp;{selPt.awayScore ?? "–"}
+                </span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Flag team={selPt.awayTeam} className="shrink-0" />
+                  <span className="text-sm font-medium leading-tight truncate">
+                    {toSpanish(selPt.awayTeam)}
+                  </span>
+                </div>
+              </div>
+              <p className="text-center text-xs text-neutral-500 mt-1">
+                {DATE_FMT.format(new Date(selPt.kickoffAt))}
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => setSel(null)}
-              className="text-xs text-neutral-500 hover:text-neutral-300"
+              className="shrink-0 text-xs text-neutral-500 hover:text-neutral-300"
             >
               ✕
             </button>
           </div>
-          <div className="flex flex-col gap-2">
+
+          {/* Player rows */}
+          <div className="mt-4 flex flex-col gap-2 border-t border-neutral-800 pt-3">
             {[...members]
               .sort((a, b) => (selPt.rankings[a.id] ?? N) - (selPt.rankings[b.id] ?? N))
               .map((m) => {
