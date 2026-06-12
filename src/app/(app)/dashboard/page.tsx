@@ -6,6 +6,7 @@ import { JoinPoolForm } from "@/components/JoinPoolForm";
 import { LiveMatches } from "@/components/LiveMatches";
 import { TimezoneSync } from "@/components/TimezoneSync";
 import { buttonClasses } from "@/components/ui/Button";
+import type { Round } from "@/types";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Mis pollas" };
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
       .maybeSingle(),
     supabase
       .from("matches")
-      .select("id, home_team, away_team, home_score, away_score, live_minute, updated_at")
+      .select("id, round, home_team, away_team, home_score, away_score, live_minute, updated_at")
       .eq("status", "live")
       .order("kickoff_at", { ascending: true }),
   ]);
@@ -72,7 +73,7 @@ export default async function DashboardPage() {
   const { data: livePreds } = liveIds.length
     ? await supabase
         .from("predictions")
-        .select("match_id, predicted_home, predicted_away")
+        .select("match_id, predicted_home, predicted_away, predicted_winner")
         .eq("user_id", uid)
         .in("match_id", liveIds)
     : { data: [] };
@@ -81,6 +82,7 @@ export default async function DashboardPage() {
   );
   const liveRows = live.map((m) => ({
     id: m.id,
+    round: m.round as Round,
     home_team: m.home_team,
     away_team: m.away_team,
     home_score: m.home_score,

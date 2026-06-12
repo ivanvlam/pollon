@@ -1,24 +1,25 @@
 import { Flag } from "@/components/Flag";
 import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
+import { calculateMatchScore } from "@/lib/scoring";
 import { formatLiveMinute } from "@/lib/liveMinute";
 import { toSpanish } from "@/lib/teamNames";
+import type { MatchWinner, Round } from "@/types";
 
 export interface LiveMatchRow {
   id: string;
+  round: Round;
   home_team: string;
   away_team: string;
   home_score: number | null;
   away_score: number | null;
   live_minute: string | null;
-  pred: { predicted_home: number | null; predicted_away: number | null } | null;
+  pred: {
+    predicted_home: number | null;
+    predicted_away: number | null;
+    predicted_winner: string | null;
+  } | null;
 }
 
-/**
- * Sección "En vivo" del inicio. Muestra los partidos en curso con marcador y
- * minuto. El encabezado lleva la nota de frescura ("datos cada ~10 min") y la
- * latencia ("act. hace Xm"). No renderiza nada si no hay partidos live.
- * Incluye el auto-refresco (lee nuestra base, no gasta cuota de la API).
- */
 export function LiveMatches({
   matches,
   updatedAgoLabel,
@@ -30,7 +31,6 @@ export function LiveMatches({
 
   return (
     <section className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
-      {/* Todos los de esta lista están live, así que el refresco se activa. */}
       <MatchLiveRefresh matches={[{ status: "live" }]} />
       <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="inline-flex items-center gap-1.5">
@@ -44,45 +44,86 @@ export function LiveMatches({
         </span>
       </div>
 
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-3">
         {matches.map((m) => {
           const minute = formatLiveMinute(m.live_minute);
           const hasPred =
-            m.pred &&
-            (m.pred.predicted_home !== null || m.pred.predicted_away !== null);
+            m.pred !== null &&
+            m.pred.predicted_home !== null &&
+            m.pred.predicted_away !== null;
+
+          // Puntos provisionales: lo que ganaría si el partido terminara ahora.
+          // Para eliminatorias, winner es null en vivo → calculateMatchScore devuelve null.
+          const liveScore =
+            hasPred && m.home_score !== null && m.away_score !== null
+              ? calculateMatchScore(
+                  {
+                    round: m.round,
+                    home_score: m.home_score,
+                    away_score: m.away_score,
+                    winner: null,
+                  },
+                  {
+                    predicted_home: m.pred!.predicted_home,
+                    predicted_away: m.pred!.predicted_away,
+                    predicted_winner:
+                      (m.pred!.predicted_winner as MatchWinner | null) ?? null,
+                  },
+                )
+              : null;
+
           return (
-            <li
-              key={m.id}
-              className="rounded-lg bg-neutral-900/50 px-3 py-2 text-sm"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-2 font-medium">
+            <li key={m.id} className="rounded-lg bg-neutral-900/50 px-4 py-3">
+              {/* Marcador centrado con banderas a los lados */}
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <div className="flex items-center gap-2">
                   <Flag team={m.home_team} />
-                  {toSpanish(m.home_team)}
-                </span>
-                <span className="flex shrink-0 items-center gap-2">
-                  <span className="font-semibold text-neutral-100">
-                    {m.home_score ?? 0} - {m.away_score ?? 0}
+                  <span className="text-sm font-medium leading-tight">
+                    {toSpanish(m.home_team)}
                   </span>
-                  {minute && <span className="text-xs text-red-400">{minute}</span>}
-                </span>
-                <span className="flex items-center justify-end gap-2 text-right font-medium">
-                  {toSpanish(m.away_team)}
+                </div>
+
+                <div className="flex flex-col items-center gap-0.5 px-3">
+                  <span className="text-2xl font-bold tabular-nums text-neutral-100">
+                    {m.home_score ?? 0} – {m.away_score ?? 0}
+                  </span>
+                  {minute && (
+                    <span className="text-xs font-medium text-red-400">
+                      {minute}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  <span className="text-right text-sm font-medium leading-tight">
+                    {toSpanish(m.away_team)}
+                  </span>
                   <Flag team={m.away_team} />
-                </span>
+                </div>
               </div>
-              <p className="mt-1.5 text-center text-xs text-neutral-500">
+
+              {/* Predicción + puntos provisionales */}
+              <div className="mt-2.5 flex items-center justify-center gap-2 text-xs">
                 {hasPred ? (
                   <>
-                    Tu predicción:{" "}
-                    <span className="text-neutral-300">
-                      {m.pred!.predicted_home ?? "-"}-{m.pred!.predicted_away ?? "-"}
+                    <span className="text-neutral-500">Tu predicción:</span>
+                    <span className="font-medium text-neutral-200">
+                      {m.pred!.predicted_home}-{m.pred!.predicted_away}
                     </span>
+                    {liveScore ? (
+                      <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 font-medium text-emerald-400">
+                        +{liveScore.points} pts
+                      </span>
+                    ) : (
+                      <span className="text-neutral-600">· 0 pts</span>
+                    )}
                   </>
                 ) : (
-                  "No predijiste este partido"
+                  <span className="text-neutral-600">
+                    No predijiste este partido
+                  </span>
                 )}
-              </p>
+              </div>
             </li>
           );
         })}
