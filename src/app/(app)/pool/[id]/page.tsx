@@ -3,10 +3,8 @@ import { notFound } from "next/navigation";
 
 import { CopyInviteButton } from "@/components/CopyInviteButton";
 import { LeavePoolButton } from "@/components/LeavePoolButton";
-import { RankingHistoryChart, type HistoryPoint } from "@/components/RankingHistoryChart";
 import { buttonClasses } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/server";
-import { toSpanish } from "@/lib/teamNames";
 
 export default async function PoolRankingPage({
   params,
@@ -28,69 +26,14 @@ export default async function PoolRankingPage({
 
   const [
     { data: ranking, error },
-    { data: allScores },
     { data: myProfile },
   ] = await Promise.all([
     supabase.rpc("get_pool_ranking", { p_pool_id: pool.id }),
-    supabase
-      .from("scores")
-      .select("user_id, match_id, points")
-      .eq("pool_id", pool.id)
-      .not("match_id", "is", null),
     supabase.from("profiles").select("display_name").eq("id", user!.id).maybeSingle(),
   ]);
 
   const inviterName = myProfile?.display_name ?? "Alguien";
   const isPoolCreator = user!.id === pool.created_by;
-
-  // Compute bump chart history
-  const matchIds = [...new Set((allScores ?? []).map((s) => s.match_id as string))];
-  const { data: finishedMatches } = matchIds.length > 0
-    ? await supabase
-        .from("matches")
-        .select("id, home_team, away_team, kickoff_at")
-        .in("id", matchIds)
-        .order("kickoff_at", { ascending: true })
-    : { data: [] };
-
-  const members = (ranking ?? []).map((r) => ({
-    id: r.user_id,
-    name: r.display_name as string,
-  }));
-  const memberIds = members.map((m) => m.id);
-
-  const scoreMap = new Map<string, Map<string, number>>();
-  for (const s of allScores ?? []) {
-    const mid = s.match_id as string;
-    if (!scoreMap.has(mid)) scoreMap.set(mid, new Map());
-    scoreMap.get(mid)!.set(s.user_id, s.points);
-  }
-
-  const running: Record<string, number> = Object.fromEntries(
-    memberIds.map((id) => [id, 0]),
-  );
-  const rankingHistory: HistoryPoint[] = [];
-
-  for (const m of finishedMatches ?? []) {
-    const matchScores = scoreMap.get(m.id) ?? new Map<string, number>();
-    for (const uid of memberIds) {
-      running[uid] = (running[uid] ?? 0) + (matchScores.get(uid) ?? 0);
-    }
-    const sorted = [...memberIds].sort((a, b) => {
-      const diff = (running[b] ?? 0) - (running[a] ?? 0);
-      if (diff !== 0) return diff;
-      return (members.find((x) => x.id === a)?.name ?? "").localeCompare(
-        members.find((x) => x.id === b)?.name ?? "",
-      );
-    });
-    const rankMap: Record<string, number> = {};
-    sorted.forEach((uid, i) => {
-      rankMap[uid] = i + 1;
-    });
-    const homeLabel = toSpanish(m.home_team).slice(0, 3);
-    const awayLabel = toSpanish(m.away_team).slice(0, 3);
-    rankingHistory.push({ label: `${homeLabel}-${awayLabel}`, rankings: rankMap });
-  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -142,6 +85,12 @@ export default async function PoolRankingPage({
           className={buttonClasses("secondary", "sm")}
         >
           Bracket
+        </Link>
+        <Link
+          href={`/pool/${pool.id}/historial`}
+          className={buttonClasses("secondary", "sm")}
+        >
+          Historial
         </Link>
       </nav>
 
@@ -223,13 +172,6 @@ export default async function PoolRankingPage({
           </>
         )}
       </section>
-
-      {rankingHistory.length >= 2 && members.length >= 2 && (
-        <section>
-          <h2 className="mb-4 text-lg font-semibold">Historial</h2>
-          <RankingHistoryChart history={rankingHistory} members={members} />
-        </section>
-      )}
 
       {!isPoolCreator && (
         <div className="mt-2 flex justify-center border-t border-neutral-900 pt-6">
