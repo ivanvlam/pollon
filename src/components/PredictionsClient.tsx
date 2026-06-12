@@ -51,6 +51,7 @@ interface Props {
 
 type SortKey = "kickoff_asc" | "kickoff_desc" | "group_asc" | "group_desc";
 type PredFilter = "all" | "with" | "without";
+type StatusFilter = "pending" | "finished" | "all";
 
 const fmt = (h: number | null, a: number | null) =>
   h === null || a === null ? "-" : `${h}-${a}`;
@@ -87,6 +88,7 @@ export function PredictionsClient({
   const [groupFilter, setGroupFilter] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("kickoff_asc");
   const [predFilter, setPredFilter] = useState<PredFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending");
 
   // Set de matchIds con predicción propia — se actualiza optimistamente cuando
   // PredictionForm guarda, sin esperar a que el servidor re-renderice.
@@ -130,6 +132,12 @@ export function PredictionsClient({
 
   const filtered = useMemo(() => {
     let result = [...matches];
+
+    if (statusFilter === "pending") {
+      result = result.filter((m) => m.status !== "finished");
+    } else if (statusFilter === "finished") {
+      result = result.filter((m) => m.status === "finished");
+    }
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -190,58 +198,78 @@ export function PredictionsClient({
           className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder-neutral-500 outline-none focus:border-emerald-600"
         />
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-neutral-500">Ordenar:</span>
-          {(
-            [
-              ["kickoff_asc", "Más pronto"],
-              ["kickoff_desc", "Más tarde"],
-              ["group_asc", "Grupo A→Z"],
-              ["group_desc", "Grupo Z→A"],
-            ] as [SortKey, string][]
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={sort === key}
-              className={chip(sort === key)}
-              onClick={() => setSort(key)}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          {/* Sort dropdown */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="pred-sort" className="text-xs text-neutral-500">Ordenar:</label>
+            <select
+              id="pred-sort"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="cursor-pointer rounded-lg border border-neutral-700 bg-neutral-900 px-2.5 py-1.5 text-xs text-neutral-200 outline-none focus:border-emerald-600"
             >
-              {label}
-            </button>
-          ))}
-        </div>
+              <option value="kickoff_asc">Más pronto</option>
+              <option value="kickoff_desc">Más tarde</option>
+              <option value="group_asc">Grupo A→Z</option>
+              <option value="group_desc">Grupo Z→A</option>
+            </select>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-neutral-500">Predicción:</span>
-          {(
-            [
-              ["all", "Todos"],
-              ["with", "Con predicción"],
-              ["without", "Sin predicción"],
-            ] as [PredFilter, string][]
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={predFilter === key}
-              className={chip(predFilter === key)}
-              onClick={() => setPredFilter(key)}
-            >
-              {label}
-            </button>
-          ))}
+          {/* Estado */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-neutral-500">Estado:</span>
+            {(
+              [
+                ["pending", "Pendientes"],
+                ["finished", "Terminados"],
+                ["all", "Todos"],
+              ] as [StatusFilter, string][]
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={statusFilter === key}
+                className={chip(statusFilter === key)}
+                onClick={() => setStatusFilter(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Predicción */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-neutral-500">Predicción:</span>
+            {(
+              [
+                ["all", "Todos"],
+                ["with", "Con predicción"],
+                ["without", "Sin predicción"],
+              ] as [PredFilter, string][]
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={predFilter === key}
+                className={chip(predFilter === key)}
+                onClick={() => setPredFilter(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {groups.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-neutral-500">Grupo:</span>
             <button
               type="button"
               aria-pressed={groupFilter === null}
               className={chip(groupFilter === null)}
               onClick={() => setGroupFilter(null)}
             >
-              Todos los grupos
+              Todos
             </button>
             {groups.map((g) => (
               <button
