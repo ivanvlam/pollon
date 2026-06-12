@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
 import { REASON_LABELS, ROUND_LABELS } from "@/lib/labels";
 import { formatLiveMinute } from "@/lib/liveMinute";
-import { calculateMatchScore } from "@/lib/scoring";
+import { calculateMatchScore, type MatchScore } from "@/lib/scoring";
 import { toSpanish } from "@/lib/teamNames";
 import { hasMatchStarted, isPredictionLocked } from "@/lib/timing";
 import type { MatchWinner } from "@/types";
@@ -280,23 +280,27 @@ export function PredictionsClient({
               const others = othersByMatch.get(match.id) ?? [];
               const finished = match.status === "finished";
               const myPoints = pointsByMatch[match.id];
-              // Razón del puntaje, derivada con la misma función pura del backend.
-              const myScore =
-                finished && mine
+              const hasResult = match.home_score !== null;
+              const scored = finished || (match.status === "live" && hasResult);
+              const calcScore = (pred: PredData | null | undefined): MatchScore | null =>
+                scored && pred
                   ? calculateMatchScore(
-                      {
-                        round: match.round,
-                        home_score: match.home_score,
-                        away_score: match.away_score,
-                        winner: match.winner as MatchWinner | null,
-                      },
-                      {
-                        predicted_home: mine.predicted_home,
-                        predicted_away: mine.predicted_away,
-                        predicted_winner: mine.predicted_winner as MatchWinner | null,
-                      },
+                      { round: match.round, home_score: match.home_score, away_score: match.away_score, winner: match.winner as MatchWinner | null },
+                      { predicted_home: pred.predicted_home, predicted_away: pred.predicted_away, predicted_winner: pred.predicted_winner as MatchWinner | null },
                     )
                   : null;
+              const myScore = calcScore(mine);
+              const playerRows: Array<{ userId: string; isMe: boolean; pred: PredData | null; score: MatchScore | null }> = [
+                { userId: uid, isMe: true, pred: mine ?? null, score: myScore },
+                ...others.map((p) => ({ userId: p.user_id, isMe: false, pred: p, score: calcScore(p) })),
+              ];
+              if (scored) {
+                playerRows.sort((a, b) => {
+                  const pa = a.score?.points ?? (a.pred ? 0 : -1);
+                  const pb = b.score?.points ?? (b.pred ? 0 : -1);
+                  return pb - pa;
+                });
+              }
 
               return (
                 <Card key={match.id} id={`m-${match.id}`} className="scroll-mt-20 p-4">
@@ -360,48 +364,51 @@ export function PredictionsClient({
                           {toSpanish(match.away_team)}
                           <Flag team={match.away_team} />
                         </span>
-                        {myScore && (
+                        {myScore ? (
                           <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
                             {REASON_LABELS[myScore.reason]} · +{myPoints ?? myScore.points} puntos
                           </span>
-                        )}
+                        ) : (scored && mine) ? (
+                          <span className="rounded bg-neutral-500/15 px-2 py-0.5 text-xs font-medium text-neutral-500">
+                            0 puntos
+                          </span>
+                        ) : null}
                       </div>
 
                       <ul className="flex flex-col gap-1 text-sm">
-                        <li className="flex justify-between text-neutral-300">
-                          <Link
-                            href={`/pool/${poolId}/player/${uid}`}
-                            className="hover:text-emerald-400 hover:underline"
-                          >
-                            Tú
-                          </Link>
-                          <span>
-                            {mine
-                              ? `${fmt(mine.predicted_home, mine.predicted_away)}${
-                                  mine.predicted_winner
-                                    ? ` · ${mine.predicted_winner === "home" ? toSpanish(match.home_team) : toSpanish(match.away_team)}`
-                                    : ""
-                                }`
-                              : "sin predicción"}
-                          </span>
-                        </li>
-                        {others.map((p) => (
+                        {playerRows.map(({ userId, isMe, pred, score }) => (
                           <li
-                            key={p.user_id}
-                            className="flex justify-between text-neutral-400"
+                            key={userId}
+                            className={`flex items-center justify-between ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
                           >
                             <Link
-                              href={`/pool/${poolId}/player/${p.user_id}`}
+                              href={`/pool/${poolId}/player/${userId}`}
                               className="hover:text-emerald-400 hover:underline"
                             >
-                              {nameById[p.user_id] ?? "?"}
+                              {isMe ? "Tú" : (nameById[userId] ?? "?")}
                             </Link>
-                            <span>
-                              {fmt(p.predicted_home, p.predicted_away)}
-                              {p.predicted_winner
-                                ? ` · ${p.predicted_winner === "home" ? toSpanish(match.home_team) : toSpanish(match.away_team)}`
-                                : ""}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span>
+                                {pred
+                                  ? `${fmt(pred.predicted_home, pred.predicted_away)}${
+                                      pred.predicted_winner
+                                        ? ` · ${pred.predicted_winner === "home" ? toSpanish(match.home_team) : toSpanish(match.away_team)}`
+                                        : ""
+                                    }`
+                                  : "sin predicción"}
+                              </span>
+                              {scored && pred && (
+                                score ? (
+                                  <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
+                                    +{isMe ? (myPoints ?? score.points) : score.points} puntos
+                                  </span>
+                                ) : (
+                                  <span className="rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
+                                    0 puntos
+                                  </span>
+                                )
+                              )}
+                            </div>
                           </li>
                         ))}
                       </ul>

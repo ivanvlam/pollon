@@ -45,9 +45,9 @@ export function GroupCard({ name, standings, matches, yourPoints }: Props) {
           <h2 className="text-base font-semibold">{name}</h2>
           {hasScores && (
             yourPoints > 0 ? (
-              <span className="text-sm text-emerald-400">{yourPoints} puntos</span>
+              <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-sm font-medium text-emerald-400">{yourPoints} puntos</span>
             ) : (
-              <span className="text-sm text-neutral-600">0 puntos</span>
+              <span className="rounded bg-neutral-500/15 px-2 py-0.5 text-sm font-medium text-neutral-500">0 puntos</span>
             )
           )}
         </div>

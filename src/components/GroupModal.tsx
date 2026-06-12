@@ -184,7 +184,7 @@ export function GroupModal({ name, standings, matches, onClose }: Props) {
                               +{match.myPoints} puntos
                             </span>
                           ) : (
-                            <span className="text-xs text-neutral-600">0 puntos</span>
+                            <span className="rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">0 puntos</span>
                           )}
                         </div>
                       )}
