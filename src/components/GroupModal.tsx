@@ -177,9 +177,9 @@ export function GroupModal({ name, standings, matches, onClose }: Props) {
                           <span className="truncate">{awayEs}</span>
                         </div>
                       </div>
-                      {match.myPoints !== undefined && (
+                      {(match.myPoints !== undefined || (finished && match.pred !== null) || (match.status === "live" && match.home_score !== null && match.pred !== null)) && (
                         <div className="mt-2 text-center">
-                          {match.myPoints > 0 ? (
+                          {match.myPoints && match.myPoints > 0 ? (
                             <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
                               +{match.myPoints} puntos
                             </span>

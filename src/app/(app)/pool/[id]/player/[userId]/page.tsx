@@ -12,13 +12,6 @@ import type { ScoreReason } from "@/types";
 const fmt = (h: number | null, a: number | null) =>
   h === null || a === null ? "—" : `${h}-${a}`;
 
-const DATE_FMT = new Intl.DateTimeFormat("es", {
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
 const displayGroup = (name: string) => name.replace(/^Group\s+/i, "Grupo ");
 
 /** Nombre del equipo clasificado a partir de winner. */
@@ -63,6 +56,7 @@ export default async function PlayerProfilePage({
 
   const [
     { data: profile },
+    { data: viewerProfile },
     { data: ranking },
     { data: matches },
     { data: preds },
@@ -71,6 +65,7 @@ export default async function PlayerProfilePage({
     { data: topScorerPick },
   ] = await Promise.all([
     supabase.from("profiles").select("display_name").eq("id", params.userId).maybeSingle(),
+    supabase.from("profiles").select("timezone").eq("id", user!.id).maybeSingle(),
     supabase.rpc("get_pool_ranking", { p_pool_id: pool.id }),
     supabase
       .from("matches")
@@ -99,6 +94,14 @@ export default async function PlayerProfilePage({
   ]);
 
   const name = profile?.display_name ?? "Jugador";
+
+  const DATE_FMT = new Intl.DateTimeFormat("es", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: viewerProfile?.timezone ?? "UTC",
+  });
 
   const rankingRows = ranking ?? [];
   const idx = rankingRows.findIndex((r) => r.user_id === params.userId);
@@ -257,11 +260,15 @@ export default async function PlayerProfilePage({
                           {toSpanish(m.away_team)}
                           <Flag team={m.away_team} />
                         </span>
-                        {score && (
+                        {score ? (
                           <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
                             {REASON_LABELS[score.reason as ScoreReason]} · +{score.points} puntos
                           </span>
-                        )}
+                        ) : (finished && pred) ? (
+                          <span className="rounded bg-neutral-500/15 px-2 py-0.5 text-xs font-medium text-neutral-500">
+                            0 puntos
+                          </span>
+                        ) : null}
                       </div>
 
                       <p className="text-neutral-300">
