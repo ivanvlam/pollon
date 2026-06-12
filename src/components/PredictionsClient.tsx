@@ -68,12 +68,6 @@ const DATE_FMT = new Intl.DateTimeFormat("es", {
 // TheSportsDB devuelve "Group A", la app está en español → "Grupo A"
 const displayGroup = (name: string) => name.replace(/^Group\s+/i, "Grupo ");
 
-const chip = (active: boolean) =>
-  `rounded-full border px-3 py-1 text-xs transition cursor-pointer ${
-    active
-      ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
-      : "border-neutral-700 text-neutral-400 hover:bg-neutral-800"
-  }`;
 
 export function PredictionsClient({
   poolId,
@@ -172,7 +166,7 @@ export function PredictionsClient({
     });
 
     return result;
-  }, [matches, search, groupFilter, sort, predFilter, savedMatchIds]);
+  }, [matches, search, groupFilter, sort, predFilter, statusFilter, savedMatchIds]);
 
   // Sin filtros: agrupar por ronda. Con filtros: lista plana.
   const sections = useMemo(() => {
@@ -198,26 +192,34 @@ export function PredictionsClient({
           className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder-neutral-500 outline-none focus:border-emerald-600"
         />
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          {/* Sort dropdown */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="pred-sort" className="text-xs text-neutral-500">Ordenar:</label>
-            <select
-              id="pred-sort"
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              className="cursor-pointer rounded-lg border border-neutral-700 bg-neutral-900 px-2.5 py-1.5 text-xs text-neutral-200 outline-none focus:border-emerald-600"
-            >
-              <option value="kickoff_asc">Más pronto</option>
-              <option value="kickoff_desc">Más tarde</option>
-              <option value="group_asc">Grupo A→Z</option>
-              <option value="group_desc">Grupo Z→A</option>
-            </select>
-          </div>
+        <div className="flex flex-wrap gap-2">
+          <select
+            aria-label="Ordenar"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            className="cursor-pointer rounded-lg border border-neutral-700 bg-neutral-900 px-2.5 py-1.5 text-xs text-neutral-300 outline-none focus:border-emerald-600"
+          >
+            <option value="kickoff_asc">↑ Más pronto</option>
+            <option value="kickoff_desc">↓ Más tarde</option>
+            <option value="group_asc">Grupo A→Z</option>
+            <option value="group_desc">Grupo Z→A</option>
+          </select>
 
-          {/* Estado */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-neutral-500">Estado:</span>
+          {groups.length > 0 && (
+            <select
+              aria-label="Filtrar por grupo"
+              value={groupFilter ?? ""}
+              onChange={(e) => setGroupFilter(e.target.value || null)}
+              className="cursor-pointer rounded-lg border border-neutral-700 bg-neutral-900 px-2.5 py-1.5 text-xs text-neutral-300 outline-none focus:border-emerald-600"
+            >
+              <option value="">Todos los grupos</option>
+              {groups.map((g) => (
+                <option key={g} value={g}>{displayGroup(g)}</option>
+              ))}
+            </select>
+          )}
+
+          <div className="flex items-center rounded-lg border border-neutral-700 overflow-hidden text-xs">
             {(
               [
                 ["pending", "Pendientes"],
@@ -229,61 +231,42 @@ export function PredictionsClient({
                 key={key}
                 type="button"
                 aria-pressed={statusFilter === key}
-                className={chip(statusFilter === key)}
                 onClick={() => setStatusFilter(key)}
+                className={`px-3 py-1.5 transition ${
+                  statusFilter === key
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "text-neutral-400 hover:bg-neutral-800"
+                }`}
               >
                 {label}
               </button>
             ))}
           </div>
 
-          {/* Predicción */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-neutral-500">Predicción:</span>
+          <div className="flex items-center rounded-lg border border-neutral-700 overflow-hidden text-xs">
             {(
               [
                 ["all", "Todos"],
-                ["with", "Con predicción"],
-                ["without", "Sin predicción"],
+                ["with", "Con pred."],
+                ["without", "Sin pred."],
               ] as [PredFilter, string][]
             ).map(([key, label]) => (
               <button
                 key={key}
                 type="button"
                 aria-pressed={predFilter === key}
-                className={chip(predFilter === key)}
                 onClick={() => setPredFilter(key)}
+                className={`px-3 py-1.5 transition ${
+                  predFilter === key
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "text-neutral-400 hover:bg-neutral-800"
+                }`}
               >
                 {label}
               </button>
             ))}
           </div>
         </div>
-
-        {groups.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-neutral-500">Grupo:</span>
-            <button
-              type="button"
-              aria-pressed={groupFilter === null}
-              className={chip(groupFilter === null)}
-              onClick={() => setGroupFilter(null)}
-            >
-              Todos
-            </button>
-            {groups.map((g) => (
-              <button
-                key={g}
-                type="button"
-                aria-pressed={groupFilter === g}
-                className={chip(groupFilter === g)}
-                onClick={() => setGroupFilter(groupFilter === g ? null : g)}
-              >
-                {displayGroup(g)}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Partidos */}
