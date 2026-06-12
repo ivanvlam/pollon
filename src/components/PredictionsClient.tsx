@@ -355,15 +355,30 @@ export function PredictionsClient({
                       }}
                     />
                   ) : (
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-2 font-medium">
-                          <Flag team={match.home_team} />
-                          {toSpanish(match.home_team)}
-                          <span className="text-neutral-500">vs</span>
-                          {toSpanish(match.away_team)}
-                          <Flag team={match.away_team} />
-                        </span>
+                    <div className="flex flex-col gap-4">
+                      {/* Partido centrado */}
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-x-3">
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="text-right text-base font-semibold leading-tight">
+                              {toSpanish(match.home_team)}
+                            </span>
+                            <Flag team={match.home_team} />
+                          </div>
+                          <div className="flex flex-col items-center px-2">
+                            <span className="text-2xl font-bold tabular-nums text-neutral-100">
+                              {match.home_score !== null
+                                ? `${match.home_score} – ${match.away_score}`
+                                : "–"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Flag team={match.away_team} />
+                            <span className="text-base font-semibold leading-tight">
+                              {toSpanish(match.away_team)}
+                            </span>
+                          </div>
+                        </div>
                         {myScore ? (
                           <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
                             {REASON_LABELS[myScore.reason]} · +{myPoints ?? myScore.points} puntos
@@ -374,6 +389,8 @@ export function PredictionsClient({
                           </span>
                         ) : null}
                       </div>
+
+                      <hr className="border-neutral-900" />
 
                       <ul className="flex flex-col gap-1 text-sm">
                         {playerRows.map(({ userId, isMe, pred, score }) => (
