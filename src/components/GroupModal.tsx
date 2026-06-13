@@ -162,21 +162,32 @@ export function GroupModal({ name, standings, matches, onClose, qualifyingThirds
                     />
                   ) : (
                     <div className="text-sm">
+                      {/* Nombres en mobile (fila separada): el marcador no deja espacio inline */}
+                      <div className="mb-2 flex items-center justify-between font-medium sm:hidden">
+                        <span className="flex items-center gap-1.5">
+                          <Flag team={match.home_team} className="shrink-0" />
+                          <span className="truncate">{homeEs}</span>
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="truncate">{awayEs}</span>
+                          <Flag team={match.away_team} className="shrink-0" />
+                        </span>
+                      </div>
                       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-1">
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="hidden items-center justify-end gap-1.5 sm:flex">
                           <span className="truncate text-right">{homeEs}</span>
                           <Flag team={match.home_team} className="shrink-0" />
                         </div>
                         <div className="flex flex-col items-center px-2">
                           {match.pred ? (
-                            <span className="text-xl font-bold tabular-nums text-neutral-200">
+                            <span className="whitespace-nowrap text-xl font-bold tabular-nums text-neutral-200">
                               {match.pred.predicted_home ?? "–"}{" – "}{match.pred.predicted_away ?? "–"}
                             </span>
                           ) : (
                             <span className="text-xs text-neutral-600">sin predicción</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="hidden items-center gap-1.5 sm:flex">
                           <Flag team={match.away_team} className="shrink-0" />
                           <span className="truncate">{awayEs}</span>
                         </div>
