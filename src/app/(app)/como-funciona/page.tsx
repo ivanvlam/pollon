@@ -125,7 +125,7 @@ export default function ComoFuncionaPage() {
             polla.
           </li>
           <li className="text-neutral-500">
-            Desempate: más exactos (5 puntos) → más diferencias acertadas (3 puntos) → más ganadores (2 puntos) → campeón acertado → orden alfabético.
+            Desempate: más exactos (5 puntos) → más diferencias (3 puntos) → más ganadores (2 puntos) → campeón acertado.
           </li>
         </ul>
       </Card>

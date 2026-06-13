@@ -207,21 +207,29 @@ export function RankingHistoryChart({ history, members }: Props) {
           ))}
 
           {/* Right labels: name + rank + points */}
-          {members.map((m) => {
-            const endRank = history[history.length - 1]!.rankings[m.id] ?? N;
-            const x = cx(nC - 1) + 20;
-            const color = colorOf(m.id);
-            return (
-              <g key={m.id}>
-                <text x={x} y={ry(endRank) - 3} fontSize={14} fontWeight="500" fill={color}>
-                  {trunc(m.name, 14)}
-                </text>
-                <text x={x} y={ry(endRank) + 13} fontSize={13} fontWeight="600" fill="#909090">
-                  #{m.currentRank} · {m.currentPoints} pts
-                </text>
-              </g>
+          {(() => {
+            const tiedFinal = new Set(
+              members
+                .filter((m) => members.some((o) => o.id !== m.id && o.currentRank === m.currentRank))
+                .map((m) => m.id),
             );
-          })}
+            return members.map((m) => {
+              const endRank = history[history.length - 1]!.rankings[m.id] ?? N;
+              const x = cx(nC - 1) + 20;
+              const color = colorOf(m.id);
+              const rankLabel = tiedFinal.has(m.id) ? `=${m.currentRank}°` : `${m.currentRank}°`;
+              return (
+                <g key={m.id}>
+                  <text x={x} y={ry(endRank) - 3} fontSize={14} fontWeight="500" fill={color}>
+                    {trunc(m.name, 14)}
+                  </text>
+                  <text x={x} y={ry(endRank) + 13} fontSize={13} fontWeight="600" fill="#909090">
+                    {rankLabel} · {m.currentPoints} pts
+                  </text>
+                </g>
+              );
+            });
+          })()}
 
           {/* X-axis flags */}
           {history.map((h, i) => {
@@ -315,9 +323,12 @@ export function RankingHistoryChart({ history, members }: Props) {
 
           {/* Player rows */}
           <div className="mt-4 flex flex-col gap-2 border-t border-neutral-800 pt-3">
-            {[...members]
-              .sort((a, b) => (selPt.rankings[a.id] ?? N) - (selPt.rankings[b.id] ?? N))
-              .map((m) => {
+            {(() => {
+              const sorted = [...members].sort((a, b) => (selPt.rankings[a.id] ?? N) - (selPt.rankings[b.id] ?? N));
+              const tiedRanks = new Set(
+                sorted.filter((m) => sorted.some((o) => o.id !== m.id && (selPt.rankings[o.id] ?? N) === (selPt.rankings[m.id] ?? N))).map((m) => m.id),
+              );
+              return sorted.map((m) => {
                 const earned = selPt.pointsEarned[m.id] ?? 0;
                 const cumul = selPt.cumulativePoints[m.id] ?? 0;
                 const rank = selPt.rankings[m.id] ?? N;
@@ -330,7 +341,7 @@ export function RankingHistoryChart({ history, members }: Props) {
                 return (
                   <div key={m.id} className="flex items-center gap-2">
                     <span className="w-6 shrink-0 text-right text-xs tabular-nums text-neutral-500">
-                      {rank}°
+                      {tiedRanks.has(m.id) ? `=${rank}°` : `${rank}°`}
                     </span>
                     <span className="flex-1 truncate font-medium" style={{ color: colorOf(m.id) }}>
                       {m.name}
@@ -350,7 +361,8 @@ export function RankingHistoryChart({ history, members }: Props) {
                     </span>
                   </div>
                 );
-              })}
+              });
+            })()}
           </div>
         </div>
       )}

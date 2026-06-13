@@ -44,10 +44,32 @@ export default async function PoolHistorialPage({
     .eq("status", "finished")
     .order("kickoff_at", { ascending: true });
 
-  const members: ChartMember[] = (ranking ?? []).map((r, i) => ({
+  const rankingRows = ranking ?? [];
+  const currentRanks: number[] = [];
+  {
+    let ri = 0;
+    while (ri < rankingRows.length) {
+      let rj = ri + 1;
+      const a = rankingRows[ri]!;
+      while (rj < rankingRows.length) {
+        const b = rankingRows[rj]!;
+        if (
+          a.total === b.total &&
+          a.exact_count === b.exact_count &&
+          a.diff_count === b.diff_count &&
+          a.winner_count === b.winner_count &&
+          a.champion_correct === b.champion_correct
+        ) { rj++; } else break;
+      }
+      for (let k = ri; k < rj; k++) currentRanks.push(ri + 1);
+      ri = rj;
+    }
+  }
+
+  const members: ChartMember[] = rankingRows.map((r, i) => ({
     id: r.user_id,
     name: r.display_name as string,
-    currentRank: i + 1,
+    currentRank: currentRanks[i]!,
     currentPoints: r.total as number,
   }));
   const memberIds = members.map((m) => m.id);
@@ -105,7 +127,11 @@ export default async function PoolHistorialPage({
     });
     const rankMap: Record<string, number> = {};
     sorted.forEach((uid, i) => {
-      rankMap[uid] = i + 1;
+      if (i > 0 && (running[uid] ?? 0) === (running[sorted[i - 1]!] ?? 0)) {
+        rankMap[uid] = rankMap[sorted[i - 1]!]!;
+      } else {
+        rankMap[uid] = i + 1;
+      }
     });
 
     history.push({
