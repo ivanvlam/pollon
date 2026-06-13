@@ -102,12 +102,6 @@ export default async function PoolRankingPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <Link
-        href="/dashboard"
-        className="text-sm text-neutral-400 hover:text-white"
-      >
-        ← Volver a mis pollas
-      </Link>
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{pool.name}</h1>
@@ -119,6 +113,12 @@ export default async function PoolRankingPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/dashboard"
+            className="text-sm text-neutral-400 hover:text-white"
+          >
+            ← Mis pollas
+          </Link>
           <CopyInviteButton
             inviteCode={pool.invite_code}
             poolName={pool.name}

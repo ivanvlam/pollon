@@ -159,18 +159,19 @@ export default async function PoolHistorialPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <Link
-        href={`/pool/${pool.id}`}
-        className="text-sm text-neutral-400 hover:text-white"
-      >
-        ← Volver al ranking
-      </Link>
-
-      <header>
-        <h1 className="text-xl font-bold">{pool.name}</h1>
-        <p className="mt-0.5 text-sm text-neutral-500">
-          Historial de posiciones por partido
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold">{pool.name}</h1>
+          <p className="mt-0.5 text-sm text-neutral-500">
+            Historial de posiciones por partido
+          </p>
+        </div>
+        <Link
+          href={`/pool/${pool.id}`}
+          className="shrink-0 text-sm text-neutral-400 hover:text-white"
+        >
+          ← Volver al ranking
+        </Link>
       </header>
 
       {history.length < 2 ? (
