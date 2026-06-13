@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Flag } from "@/components/Flag";
 import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
 import { calculateMatchScore } from "@/lib/scoring";
@@ -23,9 +25,11 @@ export interface LiveMatchRow {
 export function LiveMatches({
   matches,
   updatedAgoLabel,
+  poolId,
 }: {
   matches: LiveMatchRow[];
   updatedAgoLabel: string | null;
+  poolId?: string | null;
 }) {
   if (matches.length === 0) return null;
 
@@ -72,8 +76,12 @@ export function LiveMatches({
                 )
               : null;
 
-          return (
-            <li key={m.id} className="rounded-lg bg-neutral-900/50 px-4 py-3">
+          const href = poolId ? `/pool/${poolId}/predictions` : null;
+          const cardClass =
+            "block rounded-lg bg-neutral-900/50 px-4 py-3 transition hover:bg-neutral-800/60";
+
+          const inner = (
+            <>
               {/* nombre bandera | marcador | bandera nombre */}
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2">
                 <div className="flex items-center justify-end gap-1.5">
@@ -124,6 +132,20 @@ export function LiveMatches({
                   </span>
                 )}
               </div>
+            </>
+          );
+
+          return (
+            <li key={m.id}>
+              {href ? (
+                <Link href={href} className={cardClass}>
+                  {inner}
+                </Link>
+              ) : (
+                <div className="rounded-lg bg-neutral-900/50 px-4 py-3">
+                  {inner}
+                </div>
+              )}
             </li>
           );
         })}

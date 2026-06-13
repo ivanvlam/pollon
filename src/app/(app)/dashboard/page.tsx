@@ -138,7 +138,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <LiveMatches matches={liveRows} updatedAgoLabel={updatedAgoLabel} />
+      <LiveMatches matches={liveRows} updatedAgoLabel={updatedAgoLabel} poolId={pools[0]?.id ?? null} />
 
       {pools.length > 0 && (
         <ChampionReminder
