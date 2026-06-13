@@ -369,21 +369,32 @@ export function PredictionsClient({
                     <div className="flex flex-col gap-4">
                       {/* Partido centrado */}
                       <div className="flex flex-col items-center gap-3">
+                        {/* Nombres en mobile (fila separada): no hay espacio con el marcador inline */}
+                        <div className="flex w-full items-center justify-between font-semibold sm:hidden">
+                          <span className="flex items-center gap-1.5">
+                            <Flag team={match.home_team} className="shrink-0" />
+                            <span className="truncate">{toSpanish(match.home_team)}</span>
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="truncate">{toSpanish(match.away_team)}</span>
+                            <Flag team={match.away_team} className="shrink-0" />
+                          </span>
+                        </div>
                         <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-x-3">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="hidden items-center justify-end gap-2 sm:flex">
                             <span className="text-right text-base font-semibold leading-tight">
                               {toSpanish(match.home_team)}
                             </span>
                             <Flag team={match.home_team} />
                           </div>
                           <div className="flex flex-col items-center px-2">
-                            <span className="text-2xl font-bold tabular-nums text-neutral-100">
+                            <span className="whitespace-nowrap text-2xl font-bold tabular-nums text-neutral-100">
                               {match.home_score !== null
                                 ? `${match.home_score} – ${match.away_score}`
                                 : "–"}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="hidden items-center gap-2 sm:flex">
                             <Flag team={match.away_team} />
                             <span className="text-base font-semibold leading-tight">
                               {toSpanish(match.away_team)}
