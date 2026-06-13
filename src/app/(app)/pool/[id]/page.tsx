@@ -124,10 +124,7 @@ export default async function PoolRankingPage({
               </thead>
               <tbody>
                 {(ranking ?? []).map((row, i) => (
-                  <tr
-                    key={row.user_id}
-                    className={`border-b border-neutral-900 ${row.user_id === user!.id ? "border-l-2 border-l-emerald-500 bg-emerald-500/5" : ""}`}
-                  >
+                  <tr key={row.user_id} className="border-b border-neutral-900">
                     <td className="py-2 pr-2 text-neutral-500">{i + 1}</td>
                     <td className="py-2">
                       <Link
