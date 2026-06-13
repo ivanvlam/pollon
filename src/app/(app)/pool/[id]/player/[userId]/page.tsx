@@ -207,7 +207,7 @@ export default async function PlayerProfilePage({
           </div>
           <div className="flex gap-4 text-neutral-400">
             <span title="Marcador exacto · 5 puntos">Exactos: {row?.exact_count ?? 0}</span>
-            <span title="Misma diferencia · 3 puntos">Dif: {row?.diff_count ?? 0}</span>
+            <span title="Misma diferencia · 3 puntos">Diferencia: {row?.diff_count ?? 0}</span>
             <span title="Solo ganador/clasificado · 2 puntos">
               Aciertos: {row?.winner_count ?? 0}
             </span>
@@ -283,7 +283,13 @@ export default async function PlayerProfilePage({
                         <span>
                           {m.group_name ? displayGroup(m.group_name) : ROUND_LABELS[m.round as Round]}
                         </span>
-                        <span>
+                        <span className="flex items-center gap-1.5">
+                          {m.status === "live" && (
+                            <span className="inline-flex items-center gap-1 font-medium text-red-400">
+                              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+                              EN VIVO
+                            </span>
+                          )}
                           {DATE_FMT.format(new Date(m.kickoff_at))}
                           {finished && (
                             <>
