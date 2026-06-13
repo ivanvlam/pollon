@@ -119,7 +119,7 @@ export function LiveMatches({
                       {m.pred!.predicted_home}-{m.pred!.predicted_away}
                     </span>
                     {liveScore ? (
-                      <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 font-medium text-emerald-400">
+                      <span className="animate-pulse rounded bg-emerald-500/15 px-1.5 py-0.5 font-medium text-emerald-400">
                         +{liveScore.points} puntos
                       </span>
                     ) : (

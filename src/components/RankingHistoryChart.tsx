@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 import { Flag } from "@/components/Flag";
 import { flagUrl, teamFlagCode } from "@/lib/flags";
@@ -31,6 +32,7 @@ export interface ChartMember {
 interface Props {
   history: HistoryPoint[];
   members: ChartMember[];
+  poolId: string;
 }
 
 const COLORS = [
@@ -67,7 +69,7 @@ const DATE_FMT = new Intl.DateTimeFormat("es", {
   minute: "2-digit",
 });
 
-export function RankingHistoryChart({ history, members }: Props) {
+export function RankingHistoryChart({ history, members, poolId }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [cw, setCw] = useState(0);
   const [sel, setSel] = useState<number | null>(null);
@@ -195,17 +197,18 @@ export function RankingHistoryChart({ history, members }: Props) {
 
           {/* Left name labels */}
           {members.map((m) => (
-            <text
-              key={m.id}
-              x={PAD_L - 22}
-              y={ry(history[0]!.rankings[m.id] ?? N) + 5}
-              textAnchor="end"
-              fontSize={15}
-              fontWeight="500"
-              fill={colorOf(m.id)}
-            >
-              {trunc(m.name)}
-            </text>
+            <a key={m.id} href={`/pool/${poolId}/player/${m.id}`} style={{ cursor: "pointer" }}>
+              <text
+                x={PAD_L - 22}
+                y={ry(history[0]!.rankings[m.id] ?? N) + 5}
+                textAnchor="end"
+                fontSize={15}
+                fontWeight="500"
+                fill={colorOf(m.id)}
+              >
+                {trunc(m.name)}
+              </text>
+            </a>
           ))}
 
           {/* Right labels: name + rank + points */}
@@ -221,14 +224,14 @@ export function RankingHistoryChart({ history, members }: Props) {
               const color = colorOf(m.id);
               const rankLabel = tiedFinal.has(m.id) ? `=${m.currentRank}°` : `${m.currentRank}°`;
               return (
-                <g key={m.id}>
+                <a key={m.id} href={`/pool/${poolId}/player/${m.id}`} style={{ cursor: "pointer" }}>
                   <text x={x} y={ry(endRank) - 3} fontSize={14} fontWeight="500" fill={color}>
                     {trunc(m.name, 14)}
                   </text>
                   <text x={x} y={ry(endRank) + 13} fontSize={13} fontWeight="600" fill="#909090">
                     {rankLabel} · {m.currentPoints} pts
                   </text>
-                </g>
+                </a>
               );
             });
           })()}
@@ -361,9 +364,13 @@ export function RankingHistoryChart({ history, members }: Props) {
                     <span className="w-6 shrink-0 text-right text-xs tabular-nums text-neutral-500">
                       {tiedRanks.has(m.id) ? `=${rank}°` : `${rank}°`}
                     </span>
-                    <span className="flex-1 truncate font-medium" style={{ color: colorOf(m.id) }}>
+                    <Link
+                      href={`/pool/${poolId}/player/${m.id}`}
+                      className="flex-1 truncate font-medium hover:underline"
+                      style={{ color: colorOf(m.id) }}
+                    >
                       {m.name}
-                    </span>
+                    </Link>
                     <span className="w-14 shrink-0 text-center text-xs tabular-nums text-neutral-400 whitespace-nowrap">
                       {predText}
                     </span>

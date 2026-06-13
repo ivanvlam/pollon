@@ -179,7 +179,7 @@ export default async function PoolHistorialPage({
           El historial aparece cuando hay al menos 2 partidos terminados.
         </p>
       ) : (
-        <RankingHistoryChart history={history} members={members} />
+        <RankingHistoryChart history={history} members={members} poolId={pool.id} />
       )}
     </div>
   );
