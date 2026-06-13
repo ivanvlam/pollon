@@ -108,7 +108,7 @@ export function RankingHistoryChart({ history, members }: Props) {
 
   const trunc = (s: string, n = 18) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
   const every = nC <= 24 ? 1 : nC <= 48 ? 2 : 4;
-  const flagY = PAD_T + N * ROW_H + 12;
+  const flagY = PAD_T + N * rowH + 12;
 
   const selPt = sel !== null ? history[sel] : null;
 
@@ -145,7 +145,7 @@ export function RankingHistoryChart({ history, members }: Props) {
               x1={cx(i)}
               y1={PAD_T}
               x2={cx(i)}
-              y2={PAD_T + N * ROW_H}
+              y2={PAD_T + N * rowH}
               stroke="#2a2a2a"
               strokeWidth={1}
             />
@@ -157,7 +157,7 @@ export function RankingHistoryChart({ history, members }: Props) {
               x={cx(sel) - colStep / 2}
               y={PAD_T}
               width={colStep}
-              height={N * ROW_H}
+              height={N * rowH}
               fill="white"
               opacity={0.05}
               rx={3}

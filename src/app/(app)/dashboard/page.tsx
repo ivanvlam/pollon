@@ -190,7 +190,7 @@ export default async function DashboardPage() {
                       </span>
                       {myRow && (
                         <span className="text-emerald-400">
-                          Vas {myIndex + 1}º · {myRow.total} puntos
+                          {rows.some((r) => r.user_id !== uid && r.rank === myRow.rank) ? `=${myRow.rank}` : `${myRow.rank}`}° · {myRow.total} puntos
                         </span>
                       )}
                     </div>
