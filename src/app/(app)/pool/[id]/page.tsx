@@ -164,7 +164,7 @@ export default async function PoolRankingPage({
               <thead className="border-b border-neutral-800 text-neutral-400">
                 <tr>
                   <th scope="col" className="w-7 py-2 pr-3 text-center">#</th>
-                  <th scope="col" className="py-2">Jugador</th>
+                  <th scope="col" className="py-2 pl-4">Jugador</th>
                   <th scope="col" className="w-28 py-2 text-center">Puntos</th>
                   <th scope="col" className="w-28 py-2 text-center">Exactos</th>
                   <th scope="col" className="w-28 py-2 text-center">Diferencia</th>
@@ -172,17 +172,19 @@ export default async function PoolRankingPage({
                 </tr>
               </thead>
               <tbody>
-                {(ranking ?? []).map((row, i) => (
+                {(ranking ?? []).map((row, i) => {
+                  const isMe = row.user_id === user!.id;
+                  return (
                   <tr key={row.user_id} className="border-b border-neutral-900">
-                    <td className="w-7 py-2 pr-3 text-center tabular-nums text-neutral-500">{i + 1}</td>
-                    <td className="py-2">
+                    <td className={`w-7 py-2 pr-3 text-center tabular-nums text-neutral-500${isMe ? " border-l-2 border-emerald-500" : ""}`}>{i + 1}</td>
+                    <td className="py-2 pl-4">
                       <Link
                         href={`/pool/${pool.id}/player/${row.user_id}`}
                         className="font-medium text-neutral-100 hover:text-emerald-400 hover:underline"
                       >
                         {row.display_name}
                       </Link>
-                      {row.user_id === user!.id && (
+                      {isMe && (
                         <span className="ml-2 text-xs text-emerald-400">
                           (tú)
                         </span>
@@ -213,11 +215,12 @@ export default async function PoolRankingPage({
                     <td className="w-28 py-2 text-center text-neutral-400">
                       {row.diff_count}
                     </td>
-                    <td className="w-28 py-2 text-center text-neutral-400">
+                    <td className={`w-28 py-2 text-center text-neutral-400${isMe ? " border-r-2 border-emerald-500" : ""}`}>
                       {row.winner_count}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
