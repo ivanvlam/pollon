@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { Flag } from "@/components/Flag";
 import { flagUrl, teamFlagCode } from "@/lib/flags";
@@ -280,40 +280,41 @@ export function RankingHistoryChart({ history, members }: Props) {
       {/* Detail panel */}
       {selPt && (
         <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-4 text-sm">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3">
-            {/* Row 1: score header */}
-            <div className="flex items-center justify-end gap-1.5 min-w-0">
-              <span className="text-sm font-medium text-right leading-tight truncate">
-                {toSpanish(selPt.homeTeam)}
-              </span>
-              <Flag team={selPt.homeTeam} className="shrink-0" />
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="text-xl font-bold tabular-nums whitespace-nowrap text-neutral-100">
-                {selPt.homeScore ?? "–"}&nbsp;–&nbsp;{selPt.awayScore ?? "–"}
-              </span>
-              <span className="text-xs text-neutral-500 mt-0.5">
+          {/* Match header */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2">
+                <div className="flex items-center justify-end gap-1.5 min-w-0">
+                  <span className="text-sm font-medium text-right leading-tight truncate">
+                    {toSpanish(selPt.homeTeam)}
+                  </span>
+                  <Flag team={selPt.homeTeam} className="shrink-0" />
+                </div>
+                <span className="text-xl font-bold tabular-nums whitespace-nowrap px-1 text-neutral-100">
+                  {selPt.homeScore ?? "–"}&nbsp;–&nbsp;{selPt.awayScore ?? "–"}
+                </span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Flag team={selPt.awayTeam} className="shrink-0" />
+                  <span className="text-sm font-medium leading-tight truncate">
+                    {toSpanish(selPt.awayTeam)}
+                  </span>
+                </div>
+              </div>
+              <p className="text-center text-xs text-neutral-500 mt-1">
                 {DATE_FMT.format(new Date(selPt.kickoffAt))}
-              </span>
+              </p>
             </div>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <Flag team={selPt.awayTeam} className="shrink-0" />
-              <span className="text-sm font-medium leading-tight truncate">
-                {toSpanish(selPt.awayTeam)}
-              </span>
-              <button
-                type="button"
-                onClick={() => setSel(null)}
-                className="ml-auto shrink-0 text-xs text-neutral-500 hover:text-neutral-300"
-              >
-                ✕
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setSel(null)}
+              className="shrink-0 text-xs text-neutral-500 hover:text-neutral-300"
+            >
+              ✕
+            </button>
+          </div>
 
-            {/* Divider */}
-            <div className="col-span-3 my-3 border-t border-neutral-800" />
-
-            {/* Player rows — same grid columns so predictions align with score */}
+          {/* Player rows */}
+          <div className="mt-4 flex flex-col gap-2 border-t border-neutral-800 pt-3">
             {[...members]
               .sort((a, b) => (selPt.rankings[a.id] ?? N) - (selPt.rankings[b.id] ?? N))
               .map((m) => {
@@ -327,34 +328,27 @@ export function RankingHistoryChart({ history, members }: Props) {
                     ? `${pred.home} – ${pred.away}`
                     : "–";
                 return (
-                  <Fragment key={m.id}>
-                    <div className="flex items-center gap-2 min-w-0 py-0.5">
-                      <span className="w-5 shrink-0 text-right text-xs tabular-nums text-neutral-500">
-                        {rank}°
-                      </span>
-                      <span
-                        className="truncate text-sm font-medium"
-                        style={{ color: colorOf(m.id) }}
-                      >
-                        {m.name}
-                      </span>
-                    </div>
-                    <span className="py-0.5 text-center text-sm tabular-nums whitespace-nowrap text-neutral-300">
+                  <div key={m.id} className="flex items-center gap-2">
+                    <span className="w-6 shrink-0 text-right text-xs tabular-nums text-neutral-500">
+                      {rank}°
+                    </span>
+                    <span className="flex-1 truncate font-medium" style={{ color: colorOf(m.id) }}>
+                      {m.name}
+                    </span>
+                    <span className="w-14 shrink-0 text-center text-xs tabular-nums text-neutral-400 whitespace-nowrap">
                       {predText}
                     </span>
-                    <div className="flex items-center justify-end gap-2 py-0.5 pl-1">
-                      <span
-                        className={`text-xs font-semibold tabular-nums ${
-                          earned > 0 ? "text-emerald-400" : "text-neutral-600"
-                        }`}
-                      >
-                        {earned > 0 ? `+${earned}` : "–"}
-                      </span>
-                      <span className="text-xs tabular-nums text-neutral-500">
-                        {cumul} pts
-                      </span>
-                    </div>
-                  </Fragment>
+                    <span
+                      className={`w-8 shrink-0 text-right text-xs font-semibold tabular-nums ${
+                        earned > 0 ? "text-emerald-400" : "text-neutral-600"
+                      }`}
+                    >
+                      {earned > 0 ? `+${earned}` : "–"}
+                    </span>
+                    <span className="w-16 shrink-0 text-right text-xs tabular-nums text-neutral-500">
+                      {cumul} pts
+                    </span>
+                  </div>
                 );
               })}
           </div>
