@@ -165,7 +165,7 @@ export default async function PoolRankingPage({
           {isLive && (
             <span className="flex items-center gap-1.5 text-xs font-normal text-red-400">
               <span className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-              En vivo
+              EN VIVO
             </span>
           )}
         </h2>
