@@ -116,15 +116,18 @@ export default async function PoolRankingPage({
                 <tr>
                   <th scope="col" className="py-2 pr-2">#</th>
                   <th scope="col" className="py-2">Jugador</th>
-                  <th scope="col" className="w-28 py-2 text-center" title="Puntos totales">Pts</th>
-                  <th scope="col" className="w-28 py-2 text-center" title="Marcador exacto (5 puntos)">Exactos</th>
-                  <th scope="col" className="w-28 py-2 text-center" title="Diferencia de goles correcta (3 puntos)">Dif</th>
-                  <th scope="col" className="w-28 py-2 text-center" title="Solo ganador / clasificado acertado (2 puntos)">Aciertos</th>
+                  <th scope="col" className="w-28 py-2 text-center">Puntos</th>
+                  <th scope="col" className="w-28 py-2 text-center">Exactos</th>
+                  <th scope="col" className="w-28 py-2 text-center">Diferencia</th>
+                  <th scope="col" className="w-28 py-2 text-center">Aciertos</th>
                 </tr>
               </thead>
               <tbody>
                 {(ranking ?? []).map((row, i) => (
-                  <tr key={row.user_id} className="border-b border-neutral-900">
+                  <tr
+                    key={row.user_id}
+                    className={`border-b border-neutral-900 ${row.user_id === user!.id ? "border-l-2 border-l-emerald-500 bg-emerald-500/5" : ""}`}
+                  >
                     <td className="py-2 pr-2 text-neutral-500">{i + 1}</td>
                     <td className="py-2">
                       <Link
@@ -167,7 +170,7 @@ export default async function PoolRankingPage({
               <dd>Marcador exacto · 5 puntos</dd>
             </div>
             <div className="flex flex-col gap-0.5 px-3">
-              <dt className="font-medium text-neutral-300">Dif</dt>
+              <dt className="font-medium text-neutral-300">Diferencia</dt>
               <dd>Misma diferencia · 3 puntos</dd>
             </div>
             <div className="flex flex-col gap-0.5 px-3">
