@@ -76,7 +76,7 @@ export function LiveMatches({
                 )
               : null;
 
-          const href = poolId ? `/pool/${poolId}/predictions` : null;
+          const href = poolId ? `/pool/${poolId}/predictions?from=home` : null;
           const cardClass =
             "block rounded-lg bg-neutral-900/50 px-4 py-3 transition hover:bg-neutral-800/60";
 
