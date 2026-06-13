@@ -163,7 +163,7 @@ export default async function PoolRankingPage({
             <table className="w-full min-w-[24rem] text-left text-sm">
               <thead className="border-b border-neutral-800 text-neutral-400">
                 <tr>
-                  <th scope="col" className="py-2 pl-1 pr-2 text-center">#</th>
+                  <th scope="col" className="py-2 pr-2 text-center">#</th>
                   <th scope="col" className="py-2">Jugador</th>
                   <th scope="col" className="w-28 py-2 text-center">Puntos</th>
                   <th scope="col" className="w-28 py-2 text-center">Exactos</th>
@@ -174,7 +174,7 @@ export default async function PoolRankingPage({
               <tbody>
                 {(ranking ?? []).map((row, i) => (
                   <tr key={row.user_id} className="border-b border-neutral-900">
-                    <td className="py-2 pl-1 pr-2 text-center tabular-nums text-neutral-500">{i + 1}</td>
+                    <td className="py-2 pr-2 text-center tabular-nums text-neutral-500">{i + 1}</td>
                     <td className="py-2">
                       <Link
                         href={`/pool/${pool.id}/player/${row.user_id}`}
