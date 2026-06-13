@@ -140,7 +140,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
     return s.type === "winner" ? (g?.winner ?? null) : (g?.runnerUp ?? null);
   };
   const slotLabel = (s: SlotDef): string => {
-    if (s.type === "best_third") return `3° (${s.from.join("/")})`;
+    if (s.type === "best_third") return `Mejor 3° (${s.from.join("/")})`;
     return s.type === "winner" ? `1° Grp ${s.group}` : `2° Grp ${s.group}`;
   };
 
@@ -309,7 +309,7 @@ function R32Card({
 function SlotRow({ team, label }: { team: string | null; label: string }) {
   return team ? (
     <div className="flex items-center gap-1 text-neutral-200">
-      <Flag team={team} />
+      <Flag team={team} className="h-[13px] w-[18px]" />
       <span className="min-w-0 flex-1 truncate">{toSpanish(team)}</span>
       <span className="shrink-0 text-[10px] text-neutral-600">{label}</span>
     </div>
@@ -374,7 +374,7 @@ function TeamRow({ team, value, win }: { team: string; value: number | null; win
   return (
     <div className={`flex items-center justify-between gap-1 ${win ? "font-semibold text-emerald-400" : "text-neutral-300"}`}>
       <span className="flex min-w-0 items-center gap-1">
-        <Flag team={team} />
+        <Flag team={team} className="h-[13px] w-[18px]" />
         <span className="truncate">{toSpanish(team)}</span>
       </span>
       <span className="tabular-nums">{value ?? "–"}</span>
