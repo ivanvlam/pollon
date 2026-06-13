@@ -380,7 +380,7 @@ export function PredictionsClient({
                             <Flag team={match.away_team} className="shrink-0" />
                           </span>
                         </div>
-                        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-x-3">
+                        <div className="flex justify-center sm:grid sm:w-full sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-x-3">
                           <div className="hidden items-center justify-end gap-2 sm:flex">
                             <span className="text-right text-base font-semibold leading-tight">
                               {toSpanish(match.home_team)}

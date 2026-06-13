@@ -173,7 +173,7 @@ export function GroupModal({ name, standings, matches, onClose, qualifyingThirds
                           <Flag team={match.away_team} className="shrink-0" />
                         </span>
                       </div>
-                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-1">
+                      <div className="flex justify-center sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-x-1">
                         <div className="hidden items-center justify-end gap-1.5 sm:flex">
                           <span className="truncate text-right">{homeEs}</span>
                           <Flag team={match.home_team} className="shrink-0" />
