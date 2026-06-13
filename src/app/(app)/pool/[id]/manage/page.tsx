@@ -6,7 +6,11 @@ import { PoolNameForm } from "@/components/PoolNameForm";
 import { RemoveMemberButton } from "@/components/RemoveMemberButton";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata = { title: "Administrar polla" };
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const supabase = createClient();
+  const { data: pool } = await supabase.from("pools").select("name").eq("id", params.id).maybeSingle();
+  return { title: pool ? `Administrar · ${pool.name}` : "Administrar polla" };
+}
 
 export default async function ManagePoolPage({
   params,

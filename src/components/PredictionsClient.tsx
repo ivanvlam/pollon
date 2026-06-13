@@ -247,8 +247,8 @@ export function PredictionsClient({
             {(
               [
                 ["all", "Todos"],
-                ["with", "Con pred."],
-                ["without", "Sin pred."],
+                ["with", "Con predicción"],
+                ["without", "Sin predicción"],
               ] as [PredFilter, string][]
             ).map(([key, label]) => (
               <button

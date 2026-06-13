@@ -5,7 +5,11 @@ import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
 import { createClient } from "@/lib/supabase/server";
 import { computeGroupStandings, type GroupMatch } from "@/lib/standings";
 
-export const metadata = { title: "Grupos" };
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const supabase = createClient();
+  const { data: pool } = await supabase.from("pools").select("name").eq("id", params.id).maybeSingle();
+  return { title: pool ? `Grupos · ${pool.name}` : "Grupos" };
+}
 
 export default async function GroupsPage({
   params,

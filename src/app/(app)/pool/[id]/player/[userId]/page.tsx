@@ -26,6 +26,16 @@ function qualifierName(
   return null;
 }
 
+export async function generateMetadata({ params }: { params: { id: string; userId: string } }) {
+  const supabase = createClient();
+  const [{ data: pool }, { data: profile }] = await Promise.all([
+    supabase.from("pools").select("name").eq("id", params.id).maybeSingle(),
+    supabase.from("profiles").select("display_name").eq("id", params.userId).maybeSingle(),
+  ]);
+  const playerName = profile?.display_name ?? "Jugador";
+  return { title: pool ? `${playerName} · ${pool.name}` : playerName };
+}
+
 export default async function PlayerProfilePage({
   params,
 }: {

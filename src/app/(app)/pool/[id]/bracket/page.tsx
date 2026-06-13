@@ -6,7 +6,11 @@ import { toSpanish } from "@/lib/teamNames";
 import { createClient } from "@/lib/supabase/server";
 import type { MatchWinner, Round } from "@/types";
 
-export const metadata = { title: "Bracket" };
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const supabase = createClient();
+  const { data: pool } = await supabase.from("pools").select("name").eq("id", params.id).maybeSingle();
+  return { title: pool ? `Bracket · ${pool.name}` : "Bracket" };
+}
 
 // ─── Métricas del bracket ────────────────────────────────────────────────────
 const SLOT_H = 84;           // px por slot de R32
