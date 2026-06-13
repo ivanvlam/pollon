@@ -33,7 +33,7 @@ export default async function PoolHistorialPage({
     supabase.rpc("get_pool_ranking", { p_pool_id: pool.id }),
     supabase
       .from("scores")
-      .select("user_id, match_id, points")
+      .select("user_id, match_id, points, reason")
       .eq("pool_id", pool.id)
       .not("match_id", "is", null),
   ]);
@@ -97,38 +97,47 @@ export default async function PoolHistorialPage({
     });
   }
 
-  const scoreMap = new Map<string, Map<string, number>>();
+  type ScoreEntry = { points: number; reason: string | null };
+  const scoreMap = new Map<string, Map<string, ScoreEntry>>();
   for (const s of allScores ?? []) {
     const mid = s.match_id as string;
     if (!scoreMap.has(mid)) scoreMap.set(mid, new Map());
-    scoreMap.get(mid)!.set(s.user_id, s.points);
+    scoreMap.get(mid)!.set(s.user_id, { points: s.points, reason: s.reason as string | null });
   }
 
-  const running: Record<string, number> = Object.fromEntries(
-    memberIds.map((id) => [id, 0]),
+  type RunningStats = { total: number; exact: number; diff: number; winner: number };
+  const running: Record<string, RunningStats> = Object.fromEntries(
+    memberIds.map((id) => [id, { total: 0, exact: 0, diff: 0, winner: 0 }]),
   );
+  const memberName = new Map(members.map((m) => [m.id, m.name]));
   const history: HistoryPoint[] = [];
 
   for (const m of finishedMatches ?? []) {
-    const matchScores = scoreMap.get(m.id) ?? new Map<string, number>();
+    const matchData = scoreMap.get(m.id) ?? new Map<string, ScoreEntry>();
     const earned: Record<string, number> = {};
     for (const uid of memberIds) {
-      const pts = matchScores.get(uid) ?? 0;
+      const entry = matchData.get(uid);
+      const pts = entry?.points ?? 0;
+      const reason = entry?.reason ?? null;
       earned[uid] = pts;
-      running[uid] = (running[uid] ?? 0) + pts;
+      const r = running[uid]!;
+      r.total += pts;
+      if (reason === "exact_score" || reason === "exact_qualifier_score") r.exact++;
+      else if (reason === "correct_diff" || reason === "correct_diff_qualifier") r.diff++;
+      else if (reason === "correct_winner" || reason === "correct_draw" || reason === "correct_qualifier") r.winner++;
     }
 
     const sorted = [...memberIds].sort((a, b) => {
-      const diff = (running[b] ?? 0) - (running[a] ?? 0);
-      if (diff !== 0) return diff;
-      const na = members.find((x) => x.id === a)?.name ?? "";
-      const nb = members.find((x) => x.id === b)?.name ?? "";
-      return na.localeCompare(nb);
+      const ra = running[a]!;
+      const rb = running[b]!;
+      if (rb.total !== ra.total) return rb.total - ra.total;
+      if (rb.exact !== ra.exact) return rb.exact - ra.exact;
+      if (rb.diff !== ra.diff) return rb.diff - ra.diff;
+      if (rb.winner !== ra.winner) return rb.winner - ra.winner;
+      return (memberName.get(a) ?? "").localeCompare(memberName.get(b) ?? "");
     });
     const rankMap: Record<string, number> = {};
-    sorted.forEach((uid, i) => {
-      rankMap[uid] = i + 1;
-    });
+    sorted.forEach((uid, i) => { rankMap[uid] = i + 1; });
 
     history.push({
       label: `${toSpanish(m.home_team).slice(0, 3)}-${toSpanish(m.away_team).slice(0, 3)}`,
@@ -140,7 +149,8 @@ export default async function PoolHistorialPage({
       awayScore: m.away_score,
       rankings: rankMap,
       pointsEarned: earned,
-      cumulativePoints: { ...running },
+      cumulativePoints: Object.fromEntries(memberIds.map((id) => [id, running[id]!.total])),
+      cumulativeStats: Object.fromEntries(memberIds.map((id) => [id, { ...running[id]! }])),
       predictions: Object.fromEntries(
         memberIds.map((uid) => [uid, predMap.get(m.id)?.get(uid) ?? null]),
       ),

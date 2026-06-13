@@ -17,6 +17,7 @@ export interface HistoryPoint {
   rankings: Record<string, number>;
   pointsEarned: Record<string, number>;
   cumulativePoints: Record<string, number>;
+  cumulativeStats?: Record<string, { total: number; exact: number; diff: number; winner: number }>;
   predictions: Record<string, { home: number | null; away: number | null; winner: string | null } | null>;
 }
 
@@ -326,16 +327,24 @@ export function RankingHistoryChart({ history, members }: Props) {
           <div className="mt-4 flex flex-col gap-2 border-t border-neutral-800 pt-3">
             {(() => {
               const sorted = [...members].sort((a, b) => (selPt.rankings[a.id] ?? N) - (selPt.rankings[b.id] ?? N));
+              const isTiedStats = (aId: string, bId: string) => {
+                const sa = selPt.cumulativeStats?.[aId];
+                const sb = selPt.cumulativeStats?.[bId];
+                if (sa && sb) {
+                  return sa.total === sb.total && sa.exact === sb.exact && sa.diff === sb.diff && sa.winner === sb.winner;
+                }
+                return (selPt.cumulativePoints[aId] ?? 0) === (selPt.cumulativePoints[bId] ?? 0);
+              };
               const dispRank: Record<string, number> = {};
               sorted.forEach((m, i) => {
-                if (i > 0 && (selPt.cumulativePoints[m.id] ?? 0) === (selPt.cumulativePoints[sorted[i - 1]!.id] ?? 0)) {
+                if (i > 0 && isTiedStats(m.id, sorted[i - 1]!.id)) {
                   dispRank[m.id] = dispRank[sorted[i - 1]!.id]!;
                 } else {
                   dispRank[m.id] = i + 1;
                 }
               });
               const tiedRanks = new Set(
-                sorted.filter((m) => sorted.some((o) => o.id !== m.id && (selPt.cumulativePoints[o.id] ?? 0) === (selPt.cumulativePoints[m.id] ?? 0))).map((m) => m.id),
+                sorted.filter((m) => sorted.some((o) => o.id !== m.id && isTiedStats(m.id, o.id))).map((m) => m.id),
               );
               return sorted.map((m) => {
                 const earned = selPt.pointsEarned[m.id] ?? 0;

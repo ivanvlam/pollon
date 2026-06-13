@@ -197,8 +197,8 @@ export default async function PoolRankingPage({
                   <tr key={row.user_id} className="border-b border-neutral-900">
                     <td className={`w-7 py-2 pl-2 pr-3 text-center tabular-nums text-neutral-500${isMe ? " border-l-2 border-emerald-500" : ""}`}>
                       {tied ? (
-                        <><span className="text-neutral-600">=</span>{rank}</>
-                      ) : rank}
+                        <><span className="text-neutral-600">=</span>{rank}°</>
+                      ) : <>{rank}°</>}
                     </td>
                     <td className="py-2 pl-8">
                       <Link
