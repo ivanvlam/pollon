@@ -111,7 +111,7 @@ export default async function PlayerProfilePage({
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: viewerProfile?.timezone ?? "UTC",
+    timeZone: viewerProfile?.timezone || "UTC",
   });
 
   const rankingRows = ranking ?? [];
