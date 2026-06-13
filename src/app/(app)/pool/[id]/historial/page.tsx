@@ -127,11 +127,7 @@ export default async function PoolHistorialPage({
     });
     const rankMap: Record<string, number> = {};
     sorted.forEach((uid, i) => {
-      if (i > 0 && (running[uid] ?? 0) === (running[sorted[i - 1]!] ?? 0)) {
-        rankMap[uid] = rankMap[sorted[i - 1]!]!;
-      } else {
-        rankMap[uid] = i + 1;
-      }
+      rankMap[uid] = i + 1;
     });
 
     history.push({

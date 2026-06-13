@@ -85,14 +85,15 @@ export function RankingHistoryChart({ history, members }: Props) {
 
   const N = members.length;
   const nC = history.length;
+  const rowH = N <= 8 ? ROW_H : N <= 14 ? 36 : 28;
 
   const minW = PAD_L + MIN_COL * (nC - 1) + PAD_R;
   const colStep = cw >= minW ? (cw - PAD_L - PAD_R) / (nC - 1) : MIN_COL;
   const W = PAD_L + colStep * (nC - 1) + PAD_R;
-  const H = PAD_T + N * ROW_H + PAD_B;
+  const H = PAD_T + N * rowH + PAD_B;
 
   const cx = (i: number) => PAD_L + i * colStep;
-  const ry = (r: number) => PAD_T + (r - 0.5) * ROW_H;
+  const ry = (r: number) => PAD_T + (r - 0.5) * rowH;
 
   const colorIdx = new Map(members.map((m, i) => [m.id, i]));
   const colorOf = (uid: string) => COLORS[(colorIdx.get(uid) ?? 0) % COLORS.length]!;
@@ -325,13 +326,21 @@ export function RankingHistoryChart({ history, members }: Props) {
           <div className="mt-4 flex flex-col gap-2 border-t border-neutral-800 pt-3">
             {(() => {
               const sorted = [...members].sort((a, b) => (selPt.rankings[a.id] ?? N) - (selPt.rankings[b.id] ?? N));
+              const dispRank: Record<string, number> = {};
+              sorted.forEach((m, i) => {
+                if (i > 0 && (selPt.cumulativePoints[m.id] ?? 0) === (selPt.cumulativePoints[sorted[i - 1]!.id] ?? 0)) {
+                  dispRank[m.id] = dispRank[sorted[i - 1]!.id]!;
+                } else {
+                  dispRank[m.id] = i + 1;
+                }
+              });
               const tiedRanks = new Set(
-                sorted.filter((m) => sorted.some((o) => o.id !== m.id && (selPt.rankings[o.id] ?? N) === (selPt.rankings[m.id] ?? N))).map((m) => m.id),
+                sorted.filter((m) => sorted.some((o) => o.id !== m.id && (selPt.cumulativePoints[o.id] ?? 0) === (selPt.cumulativePoints[m.id] ?? 0))).map((m) => m.id),
               );
               return sorted.map((m) => {
                 const earned = selPt.pointsEarned[m.id] ?? 0;
                 const cumul = selPt.cumulativePoints[m.id] ?? 0;
-                const rank = selPt.rankings[m.id] ?? N;
+                const rank = dispRank[m.id] ?? (selPt.rankings[m.id] ?? N);
                 const pred = selPt.predictions[m.id];
                 const predText =
                   pred?.home !== null && pred?.home !== undefined &&
