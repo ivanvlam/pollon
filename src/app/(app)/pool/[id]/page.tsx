@@ -62,6 +62,24 @@ export default async function PoolRankingPage({
       : { data: [] };
 
   const livePoints: Record<string, number> = Object.fromEntries(memberIds.map((id) => [id, 0]));
+
+  const rows = ranking ?? [];
+  const isTied = (a: typeof rows[0], b: typeof rows[0]) =>
+    a.total === b.total &&
+    a.exact_count === b.exact_count &&
+    a.diff_count === b.diff_count &&
+    a.winner_count === b.winner_count &&
+    a.champion_correct === b.champion_correct;
+  const rankInfo: { rank: number; tied: boolean }[] = [];
+  let gi = 0;
+  while (gi < rows.length) {
+    let gj = gi + 1;
+    while (gj < rows.length && isTied(rows[gi]!, rows[gj]!)) gj++;
+    const tied = gj - gi > 1;
+    for (let k = gi; k < gj; k++) rankInfo.push({ rank: gi + 1, tied });
+    gi = gj;
+  }
+
   for (const match of liveMatches ?? []) {
     for (const pred of livePredictions ?? []) {
       if (pred.match_id !== match.id) continue;
@@ -172,11 +190,16 @@ export default async function PoolRankingPage({
                 </tr>
               </thead>
               <tbody>
-                {(ranking ?? []).map((row, i) => {
+                {rows.map((row, i) => {
                   const isMe = row.user_id === user!.id;
+                  const { rank, tied } = rankInfo[i]!;
                   return (
                   <tr key={row.user_id} className="border-b border-neutral-900">
-                    <td className={`w-7 py-2 pl-2 pr-3 text-center tabular-nums text-neutral-500${isMe ? " border-l-2 border-emerald-500" : ""}`}>{i + 1}</td>
+                    <td className={`w-7 py-2 pl-2 pr-3 text-center tabular-nums text-neutral-500${isMe ? " border-l-2 border-emerald-500" : ""}`}>
+                      {tied ? (
+                        <><span className="text-neutral-600">=</span>{rank}</>
+                      ) : rank}
+                    </td>
                     <td className="py-2 pl-8">
                       <Link
                         href={`/pool/${pool.id}/player/${row.user_id}`}
