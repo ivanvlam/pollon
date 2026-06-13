@@ -115,9 +115,34 @@ export default async function PlayerProfilePage({
   });
 
   const rankingRows = ranking ?? [];
-  const idx = rankingRows.findIndex((r) => r.user_id === params.userId);
-  const row = idx >= 0 ? rankingRows[idx] : null;
-  const rank = idx >= 0 ? idx + 1 : null;
+  const row = rankingRows.find((r) => r.user_id === params.userId) ?? null;
+
+  // Calcular rank igual que en el ranking de la polla (RANK, no DENSE_RANK).
+  type RankRow = NonNullable<typeof row>;
+  const sameScore = (a: RankRow, b: RankRow) =>
+    a.total === b.total &&
+    a.exact_count === b.exact_count &&
+    a.diff_count === b.diff_count &&
+    a.winner_count === b.winner_count &&
+    a.champion_correct === b.champion_correct;
+
+  let rank: number | null = null;
+  let isTied = false;
+  if (row) {
+    let gi = 0;
+    while (gi < rankingRows.length) {
+      let gj = gi + 1;
+      while (gj < rankingRows.length && sameScore(rankingRows[gi]!, rankingRows[gj]!)) gj++;
+      const groupTied = gj - gi > 1;
+      for (let k = gi; k < gj; k++) {
+        if (rankingRows[k]!.user_id === params.userId) {
+          rank = gi + 1;
+          isTied = groupTied;
+        }
+      }
+      gi = gj;
+    }
+  }
 
   const predByMatch = new Map((preds ?? []).map((p) => [p.match_id, p]));
   const scoreByMatch = new Map(
@@ -169,7 +194,11 @@ export default async function PlayerProfilePage({
           {row?.champion_correct && <span title="Campeón acertado">🏆</span>}
         </div>
         <p className="text-sm text-neutral-400">
-          {rank ? `Puesto #${rank}` : "Sin posición"} en {pool.name}
+          {rank
+            ? isTied
+              ? `Empatado por el puesto #${rank} en ${pool.name}`
+              : `Puesto #${rank} en ${pool.name}`
+            : `Sin posición en ${pool.name}`}
         </p>
         <div className="mt-2 flex flex-wrap gap-6 text-sm">
           <div>
