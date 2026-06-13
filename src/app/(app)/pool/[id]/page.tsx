@@ -224,7 +224,7 @@ export default async function PoolRankingPage({
                         <span
                           className={`ml-1.5 text-xs tabular-nums font-normal ${
                             (livePoints[row.user_id as string] ?? 0) > 0
-                              ? "text-emerald-400"
+                              ? "animate-pulse text-emerald-400"
                               : "text-neutral-600"
                           }`}
                         >
