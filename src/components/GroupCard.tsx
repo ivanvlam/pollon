@@ -28,9 +28,10 @@ interface Props {
   standings: StandingRow[];
   matches: GroupMatchRow[];
   yourPoints: number;
+  qualifyingThirds?: Set<string>;
 }
 
-export function GroupCard({ name, standings, matches, yourPoints }: Props) {
+export function GroupCard({ name, standings, matches, yourPoints, qualifyingThirds }: Props) {
   const [open, setOpen] = useState(false);
 
   const pendingCount = matches.filter(
@@ -65,9 +66,11 @@ export function GroupCard({ name, standings, matches, yourPoints }: Props) {
               </tr>
             </thead>
             <tbody>
-              {standings.map((row, i) => (
+              {standings.map((row, i) => {
+                const qualifies = i < 2 || (i === 2 && (qualifyingThirds?.has(row.team) ?? false));
+                return (
                 <tr key={row.team} className="border-b border-neutral-900 last:border-0">
-                  <td className="w-7 py-1.5 pr-2 text-center tabular-nums text-neutral-500">{i + 1}</td>
+                  <td className={`w-7 py-1.5 pr-2 text-center tabular-nums text-neutral-500${qualifies ? " border-l-2 border-emerald-500" : ""}`}>{i + 1}</td>
                   <td className="py-1.5">
                     <span className="flex items-center gap-2">
                       <Flag team={row.team} />
@@ -80,7 +83,8 @@ export function GroupCard({ name, standings, matches, yourPoints }: Props) {
                   </td>
                   <td className="py-1.5 text-center font-semibold">{row.points}</td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -108,6 +112,7 @@ export function GroupCard({ name, standings, matches, yourPoints }: Props) {
           standings={standings}
           matches={matches}
           onClose={() => setOpen(false)}
+          qualifyingThirds={qualifyingThirds}
         />
       )}
     </>

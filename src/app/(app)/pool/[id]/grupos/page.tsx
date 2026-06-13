@@ -60,6 +60,20 @@ export default async function GroupsPage({
   }
   const groupNames = [...groups.keys()].sort();
 
+  // Pre-calcular standings para identificar los 8 mejores terceros entre todos los grupos.
+  const allStandings = new Map(
+    groupNames.map((name) => [
+      name,
+      computeGroupStandings(groups.get(name)! as GroupMatch[]),
+    ]),
+  );
+  const thirds = groupNames.flatMap((name) => {
+    const s = allStandings.get(name)!;
+    return s[2] ? [s[2]] : [];
+  });
+  thirds.sort((a, b) => b.points - a.points || b.gd - a.gd || a.team.localeCompare(b.team));
+  const qualifyingThirds = new Set(thirds.slice(0, 8).map((r) => r.team));
+
   return (
     <div className="flex flex-col gap-6">
       <MatchLiveRefresh matches={all} />
@@ -80,7 +94,7 @@ export default async function GroupsPage({
       <div className="grid gap-4 sm:grid-cols-2">
         {groupNames.map((name) => {
           const groupMatches = groups.get(name)!;
-          const standings = computeGroupStandings(groupMatches as GroupMatch[]);
+          const standings = allStandings.get(name)!;
           const yourPoints = groupMatches.reduce(
             (sum, m) => sum + (pointsByMatch.get(m.id) ?? 0),
             0,
@@ -106,6 +120,7 @@ export default async function GroupsPage({
               standings={standings}
               matches={rows}
               yourPoints={yourPoints}
+              qualifyingThirds={qualifyingThirds}
             />
           );
         })}
