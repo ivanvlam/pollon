@@ -1,6 +1,6 @@
--- Elimina el criterio de desempate alfabético del ranking.
--- Desempate: total → exact_count → diff_count → winner_count → champion_correct.
--- Los empates se muestran en el frontend con "=N" y salto de posición (RANK()).
+-- Ranking sin desempate alfabético visible: el ORDER BY mantiene display_name asc
+-- solo para estabilizar el orden de los empatados, pero el frontend detecta empates
+-- comparando los 5 criterios reales y muestra "=N" con salto de posición (RANK()).
 
 create or replace function public.get_pool_ranking(p_pool_id uuid)
 returns table (
@@ -48,6 +48,7 @@ begin
       exact_count desc,
       diff_count desc,
       winner_count desc,
-      champion_correct desc;
+      champion_correct desc,
+      pr.display_name asc;
 end;
 $$;
