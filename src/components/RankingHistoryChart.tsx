@@ -345,8 +345,8 @@ export function RankingHistoryChart({ history, members }: Props) {
                     >
                       {earned > 0 ? `+${earned}` : "–"}
                     </span>
-                    <span className="w-16 shrink-0 text-right text-xs tabular-nums text-neutral-500">
-                      {cumul} pts
+                    <span className="w-20 shrink-0 text-right text-xs tabular-nums text-neutral-500">
+                      {cumul} puntos
                     </span>
                   </div>
                 );
