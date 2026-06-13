@@ -73,7 +73,7 @@ export function GroupModal({ name, standings, matches, onClose }: Props) {
             <table className="w-full min-w-[16rem] text-left text-sm">
               <thead className="border-b border-neutral-800 text-xs text-neutral-500">
                 <tr>
-                  <th className="pb-1 pr-2">#</th>
+                  <th className="pb-1 pl-1 pr-2 text-center">#</th>
                   <th className="pb-1">Equipo</th>
                   <th className="pb-1 pr-2 text-center">PJ</th>
                   <th className="pb-1 pr-2 text-center">DG</th>
@@ -83,7 +83,7 @@ export function GroupModal({ name, standings, matches, onClose }: Props) {
               <tbody>
                 {standings.map((row, i) => (
                   <tr key={row.team} className="border-b border-neutral-900 last:border-0">
-                    <td className="py-1.5 pr-2 text-neutral-500">{i + 1}</td>
+                    <td className="py-1.5 pl-1 pr-2 text-center tabular-nums text-neutral-500">{i + 1}</td>
                     <td className="py-1.5">
                       <span className="flex items-center gap-2">
                         <Flag team={row.team} />
