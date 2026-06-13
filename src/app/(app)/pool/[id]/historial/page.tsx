@@ -9,6 +9,12 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { toSpanish } from "@/lib/teamNames";
 
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const supabase = createClient();
+  const { data: pool } = await supabase.from("pools").select("name").eq("id", params.id).maybeSingle();
+  return { title: pool ? `Historial · ${pool.name}` : "Historial" };
+}
+
 export default async function PoolHistorialPage({
   params,
 }: {

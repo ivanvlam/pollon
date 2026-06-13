@@ -6,6 +6,12 @@ import { LeavePoolButton } from "@/components/LeavePoolButton";
 import { buttonClasses } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/server";
 
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const supabase = createClient();
+  const { data: pool } = await supabase.from("pools").select("name").eq("id", params.id).maybeSingle();
+  return { title: pool?.name ?? "Polla" };
+}
+
 export default async function PoolRankingPage({
   params,
 }: {

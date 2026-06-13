@@ -8,19 +8,12 @@ import { AdminRoundActivator } from "@/components/AdminRoundActivator";
 import { AdminTopScorer } from "@/components/AdminTopScorer";
 import { adminDeletePool, adminDeleteUser } from "@/lib/admin/actions";
 import { isKnockoutRound, ROUNDS } from "@/lib/constants";
+import { ROUND_LABELS } from "@/lib/labels";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { toSpanish } from "@/lib/teamNames";
 import type { MatchStatus, MatchWinner, Round } from "@/types";
 
 export const metadata = { title: "Admin" };
-
-const ROUND_LABELS: Record<string, string> = {
-  round_of_32: "Ronda de 32",
-  round_of_16: "Octavos de final",
-  quarterfinal: "Cuartos de final",
-  semifinal: "Semifinales",
-  final: "Final",
-};
 
 const fmtDate = (s: string | null) =>
   s ? new Date(s).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" }) : "Sin Datos";

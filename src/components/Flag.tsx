@@ -18,6 +18,7 @@ export function Flag({ team, className }: { team: string; className?: string }) 
       height={18}
       alt=""
       loading="lazy"
+      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
       className={cn("inline-block h-[18px] w-[24px] rounded-sm object-cover", className)}
     />
   );

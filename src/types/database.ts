@@ -374,6 +374,10 @@ export interface Database {
         Args: { p_scores: Json };
         Returns: undefined;
       };
+      replace_user_pool_scores: {
+        Args: { p_user_id: string; p_pool_id: string; p_scores: Json };
+        Returns: undefined;
+      };
       recalculate_top_scorer_scores: {
         Args: { p_player_name: string };
         Returns: Json;

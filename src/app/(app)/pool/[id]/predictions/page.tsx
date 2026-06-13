@@ -5,6 +5,12 @@ import { PredictionsClient } from "@/components/PredictionsClient";
 import { createClient } from "@/lib/supabase/server";
 import type { Round } from "@/types";
 
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const supabase = createClient();
+  const { data: pool } = await supabase.from("pools").select("name").eq("id", params.id).maybeSingle();
+  return { title: pool ? `Predicciones · ${pool.name}` : "Predicciones" };
+}
+
 export default async function PredictionsPage({
   params,
   searchParams,

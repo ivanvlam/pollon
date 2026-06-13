@@ -218,12 +218,13 @@ export async function backfillUserPoolScores(
     });
   }
 
-  await supabase.from("scores").delete().eq("user_id", userId).eq("pool_id", poolId);
+  const { error } = await supabase.rpc("replace_user_pool_scores", {
+    p_user_id: userId,
+    p_pool_id: poolId,
+    p_scores: rows,
+  });
 
-  if (rows.length > 0) {
-    const { error } = await supabase.from("scores").insert(rows);
-    if (error) throw new Error(`backfill falló: ${error.message}`);
-  }
+  if (error) throw new Error(`backfill falló: ${error.message}`);
 
   return { inserted: rows.length };
 }
