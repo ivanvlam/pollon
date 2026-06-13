@@ -52,6 +52,29 @@ export default async function PoolHistorialPage({
   }));
   const memberIds = members.map((m) => m.id);
 
+  const finishedMatchIds = (finishedMatches ?? []).map((m) => m.id);
+  const { data: memberPredictions } =
+    finishedMatchIds.length > 0 && memberIds.length > 0
+      ? await supabase
+          .from("predictions")
+          .select("user_id, match_id, predicted_home, predicted_away, predicted_winner")
+          .in("match_id", finishedMatchIds)
+          .in("user_id", memberIds)
+      : { data: [] };
+
+  const predMap = new Map<
+    string,
+    Map<string, { home: number | null; away: number | null; winner: string | null }>
+  >();
+  for (const p of memberPredictions ?? []) {
+    if (!predMap.has(p.match_id)) predMap.set(p.match_id, new Map());
+    predMap.get(p.match_id)!.set(p.user_id, {
+      home: p.predicted_home,
+      away: p.predicted_away,
+      winner: p.predicted_winner,
+    });
+  }
+
   const scoreMap = new Map<string, Map<string, number>>();
   for (const s of allScores ?? []) {
     const mid = s.match_id as string;
@@ -96,6 +119,9 @@ export default async function PoolHistorialPage({
       rankings: rankMap,
       pointsEarned: earned,
       cumulativePoints: { ...running },
+      predictions: Object.fromEntries(
+        memberIds.map((uid) => [uid, predMap.get(m.id)?.get(uid) ?? null]),
+      ),
     });
   }
 
