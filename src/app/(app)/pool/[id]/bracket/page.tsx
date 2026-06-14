@@ -14,13 +14,13 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
 }
 
 // ─── Geometry ─────────────────────────────────────────────────────────────────
-const SLOT_H   = 104;
-const TOTAL_H  = 16 * SLOT_H;  // 1664 px
+const SLOT_H   = 84;
+const TOTAL_H  = 16 * SLOT_H;
 const CARD_W   = 264;
 const STUB_W   = 20;
-const CONN_W   = 64;
-const LINE     = "#3f3f3f";
-const HEADER_H = 36;
+const CONN_W   = 48;
+const LINE     = "#606060";
+const HEADER_H = 40;
 
 const ALL_N      = [16, 8, 4, 2, 1];
 const ALL_LABELS = ["Dieciseisavos", "Octavos", "Cuartos", "Semis", "Final"];
@@ -31,8 +31,6 @@ const midY       = (si: number, i: number) => HEADER_H + (i + 0.5) * stageSlotH(
 const totalW     = colX(ALL_N.length - 1) + CARD_W;
 
 // ─── R32 hardcoded bracket structure ─────────────────────────────────────────
-// Pairs (0,1), (2,3), … each feed one R16 match in order.
-// matchNum = FIFA 2026 schedule number.
 type GroupPos  = { type: "winner" | "runner_up"; group: string };
 type BestThird = { type: "best_third"; from: string[] };
 type SlotDef   = GroupPos | BestThird;
@@ -68,6 +66,14 @@ const LATER_ROUNDS: { round: Round; n: number; firstMatchNum: number }[] = [
   { round: "semifinal",    n: 2, firstMatchNum: 101 },
   { round: "final",        n: 1, firstMatchNum: 104 },
 ];
+
+// Returns [homeFeeder, awayFeeder] match numbers for PlaceholderCard
+function getFeeder(si: number, i: number): [number, number] {
+  if (si === 0) return [R32_DEFS[2 * i]!.matchNum, R32_DEFS[2 * i + 1]!.matchNum];
+  if (si === 1) return [89 + 2 * i, 89 + 2 * i + 1];
+  if (si === 2) return [97 + 2 * i, 97 + 2 * i + 1];
+  return [101, 102];
+}
 
 // ─── Group standings helper ───────────────────────────────────────────────────
 function computeStandings(
@@ -141,7 +147,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
   };
   const slotLabel = (s: SlotDef): string => {
     if (s.type === "best_third") return `Mejor 3° (${s.from.join("/")})`;
-    return s.type === "winner" ? `1° Grp ${s.group}` : `2° Grp ${s.group}`;
+    return s.type === "winner" ? `1° Grupo ${s.group}` : `2° Grupo ${s.group}`;
   };
 
   // ── R32 matches from DB (for date/time) ──────────────────────────────────
@@ -166,6 +172,8 @@ export default async function BracketPage({ params }: { params: { id: string } }
     : { data: [] };
   const predBy = new Map((preds ?? []).map(p => [p.match_id, p]));
 
+  const sh0 = stageSlotH(0);
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center justify-between">
@@ -175,20 +183,88 @@ export default async function BracketPage({ params }: { params: { id: string } }
         </Link>
       </header>
 
-      <p className="text-xs text-neutral-500">
+      {/* ── Mobile view ─────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-8 md:hidden">
+        {/* Dieciseisavos */}
+        <section>
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400 border-b border-neutral-800 pb-2">
+            Dieciseisavos
+          </h2>
+          <div className="flex flex-col gap-2">
+            {R32_DEFS.map((def, i) => {
+              const dbM = r32Matches[i] ?? null;
+              const date = dbM ? dateFmt.format(new Date(dbM.kickoff_at)) : null;
+              return (
+                <R32Card
+                  key={i}
+                  matchNum={def.matchNum}
+                  date={date}
+                  homeTeam={resolveTeam(def.home)}
+                  homeLabel={slotLabel(def.home)}
+                  awayTeam={resolveTeam(def.away)}
+                  awayLabel={slotLabel(def.away)}
+                />
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Later rounds */}
+        {LATER_ROUNDS.map((stage, si) => {
+          const stageIdx = si + 1;
+          const matches  = byRound.get(stage.round) ?? [];
+          return (
+            <section key={stage.round}>
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400 border-b border-neutral-800 pb-2">
+                {ALL_LABELS[stageIdx]}
+              </h2>
+              <div className="flex flex-col gap-2">
+                {Array.from({ length: stage.n }, (_, i) => {
+                  const match    = matches[i] ?? null;
+                  const matchNum = stage.firstMatchNum + i;
+                  if (match) {
+                    return (
+                      <RealCard
+                        key={i}
+                        match={match}
+                        matchNum={matchNum}
+                        pred={predBy.get(match.id) ?? null}
+                        poolId={params.id}
+                        dateFmt={dateFmt}
+                      />
+                    );
+                  }
+                  const [hf, af] = getFeeder(si, i);
+                  return (
+                    <PlaceholderCard key={i} matchNum={matchNum} homeFeeder={hf} awayFeeder={af} />
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+
+      {/* ── Desktop bracket ─────────────────────────────────────────────── */}
+      <p className="hidden text-xs text-neutral-500 md:block">
         Desliza horizontalmente para ver todas las rondas.
       </p>
 
-      <div className="overflow-x-auto pb-6">
+      <div className="hidden overflow-x-auto pb-6 md:block">
         <div style={{ position: "relative", width: totalW, height: TOTAL_H + HEADER_H }}>
 
           {/* ── Column headers ──────────────────────────────────────────── */}
           {ALL_LABELS.map((label, si) => (
             <div
               key={si}
-              style={{ position: "absolute", left: colX(si), top: 0, width: CARD_W, height: HEADER_H,
-                       display: "flex", alignItems: "center", justifyContent: "center" }}
-              className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500"
+              style={{
+                position: "absolute", left: colX(si), top: 0,
+                width: CARD_W, height: HEADER_H,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                borderBottom: "1px solid #262626",
+                background: "#0d0d0d",
+              }}
+              className="text-xs font-semibold uppercase tracking-wide text-neutral-300"
             >
               {label}
             </div>
@@ -196,14 +272,16 @@ export default async function BracketPage({ params }: { params: { id: string } }
 
           {/* ── R32 slots ───────────────────────────────────────────────── */}
           {R32_DEFS.map((def, i) => {
-            const sh   = stageSlotH(0);
             const dbM  = r32Matches[i] ?? null;
             const date = dbM ? dateFmt.format(new Date(dbM.kickoff_at)) : null;
             return (
               <div
                 key={i}
-                style={{ position: "absolute", left: colX(0), top: HEADER_H + i * sh,
-                         width: CARD_W, height: sh, display: "flex", alignItems: "center", padding: "4px 0" }}
+                style={{
+                  position: "absolute", left: colX(0), top: HEADER_H + i * sh0,
+                  width: CARD_W, height: sh0,
+                  display: "flex", alignItems: "center", padding: "4px 0",
+                }}
               >
                 <R32Card
                   matchNum={def.matchNum}
@@ -217,6 +295,21 @@ export default async function BracketPage({ params }: { params: { id: string } }
             );
           })}
 
+          {/* ── Section separators (between QF groups in R32) ───────────── */}
+          {[4, 8, 12].map((slotIdx) => (
+            <div
+              key={`sep-${slotIdx}`}
+              style={{
+                position: "absolute",
+                left: colX(0),
+                top: HEADER_H + slotIdx * sh0,
+                width: CARD_W,
+                height: 0,
+                borderTop: "1px dashed #2a2a2a",
+              }}
+            />
+          ))}
+
           {/* ── Later rounds ────────────────────────────────────────────── */}
           {LATER_ROUNDS.map((stage, si) => {
             const stageIdx = si + 1;
@@ -227,11 +320,15 @@ export default async function BracketPage({ params }: { params: { id: string } }
                 {Array.from({ length: stage.n }, (_, i) => {
                   const match    = matches[i] ?? null;
                   const matchNum = stage.firstMatchNum + i;
+                  const [hf, af] = getFeeder(si, i);
                   return (
                     <div
                       key={i}
-                      style={{ position: "absolute", left: colX(stageIdx), top: HEADER_H + i * sh,
-                               width: CARD_W, height: sh, display: "flex", alignItems: "center", padding: "4px 0" }}
+                      style={{
+                        position: "absolute", left: colX(stageIdx), top: HEADER_H + i * sh,
+                        width: CARD_W, height: sh,
+                        display: "flex", alignItems: "center", padding: "4px 0",
+                      }}
                     >
                       {match ? (
                         <RealCard
@@ -242,7 +339,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
                           dateFmt={dateFmt}
                         />
                       ) : (
-                        <PlaceholderCard matchNum={matchNum} />
+                        <PlaceholderCard matchNum={matchNum} homeFeeder={hf} awayFeeder={af} />
                       )}
                     </div>
                   );
@@ -285,7 +382,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
   );
 }
 
-// ─── R32 placeholder card ─────────────────────────────────────────────────────
+// ─── R32 card ─────────────────────────────────────────────────────────────────
 function R32Card({
   matchNum, date, homeTeam, homeLabel, awayTeam, awayLabel,
 }: {
@@ -294,13 +391,13 @@ function R32Card({
   awayTeam: string | null; awayLabel: string;
 }) {
   return (
-    <div className="w-full rounded-lg border border-dashed border-neutral-700 bg-neutral-950/60 px-2.5 py-2 text-xs">
-      <div className="mb-1.5 flex items-center justify-between text-[10px] text-neutral-600">
-        <span>M{matchNum}</span>
-        {date && <span>{date}</span>}
+    <div className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-2.5 py-2 text-xs shadow-md">
+      <div className="mb-1.5 flex items-center justify-between text-xs text-neutral-400">
+        <span className="font-medium">Partido {matchNum}</span>
+        {date && <span className="text-neutral-500">{date}</span>}
       </div>
       <SlotRow team={homeTeam} label={homeLabel} />
-      <div className="my-1 border-t border-neutral-800" />
+      <div className="my-1 border-t border-neutral-700" />
       <SlotRow team={awayTeam} label={awayLabel} />
     </div>
   );
@@ -308,13 +405,13 @@ function R32Card({
 
 function SlotRow({ team, label }: { team: string | null; label: string }) {
   return team ? (
-    <div className="flex items-center gap-1 text-neutral-200">
-      <Flag team={team} className="h-[13px] w-[18px]" />
-      <span className="min-w-0 flex-1 truncate">{toSpanish(team)}</span>
-      <span className="shrink-0 text-[10px] text-neutral-600">{label}</span>
+    <div className="flex items-center gap-1 text-neutral-100">
+      <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
+      <span className="min-w-0 flex-1 truncate font-medium">{toSpanish(team)}</span>
+      <span className="shrink-0 text-[10px] text-neutral-500">{label}</span>
     </div>
   ) : (
-    <div className="truncate text-neutral-600">{label}</div>
+    <div className="truncate text-xs text-neutral-500">{label}</div>
   );
 }
 
@@ -342,39 +439,27 @@ function RealCard({
   return (
     <Link
       href={`/pool/${poolId}/predictions#m-${match.id}`}
-      className="block w-full rounded-lg border border-neutral-700 bg-neutral-900/60 px-2.5 py-2 text-xs transition hover:border-neutral-500"
+      className="block w-full rounded-lg border border-neutral-600 bg-neutral-800 px-2.5 py-2 text-xs shadow-md transition hover:border-neutral-400 hover:bg-neutral-700"
     >
-      <div className="mb-1.5 flex items-center justify-between text-[10px] text-neutral-600">
-        <span>M{matchNum}</span>
-        <span>{dateFmt.format(new Date(match.kickoff_at))}</span>
+      <div className="mb-1.5 flex items-center justify-between text-xs text-neutral-400">
+        <span className="font-medium">Partido {matchNum}</span>
+        <span className="text-neutral-500">{dateFmt.format(new Date(match.kickoff_at))}</span>
       </div>
       <TeamRow team={match.home_team} value={homeVal} win={winner === "home"} />
-      <div className="my-1 border-t border-neutral-800" />
+      <div className="my-1 border-t border-neutral-700" />
       <TeamRow team={match.away_team} value={awayVal} win={winner === "away"} />
-      <p className="mt-1 text-[10px] text-neutral-600">
+      <p className="mt-1 text-[10px] text-neutral-500">
         {finished ? "Resultado" : pred ? "Tu pronóstico" : "Sin pronóstico"}
       </p>
     </Link>
   );
 }
 
-// ─── Placeholder card (later rounds, no match yet) ────────────────────────────
-function PlaceholderCard({ matchNum }: { matchNum: number }) {
-  return (
-    <div className="w-full rounded-lg border border-dashed border-neutral-800 bg-neutral-950/60 px-2.5 py-2 text-xs">
-      <div className="mb-1.5 text-[10px] text-neutral-700">M{matchNum}</div>
-      <PlaceholderRow />
-      <div className="my-1 border-t border-neutral-900" />
-      <PlaceholderRow />
-    </div>
-  );
-}
-
 function TeamRow({ team, value, win }: { team: string; value: number | null; win: boolean }) {
   return (
-    <div className={`flex items-center justify-between gap-1 ${win ? "font-semibold text-emerald-400" : "text-neutral-300"}`}>
+    <div className={`flex items-center justify-between gap-1 ${win ? "font-semibold text-emerald-400" : "text-neutral-200"}`}>
       <span className="flex min-w-0 items-center gap-1">
-        <Flag team={team} className="h-[13px] w-[18px]" />
+        <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
         <span className="truncate">{toSpanish(team)}</span>
       </span>
       <span className="tabular-nums">{value ?? "–"}</span>
@@ -382,10 +467,22 @@ function TeamRow({ team, value, win }: { team: string; value: number | null; win
   );
 }
 
-function PlaceholderRow() {
+// ─── Placeholder card (later rounds, no match yet) ────────────────────────────
+function PlaceholderCard({ matchNum, homeFeeder, awayFeeder }: { matchNum: number; homeFeeder: number; awayFeeder: number }) {
   return (
-    <div className="flex items-center justify-between gap-1 text-neutral-700">
-      <span>Por definir</span>
+    <div className="w-full rounded-lg border border-dashed border-neutral-700 bg-neutral-800/60 px-2.5 py-2 text-xs shadow-sm">
+      <div className="mb-1.5 text-xs font-medium text-neutral-500">Partido {matchNum}</div>
+      <PlaceholderRow feeder={homeFeeder} />
+      <div className="my-1 border-t border-neutral-700" />
+      <PlaceholderRow feeder={awayFeeder} />
+    </div>
+  );
+}
+
+function PlaceholderRow({ feeder }: { feeder: number }) {
+  return (
+    <div className="flex items-center justify-between gap-1 text-neutral-500">
+      <span>Ganador Partido {feeder}</span>
       <span>–</span>
     </div>
   );
