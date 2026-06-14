@@ -329,11 +329,9 @@ export function PredictionsClient({
                         <span className="inline-flex items-center gap-1.5">
                           <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
                           <span className="font-medium text-red-400">EN VIVO</span>
-                          {match.home_score !== null && match.away_score !== null && (
-                            <span className="text-neutral-200">
-                              {fmt(match.home_score, match.away_score)}
-                            </span>
-                          )}
+                          <span className="text-neutral-200">
+                            {match.home_score ?? 0}-{match.away_score ?? 0}
+                          </span>
                           {formatLiveMinute(match.live_minute) && (
                             <span className="text-neutral-400">
                               {formatLiveMinute(match.live_minute)}
@@ -390,8 +388,8 @@ export function PredictionsClient({
                           </div>
                           <div className="flex flex-col items-center px-2">
                             <span className="whitespace-nowrap text-2xl font-bold tabular-nums text-neutral-100">
-                              {match.home_score !== null
-                                ? `${match.home_score} – ${match.away_score}`
+                              {match.status === "live" || match.home_score !== null
+                                ? `${match.home_score ?? 0} – ${match.away_score ?? 0}`
                                 : "–"}
                             </span>
                           </div>

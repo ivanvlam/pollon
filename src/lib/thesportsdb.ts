@@ -125,8 +125,13 @@ function toExternal(ev: SdbEvent, round: Round, sdbRound: number): ExternalMatch
     away_score: away,
     winner: deriveWinner(status, home, away),
     sdb_round: sdbRound,
-    // Solo guardamos minuto si el partido está en vivo y la API lo provee.
-    live_minute: status === "live" && progress ? progress : null,
+    // En vivo: guardamos el minuto si la API lo da (strProgress); la clave
+    // gratuita no lo entrega, así que caemos al código de fase (strStatus,
+    // ej. "2H") para poder mostrar "2ª mitad". formatLiveMinute lo traduce.
+    live_minute:
+      status === "live"
+        ? progress || ev.strStatus?.trim() || null
+        : null,
   };
 }
 
