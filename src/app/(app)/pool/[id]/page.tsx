@@ -179,15 +179,21 @@ export default async function PoolRankingPage({
           <>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[24rem] text-left text-sm">
-              <thead className="border-b border-neutral-800 text-xs text-neutral-400">
+              <thead className="border-b border-neutral-800 text-xs text-neutral-400 sm:text-sm">
                 <tr>
                   <th scope="col" className="w-7 py-2 pl-2 pr-3 text-center">#</th>
                   <th scope="col" className="py-2 pl-3">Jugador</th>
-                  <th scope="col" className="w-16 py-2 text-center">Puntos</th>
-                  <th scope="col" className="w-16 py-2 text-center">Exactos</th>
-                  <th scope="col" className="w-16 py-2 text-center">Difer.</th>
-                  <th scope="col" className="w-16 py-2 text-center">Aciertos</th>
-                  <th scope="col" className="w-16 py-2 text-center">Predic.</th>
+                  <th scope="col" className="w-16 py-2 text-center sm:w-24">Puntos</th>
+                  <th scope="col" className="w-16 py-2 text-center sm:w-24">Exactos</th>
+                  <th scope="col" className="w-16 py-2 text-center sm:w-24">
+                    <span className="sm:hidden">Difer.</span>
+                    <span className="hidden sm:inline">Diferencia</span>
+                  </th>
+                  <th scope="col" className="w-16 py-2 text-center sm:w-24">Aciertos</th>
+                  <th scope="col" className="w-16 py-2 text-center sm:w-24">
+                    <span className="sm:hidden">Predic.</span>
+                    <span className="hidden sm:inline">Predicciones</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -219,7 +225,7 @@ export default async function PoolRankingPage({
                         </span>
                       )}
                     </td>
-                    <td className="w-16 py-2 text-center font-semibold">
+                    <td className="w-16 py-2 text-center font-semibold sm:w-24">
                       {row.total}
                       {isLive && (
                         <span
@@ -233,16 +239,16 @@ export default async function PoolRankingPage({
                         </span>
                       )}
                     </td>
-                    <td className="w-16 py-2 text-center text-neutral-400">
+                    <td className="w-16 py-2 text-center text-neutral-400 sm:w-24">
                       {row.exact_count}
                     </td>
-                    <td className="w-16 py-2 text-center text-neutral-400">
+                    <td className="w-16 py-2 text-center text-neutral-400 sm:w-24">
                       {row.diff_count}
                     </td>
-                    <td className="w-16 py-2 text-center text-neutral-400">
+                    <td className="w-16 py-2 text-center text-neutral-400 sm:w-24">
                       {row.winner_count}
                     </td>
-                    <td className="w-16 py-2 text-center text-neutral-400">
+                    <td className="w-16 py-2 text-center text-neutral-400 sm:w-24">
                       {row.prediction_count ?? 0}
                     </td>
                   </tr>
