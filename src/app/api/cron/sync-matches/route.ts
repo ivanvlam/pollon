@@ -146,9 +146,26 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Inferencia temporal: la clave gratuita de TheSportsDB no devuelve
+  // strStatus en curso (retorna null/"NS" durante el partido), lo que haría
+  // que el upsert de arriba sobreescriba 'live' → 'scheduled' en cada cron.
+  // Solución: marcar directamente en la DB como 'live' todo partido cuyo
+  // kickoff fue hace 5 min–2.5h y siga en estado 'scheduled'.
+  // Esto también funciona cuando la API devuelve [] por límite de cuota.
+  const liveInferStart = new Date(now.getTime() - 2.5 * 60 * 60 * 1000).toISOString();
+  const liveInferEnd = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
+  const { data: inferredLive } = await supabase
+    .from("matches")
+    .update({ status: "live", updated_at: now.toISOString() })
+    .eq("status", "scheduled")
+    .gte("kickoff_at", liveInferStart)
+    .lte("kickoff_at", liveInferEnd)
+    .select("id");
+
   return NextResponse.json({
     ok: true,
     synced: fixtures.length,
     recalculated,
+    markedLive: inferredLive?.length ?? 0,
   });
 }
