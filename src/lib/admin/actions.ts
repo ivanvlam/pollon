@@ -40,6 +40,26 @@ const resultSchema = z.object({
   winner: z.enum(["home", "away"]).nullable(),
 });
 
+/** Marca un partido como 'live' o lo revierte a 'scheduled'. */
+export async function setMatchLive(
+  matchId: string,
+  live: boolean,
+): Promise<AdminResult> {
+  const auth = await assertAdmin();
+  if (!auth.ok) return auth;
+
+  const svc = createServiceRoleClient();
+  const { error } = await svc
+    .from("matches")
+    .update({ status: live ? "live" : "scheduled" })
+    .eq("id", matchId);
+
+  if (error) return { ok: false, error: "No se pudo actualizar el estado" };
+
+  revalidateTournament();
+  return { ok: true };
+}
+
 /** Activa o desactiva un partido (habilita la UI de predicción). */
 export async function setMatchActive(
   matchId: string,

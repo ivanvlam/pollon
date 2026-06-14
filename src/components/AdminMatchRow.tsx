@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { Flag } from "@/components/Flag";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { saveMatchResult, setMatchActive } from "@/lib/admin/actions";
+import { saveMatchResult, setMatchActive, setMatchLive } from "@/lib/admin/actions";
 import type { MatchStatus, MatchWinner } from "@/types";
 
 interface Props {
@@ -54,6 +54,13 @@ export function AdminMatchRow({
     });
   }
 
+  function toggleLive() {
+    startTransition(async () => {
+      const r = await setMatchLive(matchId, status !== "live");
+      setMsg(r.ok ? "" : r.error);
+    });
+  }
+
   function save() {
     startTransition(async () => {
       const r = await saveMatchResult(matchId, {
@@ -82,15 +89,28 @@ export function AdminMatchRow({
           {homeTeam} <span className="text-neutral-500">vs</span> {awayTeam}
           <Flag team={awayTeam} />
         </span>
-        <Button
-          onClick={toggleActive}
-          disabled={pending}
-          size="sm"
-          variant={isActive ? "secondary" : "ghost"}
-          className={isActive ? "border-emerald-600/50 text-emerald-400" : ""}
-        >
-          {isActive ? "Activo" : "Inactivo"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {status !== "finished" && (
+            <Button
+              onClick={toggleLive}
+              disabled={pending}
+              size="sm"
+              variant={status === "live" ? "secondary" : "ghost"}
+              className={status === "live" ? "border-red-600/50 text-red-400" : ""}
+            >
+              {status === "live" ? "● En vivo" : "Marcar vivo"}
+            </Button>
+          )}
+          <Button
+            onClick={toggleActive}
+            disabled={pending}
+            size="sm"
+            variant={isActive ? "secondary" : "ghost"}
+            className={isActive ? "border-emerald-600/50 text-emerald-400" : ""}
+          >
+            {isActive ? "Activo" : "Inactivo"}
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
