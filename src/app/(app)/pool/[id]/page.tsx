@@ -187,6 +187,7 @@ export default async function PoolRankingPage({
                   <th scope="col" className="w-28 py-2 text-center">Exactos</th>
                   <th scope="col" className="w-28 py-2 text-center">Diferencia</th>
                   <th scope="col" className="w-28 py-2 text-center">Aciertos</th>
+                  <th scope="col" className="w-28 py-2 text-center">Predicciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -240,6 +241,9 @@ export default async function PoolRankingPage({
                     </td>
                     <td className="w-28 py-2 text-center text-neutral-400">
                       {row.winner_count}
+                    </td>
+                    <td className="w-28 py-2 text-center text-neutral-400">
+                      {row.prediction_count ?? 0}
                     </td>
                   </tr>
                   );

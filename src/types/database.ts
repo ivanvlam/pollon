@@ -351,6 +351,7 @@ export interface Database {
           diff_count: number;
           winner_count: number;
           champion_correct: boolean;
+          prediction_count: number;
         }[];
       };
       submit_prediction: {
