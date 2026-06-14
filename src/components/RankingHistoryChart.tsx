@@ -50,7 +50,7 @@ const COLORS = [
   "#4ade80",
 ];
 
-const MIN_COL = 90;
+const MIN_COL = 56;
 const ROW_H = 48;
 const PAD_L = 185;
 const PAD_R = 172;
