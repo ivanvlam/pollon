@@ -112,6 +112,24 @@ export default async function BracketPage({ params }: { params: { id: string } }
     if (!groupsMap.has(key)) groupsMap.set(key, []);
     groupsMap.get(key)!.push(m);
   }
+
+  // ── Predicciones y puntos del usuario para partidos de grupo (para el modal) ─
+  const groupMatchIds = (groupMatches ?? []).map((m) => m.id);
+  const [{ data: groupPreds }, { data: groupScores }] = await Promise.all([
+    supabase.from("predictions")
+      .select("match_id, predicted_home, predicted_away")
+      .eq("user_id", uid)
+      .in("match_id", groupMatchIds.length > 0 ? groupMatchIds : ["__none__"]),
+    supabase.from("scores")
+      .select("match_id, points")
+      .eq("pool_id", params.id)
+      .eq("user_id", uid),
+  ]);
+  const predByGroupMatch = new Map((groupPreds ?? []).map((p) => [p.match_id, p]));
+  const pointsByGroupMatch = new Map(
+    (groupScores ?? []).filter((s) => s.match_id !== null).map((s) => [s.match_id as string, s.points]),
+  );
+
   const groupLeaders: Record<string, { winner: string | null; runnerUp: string | null }> = {};
   const groupModalDataMap = new Map<string, GroupModalData>();
   for (const [g, ms] of groupsMap) {
@@ -127,8 +145,8 @@ export default async function BracketPage({ params }: { params: { id: string } }
       away_score: m.away_score,
       live_minute: m.live_minute,
       is_active: m.is_active,
-      pred: null,
-      myPoints: undefined,
+      pred: predByGroupMatch.get(m.id) ?? null,
+      myPoints: pointsByGroupMatch.get(m.id),
     }));
     groupModalDataMap.set(g, { groupName: `Grupo ${g}`, standings, matches: modalMatches });
   }
