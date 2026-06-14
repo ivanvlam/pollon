@@ -246,7 +246,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
       </div>
 
       {/* ── Desktop bracket ─────────────────────────────────────────────── */}
-      <p className="hidden text-xs text-neutral-500 md:block">
+      <p className="hidden text-center text-xs text-neutral-600 md:block">
         Desliza horizontalmente para ver todas las rondas.
       </p>
 
