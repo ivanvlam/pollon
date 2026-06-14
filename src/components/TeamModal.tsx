@@ -156,11 +156,7 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
                   <div key={match.id} className="rounded-xl border border-neutral-800 p-3">
                     <div className="mb-2.5 flex items-center justify-between text-xs text-neutral-500">
                       <span>{fmtDate(match.kickoff_at)}</span>
-                      {finished ? (
-                        <span className="font-medium text-neutral-300">
-                          Final {fmt(match.home_score, match.away_score)}
-                        </span>
-                      ) : live ? (
+                      {live ? (
                         <span className="inline-flex items-center gap-1.5">
                           <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
                           <span className="font-medium text-red-400">EN VIVO</span>
