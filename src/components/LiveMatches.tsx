@@ -1,10 +1,12 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
 
 import { Flag } from "@/components/Flag";
 import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
-import { calculateMatchScore } from "@/lib/scoring";
+import { TeamName } from "@/components/TeamName";
 import { formatLiveMinute } from "@/lib/liveMinute";
-import { toSpanish } from "@/lib/teamNames";
+import { calculateMatchScore } from "@/lib/scoring";
 import type { MatchWinner, Round } from "@/types";
 
 export interface LiveMatchRow {
@@ -31,6 +33,8 @@ export function LiveMatches({
   updatedAgoLabel: string | null;
   poolId?: string | null;
 }) {
+  const router = useRouter();
+
   if (matches.length === 0) return null;
 
   return (
@@ -85,9 +89,10 @@ export function LiveMatches({
               {/* nombre bandera | marcador | bandera nombre */}
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2">
                 <div className="flex items-center justify-end gap-1.5">
-                  <span className="text-right text-sm font-medium leading-tight">
-                    {toSpanish(m.home_team)}
-                  </span>
+                  <TeamName
+                    team={m.home_team}
+                    className="text-right text-sm font-medium leading-tight"
+                  />
                   <Flag team={m.home_team} />
                 </div>
 
@@ -104,9 +109,10 @@ export function LiveMatches({
 
                 <div className="flex items-center gap-1.5">
                   <Flag team={m.away_team} />
-                  <span className="text-sm font-medium leading-tight">
-                    {toSpanish(m.away_team)}
-                  </span>
+                  <TeamName
+                    team={m.away_team}
+                    className="text-sm font-medium leading-tight"
+                  />
                 </div>
               </div>
 
@@ -138,13 +144,19 @@ export function LiveMatches({
           return (
             <li key={m.id}>
               {href ? (
-                <Link href={href} className={cardClass}>
-                  {inner}
-                </Link>
-              ) : (
-                <div className="rounded-lg bg-neutral-900/50 px-4 py-3">
+                <div
+                  className={cardClass + " cursor-pointer"}
+                  onClick={() => router.push(href)}
+                  role="link"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") router.push(href);
+                  }}
+                >
                   {inner}
                 </div>
+              ) : (
+                <div className={cardClass}>{inner}</div>
               )}
             </li>
           );

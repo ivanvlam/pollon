@@ -18,7 +18,7 @@ export async function GET(
   const { data: allGroupMatches } = await supabase
     .from("matches")
     .select(
-      "id, group_name, home_team, away_team, kickoff_at, status, home_score, away_score",
+      "id, group_name, home_team, away_team, kickoff_at, status, home_score, away_score, is_active, live_minute",
     )
     .eq("round", "group_stage")
     .order("kickoff_at", { ascending: true });
@@ -29,7 +29,12 @@ export async function GET(
   );
 
   if (teamMatches.length === 0) {
-    return NextResponse.json({ standing: null, matches: [], groupName: null });
+    return NextResponse.json({
+      standing: null,
+      matches: [],
+      groupName: null,
+      position: null,
+    });
   }
 
   const groupName = teamMatches[0]?.group_name ?? null;
@@ -38,6 +43,32 @@ export async function GET(
     : [];
   const standings = computeGroupStandings(groupMatches);
   const standing = standings.find((s) => s.team === team) ?? null;
+  const positionIndex = standings.findIndex((s) => s.team === team);
+  const position = positionIndex >= 0 ? positionIndex + 1 : null;
 
-  return NextResponse.json({ standing, matches: teamMatches, groupName });
+  const matchIds = teamMatches.map((m) => m.id);
+  const { data: preds } = await supabase
+    .from("predictions")
+    .select("match_id, predicted_home, predicted_away, predicted_winner, is_locked")
+    .in("match_id", matchIds)
+    .eq("user_id", user.id);
+
+  const predMap = Object.fromEntries(
+    (preds ?? []).map((p) => [
+      p.match_id,
+      {
+        predicted_home: p.predicted_home,
+        predicted_away: p.predicted_away,
+        predicted_winner: p.predicted_winner,
+        is_locked: p.is_locked,
+      },
+    ]),
+  );
+
+  const matchesWithPreds = teamMatches.map((m) => ({
+    ...m,
+    pred: predMap[m.id] ?? null,
+  }));
+
+  return NextResponse.json({ standing, matches: matchesWithPreds, groupName, position });
 }

@@ -16,9 +16,17 @@ interface TeamData {
     status: string;
     home_score: number | null;
     away_score: number | null;
+    is_active: boolean;
+    live_minute: string | null;
     group_name: string | null;
+    pred: {
+      predicted_home: number | null;
+      predicted_away: number | null;
+      predicted_winner: string | null;
+    } | null;
   }>;
   groupName: string | null;
+  position: number | null;
 }
 
 export function TeamName({
@@ -65,7 +73,11 @@ export function TeamName({
           standing={dataRef.current.standing}
           matches={dataRef.current.matches}
           groupName={dataRef.current.groupName}
-          onClose={() => setOpen(false)}
+          position={dataRef.current.position}
+          onClose={() => {
+            setOpen(false);
+            dataRef.current = null;
+          }}
         />
       )}
     </>

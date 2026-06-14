@@ -3,8 +3,12 @@
 import { useEffect } from "react";
 
 import { Flag } from "@/components/Flag";
+import { LockCountdown } from "@/components/LockCountdown";
+import { PredictionForm } from "@/components/PredictionForm";
+import { formatLiveMinute } from "@/lib/liveMinute";
 import type { StandingRow } from "@/lib/standings";
 import { toSpanish } from "@/lib/teamNames";
+import { hasMatchStarted, isPredictionLocked } from "@/lib/timing";
 
 interface TeamMatch {
   id: string;
@@ -14,7 +18,14 @@ interface TeamMatch {
   status: string;
   home_score: number | null;
   away_score: number | null;
+  is_active: boolean;
+  live_minute: string | null;
   group_name: string | null;
+  pred: {
+    predicted_home: number | null;
+    predicted_away: number | null;
+    predicted_winner: string | null;
+  } | null;
 }
 
 interface Props {
@@ -22,8 +33,12 @@ interface Props {
   standing: StandingRow | null;
   matches: TeamMatch[];
   groupName: string | null;
+  position: number | null;
   onClose: () => void;
 }
+
+const fmt = (h: number | null, a: number | null) =>
+  h === null || a === null ? "– – –" : `${h} – ${a}`;
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -32,7 +47,7 @@ const fmtDate = (iso: string) => {
   return `${day} · ${time}`;
 };
 
-export function TeamModal({ team, standing, matches, groupName, onClose }: Props) {
+export function TeamModal({ team, standing, matches, groupName, position, onClose }: Props) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -49,9 +64,7 @@ export function TeamModal({ team, standing, matches, groupName, onClose }: Props
   }, []);
 
   const teamEs = toSpanish(team);
-  const groupLabel = groupName
-    ? groupName.replace(/^Group\s+/i, "Grupo ")
-    : null;
+  const groupLabel = groupName ? groupName.replace(/^Group\s+/i, "Grupo ") : null;
 
   const stats = standing
     ? [
@@ -72,7 +85,7 @@ export function TeamModal({ team, standing, matches, groupName, onClose }: Props
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85dvh] w-full max-w-sm flex-col overflow-hidden rounded-t-2xl border border-neutral-700 bg-neutral-950 sm:rounded-2xl"
+        className="flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-neutral-700 bg-neutral-950 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -82,7 +95,17 @@ export function TeamModal({ team, standing, matches, groupName, onClose }: Props
             <div>
               <h2 className="text-base font-semibold">{teamEs}</h2>
               {groupLabel && (
-                <p className="text-xs text-neutral-500">{groupLabel}</p>
+                <p className="text-xs text-neutral-500">
+                  {groupLabel}
+                  {position !== null && (
+                    <>
+                      {" · "}
+                      <span className="font-medium text-neutral-300">
+                        {position}° puesto
+                      </span>
+                    </>
+                  )}
+                </p>
               )}
             </div>
           </div>
@@ -97,6 +120,7 @@ export function TeamModal({ team, standing, matches, groupName, onClose }: Props
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+          {/* Stats grid */}
           {standing ? (
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
@@ -119,78 +143,101 @@ export function TeamModal({ team, standing, matches, groupName, onClose }: Props
               </div>
             </div>
           ) : (
-            <p className="text-sm text-neutral-500">
-              Sin datos de fase de grupos.
-            </p>
+            <p className="text-sm text-neutral-500">Sin datos de fase de grupos.</p>
           )}
 
+          {/* Partidos */}
           {matches.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                 Partidos
               </p>
-              <div className="flex flex-col gap-2">
-                {matches.map((match) => {
-                  const isHome = match.home_team === team;
-                  const opponent = isHome ? match.away_team : match.home_team;
-                  const myScore = isHome ? match.home_score : match.away_score;
-                  const oppScore = isHome ? match.away_score : match.home_score;
-                  const finished = match.status === "finished";
+              {matches.map((match) => {
+                const locked = isPredictionLocked(match.kickoff_at);
+                const started = match.status === "live" || hasMatchStarted(match.kickoff_at);
+                const finished = match.status === "finished";
+                const canPredict = match.is_active && !locked;
+                const homeEs = toSpanish(match.home_team);
+                const awayEs = toSpanish(match.away_team);
 
-                  let outcome: "G" | "E" | "P" | null = null;
-                  if (finished && myScore !== null && oppScore !== null) {
-                    if (myScore > oppScore) outcome = "G";
-                    else if (myScore < oppScore) outcome = "P";
-                    else outcome = "E";
-                  }
-
-                  const outcomeClass =
-                    outcome === "G"
-                      ? "text-emerald-400"
-                      : outcome === "P"
-                        ? "text-red-400"
-                        : "text-neutral-400";
-
-                  return (
-                    <div
-                      key={match.id}
-                      className="flex items-center justify-between rounded-lg border border-neutral-800 px-3 py-2.5 text-sm"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Flag team={opponent} className="shrink-0" />
-                        <span className="text-neutral-200">
-                          {toSpanish(opponent)}
+                return (
+                  <div key={match.id} className="rounded-xl border border-neutral-800 p-3">
+                    <div className="mb-3 flex items-center justify-between text-xs text-neutral-500">
+                      <span>{fmtDate(match.kickoff_at)}</span>
+                      {finished ? (
+                        <span className="font-medium text-neutral-300">
+                          Final {fmt(match.home_score, match.away_score)}
                         </span>
-                        <span className="text-[10px] text-neutral-600">
-                          {isHome ? "L" : "V"}
+                      ) : match.status === "live" ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                          <span className="font-medium text-red-400">EN VIVO</span>
+                          {match.home_score !== null && match.away_score !== null && (
+                            <span className="text-neutral-200">
+                              {fmt(match.home_score, match.away_score)}
+                            </span>
+                          )}
+                          {formatLiveMinute(match.live_minute) && (
+                            <span className="text-neutral-400">
+                              {formatLiveMinute(match.live_minute)}
+                            </span>
+                          )}
                         </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {finished && myScore !== null && oppScore !== null ? (
-                          <>
-                            <span className="tabular-nums font-medium text-neutral-200">
-                              {myScore}–{oppScore}
-                            </span>
-                            <span
-                              className={`w-3 text-center text-xs font-bold ${outcomeClass}`}
-                            >
-                              {outcome}
-                            </span>
-                          </>
-                        ) : match.status === "live" ? (
-                          <span className="text-xs font-medium text-red-400">
-                            EN VIVO
-                          </span>
-                        ) : (
-                          <span className="text-xs text-neutral-500">
-                            {fmtDate(match.kickoff_at)}
-                          </span>
-                        )}
-                      </div>
+                      ) : started ? (
+                        <span>Empezó</span>
+                      ) : locked ? (
+                        <span className="text-neutral-500">Cerrado</span>
+                      ) : (
+                        <LockCountdown kickoffAt={match.kickoff_at} />
+                      )}
                     </div>
-                  );
-                })}
-              </div>
+
+                    {canPredict ? (
+                      <PredictionForm
+                        matchId={match.id}
+                        homeTeam={homeEs}
+                        awayTeam={awayEs}
+                        isKnockout={false}
+                        initialHome={match.pred?.predicted_home ?? null}
+                        initialAway={match.pred?.predicted_away ?? null}
+                        initialWinner={null}
+                      />
+                    ) : (
+                      <div className="text-sm">
+                        <div className="mb-2 flex items-center justify-between font-medium sm:hidden">
+                          <span className="flex items-center gap-1.5">
+                            <Flag team={match.home_team} className="shrink-0" />
+                            <span className="truncate">{homeEs}</span>
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="truncate">{awayEs}</span>
+                            <Flag team={match.away_team} className="shrink-0" />
+                          </span>
+                        </div>
+                        <div className="flex justify-center sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-x-1">
+                          <div className="hidden items-center justify-end gap-1.5 sm:flex">
+                            <span className="truncate text-right">{homeEs}</span>
+                            <Flag team={match.home_team} className="shrink-0" />
+                          </div>
+                          <div className="flex flex-col items-center px-2">
+                            {match.pred ? (
+                              <span className="whitespace-nowrap text-xl font-bold tabular-nums text-neutral-200">
+                                {match.pred.predicted_home ?? "–"}{" – "}{match.pred.predicted_away ?? "–"}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-neutral-600">sin predicción</span>
+                            )}
+                          </div>
+                          <div className="hidden items-center gap-1.5 sm:flex">
+                            <Flag team={match.away_team} className="shrink-0" />
+                            <span className="truncate">{awayEs}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { Flag } from "@/components/Flag";
+import { TeamName } from "@/components/TeamName";
 import { toSpanish } from "@/lib/teamNames";
 import { formatCountdown, msUntilChampionLock, parseKickoff } from "@/lib/timing";
 
@@ -107,9 +108,9 @@ export function NextMatchCard({
 
       <div className="mt-2 flex items-center gap-2 text-base font-medium">
         <Flag team={nextMatch.homeTeam} />
-        {toSpanish(nextMatch.homeTeam)}
+        <TeamName team={nextMatch.homeTeam} />
         <span className="text-neutral-500">vs</span>
-        {toSpanish(nextMatch.awayTeam)}
+        <TeamName team={nextMatch.awayTeam} />
         <Flag team={nextMatch.awayTeam} />
       </div>
 
