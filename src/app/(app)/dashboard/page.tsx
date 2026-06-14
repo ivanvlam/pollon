@@ -148,9 +148,9 @@ export default async function DashboardPage() {
     <div className="flex flex-col gap-10">
       <TimezoneSync current={profile?.timezone ?? null} />
 
-      <section className="flex items-center justify-between gap-3">
+      <section className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Mis pollas</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href="/como-funciona" className={buttonClasses("ghost", "sm")}>
             ¿Cómo funciona?
           </Link>
