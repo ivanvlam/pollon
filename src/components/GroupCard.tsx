@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Flag } from "@/components/Flag";
 import { GroupModal } from "@/components/GroupModal";
+import { TeamName } from "@/components/TeamName";
 import { Card } from "@/components/ui/Card";
 import type { StandingRow } from "@/lib/standings";
 import { toSpanish } from "@/lib/teamNames";
@@ -74,7 +75,7 @@ export function GroupCard({ name, standings, matches, yourPoints, qualifyingThir
                   <td className="py-1.5">
                     <span className="flex items-center gap-2">
                       <Flag team={row.team} />
-                      {toSpanish(row.team)}
+                      <TeamName team={row.team} />
                     </span>
                   </td>
                   <td className="py-1.5 pr-2 text-center text-neutral-400">{row.played}</td>

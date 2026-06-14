@@ -6,6 +6,7 @@ import { Flag } from "@/components/Flag";
 import type { GroupMatchRow } from "@/components/GroupCard";
 import { LockCountdown } from "@/components/LockCountdown";
 import { PredictionForm } from "@/components/PredictionForm";
+import { TeamName } from "@/components/TeamName";
 import { formatLiveMinute } from "@/lib/liveMinute";
 import type { StandingRow } from "@/lib/standings";
 import { toSpanish } from "@/lib/teamNames";
@@ -90,7 +91,7 @@ export function GroupModal({ name, standings, matches, onClose, qualifyingThirds
                     <td className="py-1.5">
                       <span className="flex items-center gap-2">
                         <Flag team={row.team} />
-                        {toSpanish(row.team)}
+                        <TeamName team={row.team} />
                       </span>
                     </td>
                     <td className="py-1.5 pr-2 text-center text-neutral-400">{row.played}</td>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Flag } from "@/components/Flag";
+import { TeamName } from "@/components/TeamName";
 import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
 import { REASON_LABELS, ROUND_LABELS } from "@/lib/labels";
 import { calculateMatchScore, type MatchScore } from "@/lib/scoring";
@@ -308,9 +309,9 @@ export default async function PlayerProfilePage({
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-2 font-medium">
                           <Flag team={m.home_team} />
-                          {toSpanish(m.home_team)}
+                          <TeamName team={m.home_team} />
                           <span className="text-neutral-500">vs</span>
-                          {toSpanish(m.away_team)}
+                          <TeamName team={m.away_team} />
                           <Flag team={m.away_team} />
                         </span>
                         {score ? (

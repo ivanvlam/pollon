@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Flag } from "@/components/Flag";
 import { LockCountdown } from "@/components/LockCountdown";
 import { PredictionForm } from "@/components/PredictionForm";
+import { TeamName } from "@/components/TeamName";
 import { Card } from "@/components/ui/Card";
 import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
 import { REASON_LABELS, ROUND_LABELS } from "@/lib/labels";
@@ -373,18 +374,16 @@ export function PredictionsClient({
                         <div className="flex w-full items-center justify-between font-semibold sm:hidden">
                           <span className="flex items-center gap-1.5">
                             <Flag team={match.home_team} className="shrink-0" />
-                            <span className="truncate">{toSpanish(match.home_team)}</span>
+                            <TeamName team={match.home_team} className="truncate" />
                           </span>
                           <span className="flex items-center gap-1.5">
-                            <span className="truncate">{toSpanish(match.away_team)}</span>
+                            <TeamName team={match.away_team} className="truncate" />
                             <Flag team={match.away_team} className="shrink-0" />
                           </span>
                         </div>
                         <div className="flex justify-center sm:grid sm:w-full sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-x-3">
                           <div className="hidden items-center justify-end gap-2 sm:flex">
-                            <span className="text-right text-base font-semibold leading-tight">
-                              {toSpanish(match.home_team)}
-                            </span>
+                            <TeamName team={match.home_team} className="text-right text-base font-semibold leading-tight" />
                             <Flag team={match.home_team} />
                           </div>
                           <div className="flex flex-col items-center px-2">
@@ -396,9 +395,7 @@ export function PredictionsClient({
                           </div>
                           <div className="hidden items-center gap-2 sm:flex">
                             <Flag team={match.away_team} />
-                            <span className="text-base font-semibold leading-tight">
-                              {toSpanish(match.away_team)}
-                            </span>
+                            <TeamName team={match.away_team} className="text-base font-semibold leading-tight" />
                           </div>
                         </div>
                         {myScore ? (

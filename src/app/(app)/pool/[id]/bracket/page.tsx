@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Flag } from "@/components/Flag";
 import type { GroupMatchRow } from "@/components/GroupCard";
 import { BracketGroupLabel, type GroupModalData } from "@/components/BracketGroupLabel";
+import { TeamName } from "@/components/TeamName";
 import { toSpanish } from "@/lib/teamNames";
 import { createClient } from "@/lib/supabase/server";
 import { computeGroupStandings } from "@/lib/standings";
@@ -443,7 +444,7 @@ function SlotRow({
   return team ? (
     <div className="flex min-h-[20px] items-center gap-1 text-neutral-100">
       <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
-      <span className="min-w-0 flex-1 truncate font-medium">{toSpanish(team)}</span>
+      <TeamName team={team} className="min-w-0 flex-1 truncate font-medium" />
       <span className="shrink-0 text-[10px] text-neutral-500">{labelEl}</span>
     </div>
   ) : (
