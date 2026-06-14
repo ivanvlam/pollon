@@ -83,10 +83,17 @@ export function LiveMatches({
 
           const href = poolId ? `/pool/${poolId}/predictions?from=home` : null;
           const cardClass =
-            "block rounded-lg bg-neutral-900/50 px-4 py-3 transition hover:bg-neutral-800/60";
+            "relative block rounded-lg bg-neutral-900/50 px-4 py-3 transition hover:bg-neutral-800/60";
 
           const inner = (
             <>
+              {/* Fase del partido (mitad / entretiempo), arriba a la derecha */}
+              {minute && (
+                <span className="absolute right-3 top-2 text-xs font-medium text-neutral-400">
+                  {minute}
+                </span>
+              )}
+
               {/* nombre bandera | marcador | bandera nombre */}
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2">
                 <div className="flex items-center justify-end gap-1.5">
@@ -97,15 +104,10 @@ export function LiveMatches({
                   <Flag team={m.home_team} />
                 </div>
 
-                <div className="flex flex-col items-center gap-0.5 px-2">
+                <div className="flex flex-col items-center px-2">
                   <span className="text-2xl font-bold tabular-nums text-neutral-100">
                     {m.home_score ?? 0} – {m.away_score ?? 0}
                   </span>
-                  {minute && (
-                    <span className="text-xs font-medium text-red-400">
-                      {minute}
-                    </span>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-1.5">
