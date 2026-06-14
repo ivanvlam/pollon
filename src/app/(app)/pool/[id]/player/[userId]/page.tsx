@@ -206,11 +206,14 @@ export default async function PlayerProfilePage({
             <span className="text-2xl font-bold text-emerald-400">{row?.total ?? 0}</span>{" "}
             <span className="text-neutral-500">puntos</span>
           </div>
-          <div className="flex gap-4 text-neutral-400">
+          <div className="flex flex-wrap gap-4 text-neutral-400">
             <span title="Marcador exacto · 5 puntos">Exactos: {row?.exact_count ?? 0}</span>
             <span title="Misma diferencia · 3 puntos">Diferencia: {row?.diff_count ?? 0}</span>
             <span title="Solo ganador/clasificado · 2 puntos">
               Aciertos: {row?.winner_count ?? 0}
+            </span>
+            <span title="Partidos terminados en los que predijo">
+              Predicciones: {row?.prediction_count ?? 0}
             </span>
           </div>
         </div>
