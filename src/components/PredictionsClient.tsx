@@ -329,9 +329,6 @@ export function PredictionsClient({
                         <span className="inline-flex items-center gap-1.5">
                           <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
                           <span className="font-medium text-red-400">EN VIVO</span>
-                          <span className="text-neutral-200">
-                            {match.home_score ?? 0}-{match.away_score ?? 0}
-                          </span>
                           {liveProgressLabel(match.live_minute, match.kickoff_at) && (
                             <span className="text-neutral-400">
                               {liveProgressLabel(match.live_minute, match.kickoff_at)}
