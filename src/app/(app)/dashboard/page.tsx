@@ -8,6 +8,7 @@ import { TimezoneSync } from "@/components/TimezoneSync";
 import { buttonClasses } from "@/components/ui/Button";
 import type { Round } from "@/types";
 import { createClient } from "@/lib/supabase/server";
+import { syncLiveMatchesNow } from "@/lib/sync-live";
 
 export const metadata = { title: "Mis pollas" };
 
@@ -37,7 +38,7 @@ export default async function DashboardPage() {
     { data: topScorerPick },
     { data: firstMatch },
     { data: nextMatch },
-    { data: liveMatches },
+    { data: initialLiveMatches },
   ] = await Promise.all([
     supabase.from("champion_predictions").select("team").eq("user_id", uid).maybeSingle(),
     supabase.from("top_scorer_predictions").select("player_name").eq("user_id", uid).maybeSingle(),
@@ -52,10 +53,36 @@ export default async function DashboardPage() {
       .maybeSingle(),
     supabase
       .from("matches")
-      .select("id, round, home_team, away_team, home_score, away_score, live_minute, updated_at")
+      .select("id, round, sdb_round, home_team, away_team, home_score, away_score, live_minute, updated_at")
       .eq("status", "live")
       .order("kickoff_at", { ascending: true }),
   ]);
+
+  // Si hay partidos live con datos más viejos de 10 min, sincronizar ahora
+  // directamente desde TheSportsDB sin esperar el cron (fallback si cron-job.org falla).
+  let liveMatches = initialLiveMatches;
+  const STALE_MS = 10 * 60 * 1000;
+  const rawLive = liveMatches ?? [];
+  if (rawLive.length > 0) {
+    const latestRaw = rawLive.reduce((max, m) => {
+      const t = m.updated_at ? new Date(m.updated_at).getTime() : 0;
+      return t > max ? t : max;
+    }, 0);
+    if (latestRaw < Date.now() - STALE_MS) {
+      try {
+        await syncLiveMatchesNow(rawLive.map((m) => ({ round: m.round, sdb_round: m.sdb_round })));
+        // Re-fetch tras el sync para obtener datos frescos
+        const { data: fresh } = await supabase
+          .from("matches")
+          .select("id, round, sdb_round, home_team, away_team, home_score, away_score, live_minute, updated_at")
+          .eq("status", "live")
+          .order("kickoff_at", { ascending: true });
+        liveMatches = fresh;
+      } catch {
+        // Si falla el sync, renderizar con los datos que tenemos
+      }
+    }
+  }
 
   // Latencia: hace cuánto el cron escribió por última vez (partido live más
   // recientemente actualizado). El auto-refresco no gasta cuota de la API.
