@@ -3,12 +3,9 @@
 import { useEffect } from "react";
 
 import { Flag } from "@/components/Flag";
-import { LockCountdown } from "@/components/LockCountdown";
-import { PredictionForm } from "@/components/PredictionForm";
 import { formatLiveMinute } from "@/lib/liveMinute";
 import type { StandingRow } from "@/lib/standings";
 import { toSpanish } from "@/lib/teamNames";
-import { hasMatchStarted, isPredictionLocked } from "@/lib/timing";
 
 interface TeamMatch {
   id: string;
@@ -68,14 +65,14 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
 
   const stats = standing
     ? [
-        ["Jugados", standing.played],
-        ["Ganados", standing.won],
-        ["Empatados", standing.drawn],
-        ["Perdidos", standing.lost],
-        ["A favor", standing.gf],
-        ["En contra", standing.ga],
-        ["Diferencia", standing.gd > 0 ? `+${standing.gd}` : standing.gd],
+        ["Partidos jugados", standing.played],
         ["Puntos", standing.points],
+        ["Ganados", standing.won],
+        ["Goles a favor", standing.gf],
+        ["Empatados", standing.drawn],
+        ["Goles en contra", standing.ga],
+        ["Perdidos", standing.lost],
+        ["Diferencia de goles", standing.gd > 0 ? `+${standing.gd}` : standing.gd],
       ]
     : [];
 
@@ -91,16 +88,16 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-neutral-800 px-5 py-4">
           <div className="flex items-center gap-3">
-            <Flag team={team} className="h-6 w-9 shrink-0" />
+            <Flag team={team} className="h-9 w-14 shrink-0" />
             <div>
-              <h2 className="text-base font-semibold">{teamEs}</h2>
+              <h2 className="text-xl font-bold">{teamEs}</h2>
               {groupLabel && (
-                <p className="text-xs text-neutral-500">
+                <p className="text-sm text-neutral-400">
                   {groupLabel}
                   {position !== null && (
                     <>
                       {" · "}
-                      <span className="font-medium text-neutral-300">
+                      <span className="font-semibold text-neutral-200">
                         {position}° puesto
                       </span>
                     </>
@@ -126,15 +123,12 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                 Estadísticas
               </p>
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl bg-neutral-900 p-4">
                 {stats.map(([label, value]) => (
-                  <div
-                    key={String(label)}
-                    className="flex flex-col items-center gap-0.5 rounded-lg bg-neutral-900 py-2.5"
-                  >
-                    <span className="text-[10px] text-neutral-500">{label}</span>
+                  <div key={String(label)} className="flex items-center justify-between gap-2">
+                    <span className="text-sm text-neutral-400">{label}</span>
                     <span
-                      className={`text-sm font-bold tabular-nums ${label === "Puntos" ? "text-emerald-400" : ""}`}
+                      className={`text-base font-bold tabular-nums ${label === "Puntos" ? "text-emerald-400" : "text-neutral-100"}`}
                     >
                       {value}
                     </span>
@@ -153,22 +147,20 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
                 Partidos
               </p>
               {matches.map((match) => {
-                const locked = isPredictionLocked(match.kickoff_at);
-                const started = match.status === "live" || hasMatchStarted(match.kickoff_at);
                 const finished = match.status === "finished";
-                const canPredict = match.is_active && !locked;
+                const live = match.status === "live";
                 const homeEs = toSpanish(match.home_team);
                 const awayEs = toSpanish(match.away_team);
 
                 return (
                   <div key={match.id} className="rounded-xl border border-neutral-800 p-3">
-                    <div className="mb-3 flex items-center justify-between text-xs text-neutral-500">
+                    <div className="mb-2.5 flex items-center justify-between text-xs text-neutral-500">
                       <span>{fmtDate(match.kickoff_at)}</span>
                       {finished ? (
                         <span className="font-medium text-neutral-300">
                           Final {fmt(match.home_score, match.away_score)}
                         </span>
-                      ) : match.status === "live" ? (
+                      ) : live ? (
                         <span className="inline-flex items-center gap-1.5">
                           <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
                           <span className="font-medium text-red-400">EN VIVO</span>
@@ -183,46 +175,28 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
                             </span>
                           )}
                         </span>
-                      ) : started ? (
-                        <span>Empezó</span>
-                      ) : locked ? (
-                        <span className="text-neutral-500">Cerrado</span>
-                      ) : (
-                        <LockCountdown kickoffAt={match.kickoff_at} />
-                      )}
+                      ) : null}
                     </div>
 
-                    {canPredict ? (
-                      <PredictionForm
-                        matchId={match.id}
-                        homeTeam={homeEs}
-                        awayTeam={awayEs}
-                        isKnockout={false}
-                        initialHome={match.pred?.predicted_home ?? null}
-                        initialAway={match.pred?.predicted_away ?? null}
-                        initialWinner={null}
-                      />
-                    ) : (
-                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 text-sm">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <span className="text-right font-medium leading-tight">{homeEs}</span>
-                          <Flag team={match.home_team} className="shrink-0" />
-                        </div>
-                        <div className="flex flex-col items-center px-2">
-                          {match.pred ? (
-                            <span className="whitespace-nowrap text-xl font-bold tabular-nums text-neutral-200">
-                              {match.pred.predicted_home ?? "–"}{" – "}{match.pred.predicted_away ?? "–"}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-neutral-600">sin predicción</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <Flag team={match.away_team} className="shrink-0" />
-                          <span className="font-medium leading-tight">{awayEs}</span>
-                        </div>
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 text-sm">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-right font-medium leading-tight">{homeEs}</span>
+                        <Flag team={match.home_team} className="shrink-0" />
                       </div>
-                    )}
+                      <div className="px-3 text-center">
+                        {match.home_score !== null ? (
+                          <span className="text-xl font-bold tabular-nums text-neutral-200">
+                            {match.home_score} – {match.away_score}
+                          </span>
+                        ) : (
+                          <span className="text-neutral-600">vs</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Flag team={match.away_team} className="shrink-0" />
+                        <span className="font-medium leading-tight">{awayEs}</span>
+                      </div>
+                    </div>
                   </div>
                 );
               })}

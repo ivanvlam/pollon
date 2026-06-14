@@ -20,6 +20,8 @@ interface Props {
   initialAway: number | null;
   initialWinner: MatchWinner | null;
   onSaved?: (matchId: string, home: number, away: number, winner: MatchWinner | null) => void;
+  homeTeamEl?: React.ReactNode;
+  awayTeamEl?: React.ReactNode;
 }
 
 export function PredictionForm({
@@ -31,6 +33,8 @@ export function PredictionForm({
   initialAway,
   initialWinner,
   onSaved,
+  homeTeamEl,
+  awayTeamEl,
 }: Props) {
   const [home, setHome] = useState<string>(initialHome?.toString() ?? "");
   const [away, setAway] = useState<string>(initialAway?.toString() ?? "");
@@ -113,10 +117,10 @@ export function PredictionForm({
       <div className="flex items-center justify-between text-sm font-medium sm:hidden">
         <span className="flex items-center gap-1.5">
           <Flag team={homeTeam} className="shrink-0" />
-          <span className="truncate">{homeTeam}</span>
+          {homeTeamEl ?? <span className="truncate">{homeTeam}</span>}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="truncate">{awayTeam}</span>
+          {awayTeamEl ?? <span className="truncate">{awayTeam}</span>}
           <Flag team={awayTeam} className="shrink-0" />
         </span>
       </div>
@@ -124,9 +128,7 @@ export function PredictionForm({
       {/* Marcador estilo TV */}
       <div className="flex items-center justify-center gap-2 sm:gap-4">
         <div className="hidden min-w-0 flex-1 items-center justify-end gap-2 sm:flex">
-          <span className="truncate text-sm font-medium sm:text-base">
-            {homeTeam}
-          </span>
+          {homeTeamEl ?? <span className="truncate text-sm font-medium sm:text-base">{homeTeam}</span>}
           <Flag team={homeTeam} className="shrink-0" />
         </div>
 
@@ -150,9 +152,7 @@ export function PredictionForm({
 
         <div className="hidden min-w-0 flex-1 items-center gap-2 sm:flex">
           <Flag team={awayTeam} className="shrink-0" />
-          <span className="truncate text-sm font-medium sm:text-base">
-            {awayTeam}
-          </span>
+          {awayTeamEl ?? <span className="truncate text-sm font-medium sm:text-base">{awayTeam}</span>}
         </div>
       </div>
 

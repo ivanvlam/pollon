@@ -365,6 +365,8 @@ export function PredictionsClient({
                         setSavedMatchIds((prev) => new Set([...prev, id]));
                         setLocalPreds((prev) => new Map(prev).set(id, { home, away, winner }));
                       }}
+                      homeTeamEl={<TeamName team={match.home_team} className="truncate text-sm font-medium sm:text-base" />}
+                      awayTeamEl={<TeamName team={match.away_team} className="truncate text-sm font-medium sm:text-base" />}
                     />
                   ) : (
                     <div className="flex flex-col gap-4">
