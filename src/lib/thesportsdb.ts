@@ -57,7 +57,15 @@ interface SdbEvent {
   strStatus: string | null;
   strProgress: string | null;
   strGroup: string | null;
+  intRound: string | null;
 }
+
+// Número de ronda SDB → enum interno. Grupos: matchdays 1,2,3.
+const SDB_ROUND_TO_ROUND: Record<number, Round> = {
+  1: "group_stage", 2: "group_stage", 3: "group_stage",
+  32: "round_of_32", 16: "round_of_16", 125: "quarterfinal",
+  150: "semifinal", 200: "final",
+};
 
 const FINISHED = new Set(["FT", "AET", "PEN", "Match Finished"]);
 const LIVE = new Set(["1H", "2H", "HT", "ET", "BT", "P", "LIVE"]);
@@ -216,6 +224,43 @@ export async function fetchWorldCupFixtures(sdbRounds?: number[]): Promise<Exter
   // Deduplicar por external_id (por si un partido aparece en dos rondas).
   const byId = new Map<string, ExternalMatch>();
   for (const arr of perRound) {
+    for (const m of arr) byId.set(m.external_id, m);
+  }
+  return [...byId.values()];
+}
+
+/**
+ * Trae los partidos de fechas concretas (UTC, formato YYYY-MM-DD) vía
+ * eventsday. CLAVE para partidos en curso: eventsround.php devuelve un set
+ * cacheado e incompleto que omite partidos del día (ej. no incluye un
+ * partido que arrancó hoy), mientras eventsday trae todos los del día con
+ * marcador en vivo. La ronda se deriva de intRound; eventos con ronda
+ * desconocida se descartan.
+ */
+export async function fetchFixturesByDate(dates: string[]): Promise<ExternalMatch[]> {
+  const key = process.env.THESPORTSDB_KEY || "3";
+  const base = `https://www.thesportsdb.com/api/v1/json/${key}`;
+
+  const perDay = await Promise.all(
+    dates.map(async (d) => {
+      const res = await fetch(
+        `${base}/eventsday.php?d=${d}&l=${WORLD_CUP_LEAGUE_ID}`,
+        { cache: "no-store" },
+      );
+      if (!res.ok) return [];
+      const json = (await res.json()) as { events: SdbEvent[] | null };
+      return (json.events ?? [])
+        .map((ev) => {
+          const sdbRound = Number(ev.intRound);
+          const round = SDB_ROUND_TO_ROUND[sdbRound];
+          return round ? toExternal(ev, round, sdbRound) : null;
+        })
+        .filter((m): m is ExternalMatch => m !== null);
+    }),
+  );
+
+  const byId = new Map<string, ExternalMatch>();
+  for (const arr of perDay) {
     for (const m of arr) byId.set(m.external_id, m);
   }
   return [...byId.values()];

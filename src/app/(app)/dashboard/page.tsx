@@ -70,7 +70,7 @@ export default async function DashboardPage() {
     }, 0);
     if (latestRaw < Date.now() - STALE_MS) {
       try {
-        await syncLiveMatchesNow(rawLive.map((m) => ({ round: m.round, sdb_round: m.sdb_round })));
+        await syncLiveMatchesNow();
         // Re-fetch tras el sync para obtener datos frescos
         const { data: fresh } = await supabase
           .from("matches")

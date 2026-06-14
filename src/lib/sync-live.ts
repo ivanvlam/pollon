@@ -1,35 +1,23 @@
-import { fetchWorldCupFixtures } from "@/lib/thesportsdb";
+import { fetchFixturesByDate } from "@/lib/thesportsdb";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { recalculateMatchScores } from "@/lib/scoring-service";
 
-const ROUND_TO_SDB: Record<string, number> = {
-  round_of_32: 32,
-  round_of_16: 16,
-  quarterfinal: 125,
-  semifinal: 150,
-  final: 200,
-};
-
 /**
- * Sincroniza partidos live directamente desde TheSportsDB.
+ * Sincroniza partidos live directamente desde TheSportsDB por FECHA (eventsday).
  * Llamada desde el dashboard cuando detecta datos más antiguos que el umbral.
- * Evita depender del cron cuando cron-job.org no dispara.
+ * Evita depender del cron cuando cron-job.org no dispara. Usa eventsday (no
+ * eventsround) porque este último devuelve un set incompleto que omite partidos
+ * del día en curso.
  */
-export async function syncLiveMatchesNow(
-  liveMatches: Array<{ round: string; sdb_round: number | null }>,
-): Promise<void> {
-  const sdbSet = new Set<number>();
-  for (const m of liveMatches) {
-    if (m.sdb_round != null) sdbSet.add(m.sdb_round);
-    else if (m.round === "group_stage") [1, 2, 3].forEach((r) => sdbSet.add(r));
-    else {
-      const derived = ROUND_TO_SDB[m.round];
-      if (derived) sdbSet.add(derived);
-    }
-  }
+export async function syncLiveMatchesNow(): Promise<void> {
+  // Hoy y ayer en UTC: cubre un partido que arrancó antes de medianoche UTC.
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const dates = [
+    ...new Set([now.toISOString().slice(0, 10), yesterday.toISOString().slice(0, 10)]),
+  ];
 
-  const sdbRounds = sdbSet.size > 0 ? [...sdbSet] : undefined;
-  const fixtures = await fetchWorldCupFixtures(sdbRounds);
+  const fixtures = await fetchFixturesByDate(dates);
   if (fixtures.length === 0) return;
 
   const supabase = createServiceRoleClient();

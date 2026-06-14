@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { fetchWorldCupFixtures } from "@/lib/thesportsdb";
+import { fetchFixturesByDate, fetchWorldCupFixtures } from "@/lib/thesportsdb";
 import { verifyCronSecret } from "@/lib/cron";
 import { recalculateMatchScores } from "@/lib/scoring-service";
 import { createServiceRoleClient } from "@/lib/supabase/server";
@@ -47,30 +47,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, synced: 0, skipped: true });
   }
 
-  // Pedimos SOLO las sub-rondas SDB realmente en juego (1 request típico en
-  // grupos) en vez de expandir siempre a [1,2,3]. Fallback a [1,2,3] si alguna
-  // fila de grupos todavía no tiene sdb_round (primer sync post-migración).
-  // Para eliminatorias sin sdb_round, derivamos el número desde el campo round.
-  const ROUND_TO_SDB: Record<string, number> = {
-    round_of_32: 32, round_of_16: 16, quarterfinal: 125, semifinal: 150, final: 200,
-  };
-  const sdbSet = new Set<number>();
-  let groupNeedsFallback = false;
-  for (const m of activeMatches) {
-    if (m.sdb_round != null) sdbSet.add(m.sdb_round);
-    else if (m.round === "group_stage") groupNeedsFallback = true;
-    else {
-      const derived = ROUND_TO_SDB[m.round];
-      if (derived) sdbSet.add(derived);
-    }
-  }
-  if (groupNeedsFallback) [1, 2, 3].forEach((r) => sdbSet.add(r));
-  // Bootstrap o sin rondas identificadas: pedir todo. Normal: solo las activas.
-  const sdbRounds = isBootstrap || sdbSet.size === 0 ? undefined : [...sdbSet];
+  // Sync normal: pedimos por FECHA (eventsday), no por ronda (eventsround).
+  // eventsround.php devuelve un set cacheado e incompleto que omite partidos
+  // del día en curso (ej. un partido que arrancó hoy no aparece), por lo que
+  // nunca se sincronizaba y nunca se marcaba 'live'. eventsday trae todos los
+  // partidos de la fecha con marcador en vivo. La ventana abarca a lo sumo dos
+  // fechas UTC (rango de ~6h), así que es 1-2 requests por corrida.
+  // Bootstrap (DB vacía): fetch del fixture completo por ronda.
+  const windowDates = [
+    ...new Set([windowStart.slice(0, 10), windowEnd.slice(0, 10)]),
+  ];
 
   let fixtures;
   try {
-    fixtures = await fetchWorldCupFixtures(sdbRounds);
+    fixtures = isBootstrap
+      ? await fetchWorldCupFixtures()
+      : await fetchFixturesByDate(windowDates);
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "api error" },
