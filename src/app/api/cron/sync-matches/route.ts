@@ -50,15 +50,23 @@ export async function GET(request: NextRequest) {
   // Pedimos SOLO las sub-rondas SDB realmente en juego (1 request típico en
   // grupos) en vez de expandir siempre a [1,2,3]. Fallback a [1,2,3] si alguna
   // fila de grupos todavía no tiene sdb_round (primer sync post-migración).
+  // Para eliminatorias sin sdb_round, derivamos el número desde el campo round.
+  const ROUND_TO_SDB: Record<string, number> = {
+    round_of_32: 32, round_of_16: 16, quarterfinal: 125, semifinal: 150, final: 200,
+  };
   const sdbSet = new Set<number>();
   let groupNeedsFallback = false;
   for (const m of activeMatches) {
     if (m.sdb_round != null) sdbSet.add(m.sdb_round);
     else if (m.round === "group_stage") groupNeedsFallback = true;
+    else {
+      const derived = ROUND_TO_SDB[m.round];
+      if (derived) sdbSet.add(derived);
+    }
   }
   if (groupNeedsFallback) [1, 2, 3].forEach((r) => sdbSet.add(r));
-  // Bootstrap: pedir todas las rondas. Normal: solo las activas.
-  const sdbRounds = isBootstrap ? undefined : [...sdbSet];
+  // Bootstrap o sin rondas identificadas: pedir todo. Normal: solo las activas.
+  const sdbRounds = isBootstrap || sdbSet.size === 0 ? undefined : [...sdbSet];
 
   let fixtures;
   try {
