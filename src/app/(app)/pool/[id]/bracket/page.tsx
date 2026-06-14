@@ -405,13 +405,13 @@ function R32Card({
 
 function SlotRow({ team, label }: { team: string | null; label: string }) {
   return team ? (
-    <div className="flex items-center gap-1 text-neutral-100">
+    <div className="flex min-h-[20px] items-center gap-1 text-neutral-100">
       <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
       <span className="min-w-0 flex-1 truncate font-medium">{toSpanish(team)}</span>
       <span className="shrink-0 text-[10px] text-neutral-500">{label}</span>
     </div>
   ) : (
-    <div className="truncate text-xs text-neutral-500">{label}</div>
+    <div className="flex min-h-[20px] items-center text-xs text-neutral-500">{label}</div>
   );
 }
 
