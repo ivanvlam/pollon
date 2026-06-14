@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
 }
 
 // ─── Geometry ─────────────────────────────────────────────────────────────────
-const SLOT_H   = 84;
+const SLOT_H   = 96;
 const TOTAL_H  = 16 * SLOT_H;
 const CARD_W   = 264;
 const STUB_W   = 20;
@@ -190,7 +190,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400 border-b border-neutral-800 pb-2">
             Dieciseisavos
           </h2>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {R32_DEFS.map((def, i) => {
               const dbM = r32Matches[i] ?? null;
               const date = dbM ? dateFmt.format(new Date(dbM.kickoff_at)) : null;
@@ -391,13 +391,13 @@ function R32Card({
   awayTeam: string | null; awayLabel: string;
 }) {
   return (
-    <div className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-2.5 py-2 text-xs shadow-md">
+    <div className="w-full rounded-lg border border-neutral-800 bg-neutral-900/80 px-2.5 py-2 text-xs">
       <div className="mb-1.5 flex items-center justify-between text-xs text-neutral-400">
         <span className="font-medium">Partido {matchNum}</span>
         {date && <span className="text-neutral-500">{date}</span>}
       </div>
       <SlotRow team={homeTeam} label={homeLabel} />
-      <div className="my-1 border-t border-neutral-700" />
+      <div className="my-1 border-t border-neutral-800" />
       <SlotRow team={awayTeam} label={awayLabel} />
     </div>
   );
@@ -439,14 +439,14 @@ function RealCard({
   return (
     <Link
       href={`/pool/${poolId}/predictions#m-${match.id}`}
-      className="block w-full rounded-lg border border-neutral-600 bg-neutral-800 px-2.5 py-2 text-xs shadow-md transition hover:border-neutral-400 hover:bg-neutral-700"
+      className="block w-full rounded-lg border border-neutral-800 bg-neutral-900/80 px-2.5 py-2 text-xs transition hover:border-neutral-700 hover:bg-neutral-800/60"
     >
       <div className="mb-1.5 flex items-center justify-between text-xs text-neutral-400">
         <span className="font-medium">Partido {matchNum}</span>
         <span className="text-neutral-500">{dateFmt.format(new Date(match.kickoff_at))}</span>
       </div>
       <TeamRow team={match.home_team} value={homeVal} win={winner === "home"} />
-      <div className="my-1 border-t border-neutral-700" />
+      <div className="my-1 border-t border-neutral-800" />
       <TeamRow team={match.away_team} value={awayVal} win={winner === "away"} />
       <p className="mt-1 text-[10px] text-neutral-500">
         {finished ? "Resultado" : pred ? "Tu pronóstico" : "Sin pronóstico"}
@@ -470,10 +470,10 @@ function TeamRow({ team, value, win }: { team: string; value: number | null; win
 // ─── Placeholder card (later rounds, no match yet) ────────────────────────────
 function PlaceholderCard({ matchNum, homeFeeder, awayFeeder }: { matchNum: number; homeFeeder: number; awayFeeder: number }) {
   return (
-    <div className="w-full rounded-lg border border-dashed border-neutral-700 bg-neutral-800/60 px-2.5 py-2 text-xs shadow-sm">
-      <div className="mb-1.5 text-xs font-medium text-neutral-500">Partido {matchNum}</div>
+    <div className="w-full rounded-lg border border-dashed border-neutral-800 bg-neutral-900/40 px-2.5 py-2 text-xs">
+      <div className="mb-1.5 text-xs font-medium text-neutral-600">Partido {matchNum}</div>
       <PlaceholderRow feeder={homeFeeder} />
-      <div className="my-1 border-t border-neutral-700" />
+      <div className="my-1 border-t border-neutral-800" />
       <PlaceholderRow feeder={awayFeeder} />
     </div>
   );
