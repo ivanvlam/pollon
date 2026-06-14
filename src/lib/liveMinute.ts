@@ -2,8 +2,8 @@
 // gratuita no da el minuto (strProgress) pero sí la fase, así que mostramos
 // "1ª mitad" / "2ª mitad" / etc. en vez del código crudo.
 const PHASE_LABELS: Record<string, string> = {
-  "1H": "1ª mitad",
-  "2H": "2ª mitad",
+  "1H": "Primer Tiempo",
+  "2H": "Segundo Tiempo",
   HT: "Entretiempo",
   ET: "Alargue",
   BT: "Descanso alargue",
@@ -37,9 +37,9 @@ export function estimateLivePhase(kickoffAt: string | null | undefined): string 
   if (!kickoffAt) return null;
   const elapsedMin = (Date.now() - new Date(kickoffAt).getTime()) / 60_000;
   if (elapsedMin < 0) return null;
-  if (elapsedMin < 47) return "1ª mitad";
+  if (elapsedMin < 47) return "Primer Tiempo";
   if (elapsedMin < 62) return "Entretiempo";
-  if (elapsedMin < 115) return "2ª mitad";
+  if (elapsedMin < 115) return "Segundo Tiempo";
   return null;
 }
 
