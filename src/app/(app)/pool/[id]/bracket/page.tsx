@@ -3,8 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Flag } from "@/components/Flag";
+import type { GroupMatchRow } from "@/components/GroupCard";
+import { BracketGroupLabel, type GroupModalData } from "@/components/BracketGroupLabel";
 import { toSpanish } from "@/lib/teamNames";
 import { createClient } from "@/lib/supabase/server";
+import { computeGroupStandings } from "@/lib/standings";
 import type { MatchWinner, Round } from "@/types";
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
@@ -75,31 +78,6 @@ function getFeeder(si: number, i: number): [number, number] {
   return [101, 102];
 }
 
-// ─── Group standings helper ───────────────────────────────────────────────────
-function computeStandings(
-  ms: { home_team: string; away_team: string; home_score: number | null; away_score: number | null; status: string }[]
-): string[] {
-  const s = new Map<string, { p: number; gf: number; ga: number }>();
-  const get = (t: string) => { if (!s.has(t)) s.set(t, { p: 0, gf: 0, ga: 0 }); return s.get(t)!; };
-  for (const m of ms) {
-    get(m.home_team); get(m.away_team);
-    if (m.status !== "finished" || m.home_score === null || m.away_score === null) continue;
-    const h = get(m.home_team), a = get(m.away_team);
-    h.gf += m.home_score; h.ga += m.away_score;
-    a.gf += m.away_score; a.ga += m.home_score;
-    if (m.home_score > m.away_score) h.p += 3;
-    else if (m.home_score < m.away_score) a.p += 3;
-    else { h.p++; a.p++; }
-  }
-  return [...s.entries()]
-    .sort(([, a], [, b]) => {
-      if (b.p !== a.p) return b.p - a.p;
-      const gdB = b.gf - b.ga, gdA = a.gf - a.ga;
-      if (gdB !== gdA) return gdB - gdA;
-      return b.gf - a.gf;
-    })
-    .map(([t]) => t);
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default async function BracketPage({ params }: { params: { id: string } }) {
@@ -111,7 +89,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
     await Promise.all([
       supabase.from("pools").select("id, name").eq("id", params.id).maybeSingle(),
       supabase.from("matches")
-        .select("group_name, home_team, away_team, home_score, away_score, status")
+        .select("id, group_name, home_team, away_team, kickoff_at, home_score, away_score, status, is_active, live_minute")
         .eq("round", "group_stage"),
       supabase.from("matches")
         .select("id, round, home_team, away_team, kickoff_at, status, home_score, away_score, winner")
@@ -135,9 +113,24 @@ export default async function BracketPage({ params }: { params: { id: string } }
     groupsMap.get(key)!.push(m);
   }
   const groupLeaders: Record<string, { winner: string | null; runnerUp: string | null }> = {};
+  const groupModalDataMap = new Map<string, GroupModalData>();
   for (const [g, ms] of groupsMap) {
-    const sorted = computeStandings(ms);
-    groupLeaders[g] = { winner: sorted[0] ?? null, runnerUp: sorted[1] ?? null };
+    const standings = computeGroupStandings(ms);
+    groupLeaders[g] = { winner: standings[0]?.team ?? null, runnerUp: standings[1]?.team ?? null };
+    const modalMatches: GroupMatchRow[] = ms.map((m) => ({
+      id: m.id,
+      home_team: m.home_team,
+      away_team: m.away_team,
+      kickoff_at: m.kickoff_at,
+      status: m.status,
+      home_score: m.home_score,
+      away_score: m.away_score,
+      live_minute: m.live_minute,
+      is_active: m.is_active,
+      pred: null,
+      myPoints: undefined,
+    }));
+    groupModalDataMap.set(g, { groupName: `Grupo ${g}`, standings, matches: modalMatches });
   }
 
   const resolveTeam = (s: SlotDef): string | null => {
@@ -148,6 +141,10 @@ export default async function BracketPage({ params }: { params: { id: string } }
   const slotLabel = (s: SlotDef): string => {
     if (s.type === "best_third") return `Mejor 3° (${s.from.join("/")})`;
     return s.type === "winner" ? `1° Grupo ${s.group}` : `2° Grupo ${s.group}`;
+  };
+  const getGroupData = (s: SlotDef): GroupModalData | null => {
+    if (s.type === "best_third") return null;
+    return groupModalDataMap.get(s.group) ?? null;
   };
 
   // ── R32 matches from DB (for date/time) ──────────────────────────────────
@@ -201,8 +198,10 @@ export default async function BracketPage({ params }: { params: { id: string } }
                   date={date}
                   homeTeam={resolveTeam(def.home)}
                   homeLabel={slotLabel(def.home)}
+                  homeGroupData={getGroupData(def.home)}
                   awayTeam={resolveTeam(def.away)}
                   awayLabel={slotLabel(def.away)}
+                  awayGroupData={getGroupData(def.away)}
                 />
               );
             })}
@@ -288,8 +287,10 @@ export default async function BracketPage({ params }: { params: { id: string } }
                   date={date}
                   homeTeam={resolveTeam(def.home)}
                   homeLabel={slotLabel(def.home)}
+                  homeGroupData={getGroupData(def.home)}
                   awayTeam={resolveTeam(def.away)}
                   awayLabel={slotLabel(def.away)}
+                  awayGroupData={getGroupData(def.away)}
                 />
               </div>
             );
@@ -384,11 +385,13 @@ export default async function BracketPage({ params }: { params: { id: string } }
 
 // ─── R32 card ─────────────────────────────────────────────────────────────────
 function R32Card({
-  matchNum, date, homeTeam, homeLabel, awayTeam, awayLabel,
+  matchNum, date,
+  homeTeam, homeLabel, homeGroupData,
+  awayTeam, awayLabel, awayGroupData,
 }: {
   matchNum: number; date: string | null;
-  homeTeam: string | null; homeLabel: string;
-  awayTeam: string | null; awayLabel: string;
+  homeTeam: string | null; homeLabel: string; homeGroupData: GroupModalData | null;
+  awayTeam: string | null; awayLabel: string; awayGroupData: GroupModalData | null;
 }) {
   return (
     <div className="w-full rounded-lg border border-neutral-800 bg-neutral-900/80 px-2.5 py-2 text-xs">
@@ -396,22 +399,37 @@ function R32Card({
         <span className="font-medium">Partido {matchNum}</span>
         {date && <span className="text-neutral-500">{date}</span>}
       </div>
-      <SlotRow team={homeTeam} label={homeLabel} />
+      <SlotRow team={homeTeam} label={homeLabel} groupData={homeGroupData} />
       <div className="my-1 border-t border-neutral-800" />
-      <SlotRow team={awayTeam} label={awayLabel} />
+      <SlotRow team={awayTeam} label={awayLabel} groupData={awayGroupData} />
     </div>
   );
 }
 
-function SlotRow({ team, label }: { team: string | null; label: string }) {
+function SlotRow({
+  team, label, groupData,
+}: {
+  team: string | null;
+  label: string;
+  groupData: GroupModalData | null;
+}) {
+  const labelEl = groupData ? (
+    <BracketGroupLabel
+      label={label}
+      groupName={groupData.groupName}
+      standings={groupData.standings}
+      matches={groupData.matches}
+    />
+  ) : label;
+
   return team ? (
     <div className="flex min-h-[20px] items-center gap-1 text-neutral-100">
       <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
       <span className="min-w-0 flex-1 truncate font-medium">{toSpanish(team)}</span>
-      <span className="shrink-0 text-[10px] text-neutral-500">{label}</span>
+      <span className="shrink-0 text-[10px] text-neutral-500">{labelEl}</span>
     </div>
   ) : (
-    <div className="flex min-h-[20px] items-center text-xs text-neutral-500">{label}</div>
+    <div className="flex min-h-[20px] items-center text-xs text-neutral-500">{labelEl}</div>
   );
 }
 
