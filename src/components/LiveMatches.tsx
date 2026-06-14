@@ -119,14 +119,15 @@ export function LiveMatches({
                 </div>
               </div>
 
-              {/* Predicción + puntos provisionales */}
-              <div className="mt-2.5 flex items-center justify-center gap-2 text-xs">
-                {hasPred ? (
-                  <>
-                    <span className="text-neutral-500">Tu predicción:</span>
-                    <span className="font-medium text-neutral-200">
-                      {m.pred!.predicted_home}-{m.pred!.predicted_away}
-                    </span>
+              {/* Predicción + puntos provisionales. Mismo grid que el marcador
+                  para que el "-" de la predicción quede alineado con el "–". */}
+              {hasPred ? (
+                <div className="mt-2.5 grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 text-xs">
+                  <span className="text-right text-neutral-500">Tu predicción:</span>
+                  <span className="px-2 font-medium tabular-nums text-neutral-200">
+                    {m.pred!.predicted_home}-{m.pred!.predicted_away}
+                  </span>
+                  <span className="justify-self-start">
                     {liveScore ? (
                       <span className="animate-pulse rounded bg-emerald-500/15 px-1.5 py-0.5 font-medium text-emerald-400">
                         +{liveScore.points} puntos
@@ -134,13 +135,13 @@ export function LiveMatches({
                     ) : (
                       <span className="text-neutral-600">· 0 puntos</span>
                     )}
-                  </>
-                ) : (
-                  <span className="text-neutral-600">
-                    No predijiste este partido
                   </span>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="mt-2.5 text-center text-xs text-neutral-600">
+                  No predijiste este partido
+                </div>
+              )}
             </>
           );
 
