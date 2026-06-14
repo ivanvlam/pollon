@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Flag } from "@/components/Flag";
 import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
 import { TeamName } from "@/components/TeamName";
-import { formatLiveMinute } from "@/lib/liveMinute";
+import { liveProgressLabel } from "@/lib/liveMinute";
 import { calculateMatchScore } from "@/lib/scoring";
 import type { MatchWinner, Round } from "@/types";
 
@@ -17,6 +17,7 @@ export interface LiveMatchRow {
   home_score: number | null;
   away_score: number | null;
   live_minute: string | null;
+  kickoff_at: string;
   pred: {
     predicted_home: number | null;
     predicted_away: number | null;
@@ -54,7 +55,7 @@ export function LiveMatches({
 
       <ul className="flex flex-col gap-3">
         {matches.map((m) => {
-          const minute = formatLiveMinute(m.live_minute);
+          const minute = liveProgressLabel(m.live_minute, m.kickoff_at);
           const hasPred =
             m.pred !== null &&
             m.pred.predicted_home !== null &&

@@ -235,38 +235,29 @@ export async function fetchWorldCupFixtures(sdbRounds?: number[]): Promise<Exter
 }
 
 /**
- * Trae los partidos de fechas concretas (UTC, formato YYYY-MM-DD) vía
- * eventsday. CLAVE para partidos en curso: eventsround.php devuelve un set
- * cacheado e incompleto que omite partidos del día (ej. no incluye un
- * partido que arrancó hoy), mientras eventsday trae todos los del día con
- * marcador en vivo. La ronda se deriva de intRound; eventos con ronda
- * desconocida se descartan.
+ * Trae partidos puntuales por su idEvent (lookupevent). La forma MÁS confiable
+ * de obtener el estado en vivo con la clave gratuita: tanto eventsround como
+ * eventsday devuelven sets incompletos que omiten partidos en curso (ej.
+ * Holanda-Japón aparece en lookupevent con status '1H' pero NO en eventsday).
+ * Como ya tenemos todos los partidos en la DB, consultamos solo los external_id
+ * que nos interesan (los de la ventana activa) → 1 request por partido.
  */
-export async function fetchFixturesByDate(dates: string[]): Promise<ExternalMatch[]> {
+export async function fetchEventsByIds(ids: string[]): Promise<ExternalMatch[]> {
   const key = process.env.THESPORTSDB_KEY || "3";
   const base = `https://www.thesportsdb.com/api/v1/json/${key}`;
 
-  const perDay = await Promise.all(
-    dates.map(async (d) => {
-      const res = await fetch(
-        `${base}/eventsday.php?d=${d}&l=${WORLD_CUP_LEAGUE_ID}`,
-        { cache: "no-store" },
-      );
-      if (!res.ok) return [];
+  const results = await Promise.all(
+    ids.map(async (id) => {
+      const res = await fetch(`${base}/lookupevent.php?id=${id}`, { cache: "no-store" });
+      if (!res.ok) return null;
       const json = (await res.json()) as { events: SdbEvent[] | null };
-      return (json.events ?? [])
-        .map((ev) => {
-          const sdbRound = Number(ev.intRound);
-          const round = SDB_ROUND_TO_ROUND[sdbRound];
-          return round ? toExternal(ev, round, sdbRound) : null;
-        })
-        .filter((m): m is ExternalMatch => m !== null);
+      const ev = json.events?.[0];
+      if (!ev) return null;
+      const sdbRound = Number(ev.intRound);
+      const round = SDB_ROUND_TO_ROUND[sdbRound];
+      return round ? toExternal(ev, round, sdbRound) : null;
     }),
   );
 
-  const byId = new Map<string, ExternalMatch>();
-  for (const arr of perDay) {
-    for (const m of arr) byId.set(m.external_id, m);
-  }
-  return [...byId.values()];
+  return results.filter((m): m is ExternalMatch => m !== null);
 }

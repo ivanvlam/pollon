@@ -11,7 +11,7 @@ import { TeamName } from "@/components/TeamName";
 import { Card } from "@/components/ui/Card";
 import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
 import { REASON_LABELS, ROUND_LABELS } from "@/lib/labels";
-import { formatLiveMinute } from "@/lib/liveMinute";
+import { liveProgressLabel } from "@/lib/liveMinute";
 import { calculateMatchScore, type MatchScore } from "@/lib/scoring";
 import { toSpanish } from "@/lib/teamNames";
 import { hasMatchStarted, isPredictionLocked } from "@/lib/timing";
@@ -332,9 +332,9 @@ export function PredictionsClient({
                           <span className="text-neutral-200">
                             {match.home_score ?? 0}-{match.away_score ?? 0}
                           </span>
-                          {formatLiveMinute(match.live_minute) && (
+                          {liveProgressLabel(match.live_minute, match.kickoff_at) && (
                             <span className="text-neutral-400">
-                              {formatLiveMinute(match.live_minute)}
+                              {liveProgressLabel(match.live_minute, match.kickoff_at)}
                             </span>
                           )}
                         </span>

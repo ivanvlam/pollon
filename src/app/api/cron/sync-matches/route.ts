@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { fetchFixturesByDate, fetchWorldCupFixtures } from "@/lib/thesportsdb";
+import { fetchEventsByIds, fetchWorldCupFixtures } from "@/lib/thesportsdb";
 import { verifyCronSecret } from "@/lib/cron";
 import { recalculateMatchScores } from "@/lib/scoring-service";
 import { createServiceRoleClient } from "@/lib/supabase/server";
@@ -31,38 +31,35 @@ export async function GET(request: NextRequest) {
 
   const [{ count: totalMatches }, { data: liveMatches }, { data: windowMatches }] = await Promise.all([
     supabase.from("matches").select("*", { count: "exact", head: true }),
-    supabase.from("matches").select("round, sdb_round").eq("status", "live"),
-    supabase.from("matches").select("round, sdb_round")
+    supabase.from("matches").select("external_id").eq("status", "live"),
+    supabase.from("matches").select("external_id")
       .gte("kickoff_at", windowStart)
       .lte("kickoff_at", windowEnd)
       .neq("status", "finished"),
   ]);
 
   const activeMatches = [...(liveMatches ?? []), ...(windowMatches ?? [])];
+  const windowIds = [...new Set(activeMatches.map((m) => m.external_id))];
 
   // Si no hay partidos en la DB (primera carga), fetchear todo el fixture.
   // Si hay partidos pero ninguno en ventana activa, salir sin llamar a la API.
   const isBootstrap = (totalMatches ?? 0) === 0;
-  if (!isBootstrap && activeMatches.length === 0) {
+  if (!isBootstrap && windowIds.length === 0) {
     return NextResponse.json({ ok: true, synced: 0, skipped: true });
   }
 
-  // Sync normal: pedimos por FECHA (eventsday), no por ronda (eventsround).
-  // eventsround.php devuelve un set cacheado e incompleto que omite partidos
-  // del día en curso (ej. un partido que arrancó hoy no aparece), por lo que
-  // nunca se sincronizaba y nunca se marcaba 'live'. eventsday trae todos los
-  // partidos de la fecha con marcador en vivo. La ventana abarca a lo sumo dos
-  // fechas UTC (rango de ~6h), así que es 1-2 requests por corrida.
+  // Sync normal: consultamos cada partido de la ventana por su external_id
+  // (lookupevent), NO por ronda ni por fecha. eventsround y eventsday devuelven
+  // sets incompletos que omiten partidos en curso (ej. Holanda-Japón está en
+  // lookupevent con status '1H' pero NO en eventsday), por lo que el partido
+  // quedaba "live" congelado: sin refrescar score, fase ni updated_at. Como ya
+  // tenemos los partidos en la DB, pedir por id es confiable (1 req c/u).
   // Bootstrap (DB vacía): fetch del fixture completo por ronda.
-  const windowDates = [
-    ...new Set([windowStart.slice(0, 10), windowEnd.slice(0, 10)]),
-  ];
-
   let fixtures;
   try {
     fixtures = isBootstrap
       ? await fetchWorldCupFixtures()
-      : await fetchFixturesByDate(windowDates);
+      : await fetchEventsByIds(windowIds);
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "api error" },

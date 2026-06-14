@@ -53,7 +53,7 @@ export default async function DashboardPage() {
       .maybeSingle(),
     supabase
       .from("matches")
-      .select("id, round, sdb_round, home_team, away_team, home_score, away_score, live_minute, updated_at")
+      .select("id, round, sdb_round, home_team, away_team, home_score, away_score, live_minute, kickoff_at, updated_at")
       .eq("status", "live")
       .order("kickoff_at", { ascending: true }),
   ]);
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
         // Re-fetch tras el sync para obtener datos frescos
         const { data: fresh } = await supabase
           .from("matches")
-          .select("id, round, sdb_round, home_team, away_team, home_score, away_score, live_minute, updated_at")
+          .select("id, round, sdb_round, home_team, away_team, home_score, away_score, live_minute, kickoff_at, updated_at")
           .eq("status", "live")
           .order("kickoff_at", { ascending: true });
         liveMatches = fresh;
@@ -115,6 +115,7 @@ export default async function DashboardPage() {
     home_score: m.home_score,
     away_score: m.away_score,
     live_minute: m.live_minute,
+    kickoff_at: m.kickoff_at,
     pred: predByLiveMatch.get(m.id) ?? null,
   }));
 
