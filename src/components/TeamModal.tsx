@@ -123,7 +123,7 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                 Estadísticas
               </p>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl bg-neutral-900 p-4">
+              <div className="grid grid-cols-2 gap-x-12 gap-y-3 rounded-xl bg-neutral-900 p-4">
                 {stats.map(([label, value]) => (
                   <div key={String(label)} className="flex items-center justify-between gap-2">
                     <span className="text-sm text-neutral-400">{label}</span>
