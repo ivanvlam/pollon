@@ -34,9 +34,6 @@ interface Props {
   onClose: () => void;
 }
 
-const fmt = (h: number | null, a: number | null) =>
-  h === null || a === null ? "– – –" : `${h} – ${a}`;
-
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
   const day = d.toLocaleDateString("es", { day: "numeric", month: "short" });
@@ -160,11 +157,6 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
                         <span className="inline-flex items-center gap-1.5">
                           <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
                           <span className="font-medium text-red-400">EN VIVO</span>
-                          {match.home_score !== null && match.away_score !== null && (
-                            <span className="text-neutral-200">
-                              {fmt(match.home_score, match.away_score)}
-                            </span>
-                          )}
                           {formatLiveMinute(match.live_minute) && (
                             <span className="text-neutral-400">
                               {formatLiveMinute(match.live_minute)}
@@ -180,9 +172,9 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
                         <Flag team={match.home_team} className="shrink-0" />
                       </div>
                       <div className="px-3 text-center">
-                        {match.home_score !== null ? (
+                        {live || match.home_score !== null ? (
                           <span className="text-xl font-bold tabular-nums text-neutral-200">
-                            {match.home_score} – {match.away_score}
+                            {match.home_score ?? 0} – {match.away_score ?? 0}
                           </span>
                         ) : (
                           <span className="text-neutral-600">vs</span>
