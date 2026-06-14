@@ -68,14 +68,14 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
 
   const stats = standing
     ? [
-        ["PJ", standing.played],
-        ["PG", standing.won],
-        ["PE", standing.drawn],
-        ["PP", standing.lost],
-        ["GF", standing.gf],
-        ["GC", standing.ga],
-        ["DG", standing.gd > 0 ? `+${standing.gd}` : standing.gd],
-        ["Pts", standing.points],
+        ["Jugados", standing.played],
+        ["Ganados", standing.won],
+        ["Empatados", standing.drawn],
+        ["Perdidos", standing.lost],
+        ["A favor", standing.gf],
+        ["En contra", standing.ga],
+        ["Diferencia", standing.gd > 0 ? `+${standing.gd}` : standing.gd],
+        ["Puntos", standing.points],
       ]
     : [];
 
@@ -85,7 +85,7 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-neutral-700 bg-neutral-950 sm:rounded-2xl"
+        className="flex max-h-[85dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl border border-neutral-700 bg-neutral-950 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -134,7 +134,7 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
                   >
                     <span className="text-[10px] text-neutral-500">{label}</span>
                     <span
-                      className={`text-sm font-bold tabular-nums ${label === "Pts" ? "text-emerald-400" : ""}`}
+                      className={`text-sm font-bold tabular-nums ${label === "Puntos" ? "text-emerald-400" : ""}`}
                     >
                       {value}
                     </span>
@@ -203,35 +203,23 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
                         initialWinner={null}
                       />
                     ) : (
-                      <div className="text-sm">
-                        <div className="mb-2 flex items-center justify-between font-medium sm:hidden">
-                          <span className="flex items-center gap-1.5">
-                            <Flag team={match.home_team} className="shrink-0" />
-                            <span className="truncate">{homeEs}</span>
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            <span className="truncate">{awayEs}</span>
-                            <Flag team={match.away_team} className="shrink-0" />
-                          </span>
+                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 text-sm">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="text-right font-medium leading-tight">{homeEs}</span>
+                          <Flag team={match.home_team} className="shrink-0" />
                         </div>
-                        <div className="flex justify-center sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-x-1">
-                          <div className="hidden items-center justify-end gap-1.5 sm:flex">
-                            <span className="truncate text-right">{homeEs}</span>
-                            <Flag team={match.home_team} className="shrink-0" />
-                          </div>
-                          <div className="flex flex-col items-center px-2">
-                            {match.pred ? (
-                              <span className="whitespace-nowrap text-xl font-bold tabular-nums text-neutral-200">
-                                {match.pred.predicted_home ?? "–"}{" – "}{match.pred.predicted_away ?? "–"}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-neutral-600">sin predicción</span>
-                            )}
-                          </div>
-                          <div className="hidden items-center gap-1.5 sm:flex">
-                            <Flag team={match.away_team} className="shrink-0" />
-                            <span className="truncate">{awayEs}</span>
-                          </div>
+                        <div className="flex flex-col items-center px-2">
+                          {match.pred ? (
+                            <span className="whitespace-nowrap text-xl font-bold tabular-nums text-neutral-200">
+                              {match.pred.predicted_home ?? "–"}{" – "}{match.pred.predicted_away ?? "–"}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-neutral-600">sin predicción</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Flag team={match.away_team} className="shrink-0" />
+                          <span className="font-medium leading-tight">{awayEs}</span>
                         </div>
                       </div>
                     )}
