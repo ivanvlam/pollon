@@ -119,9 +119,9 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Estadísticas</h1>
-        <Link href={`/pool/${pool.id}`} className="text-sm text-neutral-400 hover:text-white">
+      <header className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Estadísticas de la polla</h1>
+        <Link href={`/pool/${pool.id}`} className="shrink-0 text-sm text-neutral-400 hover:text-white">
           ← Volver al ranking
         </Link>
       </header>
@@ -134,7 +134,6 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
         <>
           {/* Récords */}
           <section className="flex flex-col gap-4">
-            <h2 className="text-lg font-semibold">Récords de la polla</h2>
             <div className="grid gap-3 sm:grid-cols-3">
               <RecordCard
                 emoji="🔥"
