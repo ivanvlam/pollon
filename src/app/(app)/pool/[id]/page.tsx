@@ -157,6 +157,12 @@ export default async function PoolRankingPage({
         >
           Historial
         </Link>
+        <Link
+          href={`/pool/${pool.id}/estadisticas`}
+          className={buttonClasses("secondary", "sm")}
+        >
+          Estadísticas
+        </Link>
       </nav>
 
       <section>
