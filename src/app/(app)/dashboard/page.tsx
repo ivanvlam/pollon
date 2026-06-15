@@ -205,10 +205,10 @@ export default async function DashboardPage() {
                     href={`/pool/${pool.id}`}
                     className="block rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 transition hover:border-neutral-600"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{pool.name}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 truncate font-medium">{pool.name}</span>
                       {pool.created_by === uid && (
-                        <span className="text-xs text-neutral-500">Creador</span>
+                        <span className="shrink-0 text-xs text-neutral-500">Creador</span>
                       )}
                     </div>
 

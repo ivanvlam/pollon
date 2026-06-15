@@ -381,9 +381,9 @@ export function PredictionsClient({
                           </span>
                         </div>
                         <div className="flex justify-center sm:grid sm:w-full sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-x-3">
-                          <div className="hidden items-center justify-end gap-2 sm:flex">
-                            <TeamName team={match.home_team} className="text-right text-base font-semibold leading-tight" />
-                            <Flag team={match.home_team} />
+                          <div className="hidden min-w-0 items-center justify-end gap-2 sm:flex">
+                            <TeamName team={match.home_team} className="min-w-0 truncate text-right text-base font-semibold leading-tight" />
+                            <Flag team={match.home_team} className="shrink-0" />
                           </div>
                           <div className="flex flex-col items-center px-2">
                             {match.status === "live" || match.home_score !== null ? (
@@ -394,9 +394,9 @@ export function PredictionsClient({
                               <span className="text-base font-medium text-neutral-600">vs</span>
                             )}
                           </div>
-                          <div className="hidden items-center gap-2 sm:flex">
-                            <Flag team={match.away_team} />
-                            <TeamName team={match.away_team} className="text-base font-semibold leading-tight" />
+                          <div className="hidden min-w-0 items-center gap-2 sm:flex">
+                            <Flag team={match.away_team} className="shrink-0" />
+                            <TeamName team={match.away_team} className="min-w-0 truncate text-base font-semibold leading-tight" />
                           </div>
                         </div>
                         {myScore ? (
