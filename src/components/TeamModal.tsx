@@ -151,12 +151,14 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
 
                 return (
                   <div key={match.id} className="rounded-xl border border-neutral-800 p-3">
-                    <div className="mb-2.5 flex items-center justify-between text-xs text-neutral-500">
-                      <span>{fmtDate(match.kickoff_at)}</span>
+                    <div className="mb-2.5 flex items-start justify-between gap-2 text-xs text-neutral-500">
+                      <span className="min-w-0 truncate">{fmtDate(match.kickoff_at)}</span>
                       {live ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-                          <span className="font-medium text-red-400">EN VIVO</span>
+                        <span className="inline-flex shrink-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                            <span className="font-medium text-red-400">EN VIVO</span>
+                          </span>
                           {formatLiveMinute(match.live_minute) && (
                             <span className="text-neutral-400">
                               {formatLiveMinute(match.live_minute)}

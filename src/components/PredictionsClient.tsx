@@ -54,9 +54,6 @@ type SortKey = "kickoff_asc" | "kickoff_desc" | "group_asc" | "group_desc";
 type PredFilter = "all" | "with" | "without";
 type StatusFilter = "pending" | "finished" | "all";
 
-const fmt = (h: number | null, a: number | null) =>
-  h === null || a === null ? "-" : `${h}-${a}`;
-
 // Fecha/hora del partido en la timezone del navegador, legible (ej. "sáb 14 jun, 15:00").
 const DATE_FMT = new Intl.DateTimeFormat("es", {
   weekday: "short",
@@ -316,19 +313,24 @@ export function PredictionsClient({
 
               return (
                 <Card key={match.id} id={`m-${match.id}`} className="scroll-mt-20 p-4">
-                  <div className="mb-3 flex items-center justify-between text-xs text-neutral-500">
-                    <span>{match.group_name ? displayGroup(match.group_name) : ROUND_LABELS[match.round]}</span>
-                    <span>
-                      {DATE_FMT.format(new Date(match.kickoff_at))}
-                      {" · "}
+                  <div className="mb-3 flex items-start justify-between gap-2 text-xs text-neutral-500">
+                    <div className="min-w-0">
+                      <div className="truncate">
+                        {match.group_name ? displayGroup(match.group_name) : ROUND_LABELS[match.round]}
+                      </div>
+                      <div className="text-neutral-600">
+                        {DATE_FMT.format(new Date(match.kickoff_at))}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
                       {finished ? (
-                        <span className="font-medium text-neutral-300">
-                          Final {fmt(match.home_score, match.away_score)}
-                        </span>
+                        <span className="font-medium text-neutral-300">Final</span>
                       ) : match.status === "live" ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-                          <span className="font-medium text-red-400">EN VIVO</span>
+                        <span className="inline-flex flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                            <span className="font-medium text-red-400">EN VIVO</span>
+                          </span>
                           {liveProgressLabel(match.live_minute, match.kickoff_at) && (
                             <span className="text-neutral-400">
                               {liveProgressLabel(match.live_minute, match.kickoff_at)}
@@ -342,7 +344,7 @@ export function PredictionsClient({
                       ) : (
                         <LockCountdown kickoffAt={match.kickoff_at} />
                       )}
-                    </span>
+                    </div>
                   </div>
 
                   {!locked ? (
@@ -384,11 +386,13 @@ export function PredictionsClient({
                             <Flag team={match.home_team} />
                           </div>
                           <div className="flex flex-col items-center px-2">
-                            <span className="whitespace-nowrap text-2xl font-bold tabular-nums text-neutral-100">
-                              {match.status === "live" || match.home_score !== null
-                                ? `${match.home_score ?? 0} – ${match.away_score ?? 0}`
-                                : "–"}
-                            </span>
+                            {match.status === "live" || match.home_score !== null ? (
+                              <span className="whitespace-nowrap text-2xl font-bold tabular-nums text-neutral-100">
+                                {match.home_score ?? 0} – {match.away_score ?? 0}
+                              </span>
+                            ) : (
+                              <span className="text-base font-medium text-neutral-600">vs</span>
+                            )}
                           </div>
                           <div className="hidden items-center gap-2 sm:flex">
                             <Flag team={match.away_team} />
