@@ -164,11 +164,14 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
           <section className="flex flex-col gap-4">
             <h2 className="text-lg font-semibold">Por jugador</h2>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[44rem] text-left text-sm">
+              <table className="w-full min-w-[46rem] text-left text-sm">
                 <thead className="border-b border-neutral-800 text-xs text-neutral-400 sm:text-sm">
                   <tr>
                     <th scope="col" className="py-2 pl-2 pr-3">Jugador</th>
-                    <th scope="col" className="w-20 py-2 text-center" title="Partidos terminados que predijo">PJ</th>
+                    <th scope="col" className="w-28 py-2 text-center" title="Partidos terminados que predijo">
+                      <span className="sm:hidden">Predic.</span>
+                      <span className="hidden sm:inline">Predicciones</span>
+                    </th>
                     <th scope="col" className="w-24 py-2 text-center" title="Aciertos sobre partidos predichos">
                       <span className="sm:hidden">% Ac.</span>
                       <span className="hidden sm:inline">% Acierto</span>
@@ -203,7 +206,7 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
                             {m.championCorrect && <span className="ml-1" title="Campeón acertado">🏆</span>}
                           </Link>
                         </td>
-                        <td className="w-20 py-2 text-center tabular-nums text-neutral-400">{m.predictedFinished}</td>
+                        <td className="w-28 py-2 text-center tabular-nums text-neutral-400">{m.predictedFinished}</td>
                         <td className="w-24 py-2 text-center tabular-nums text-neutral-300">
                           {m.predictedFinished > 0 ? fmtPct(m.accuracy) : "—"}
                         </td>
@@ -225,7 +228,7 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-neutral-500">
+            <p className="text-center text-xs text-neutral-500">
               El promedio y el % de acierto consideran solo partidos (no incluyen campeón ni goleador).
             </p>
           </section>
