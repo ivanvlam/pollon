@@ -11,40 +11,31 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
 }
 
 // ── Tarjeta de récord (líder de la polla en una métrica) ─────────────────────
-const ACCENTS = {
-  amber: { bar: "bg-amber-500", text: "text-amber-400", glow: "from-amber-500/10" },
-  emerald: { bar: "bg-emerald-500", text: "text-emerald-400", glow: "from-emerald-500/10" },
-  sky: { bar: "bg-sky-500", text: "text-sky-400", glow: "from-sky-500/10" },
-} as const;
-
 function RecordCard({
   emoji,
   label,
-  accent,
   leader,
   valueText,
   hint,
 }: {
   emoji: string;
   label: string;
-  accent: keyof typeof ACCENTS;
   leader: Leader<number> | null;
   valueText: string | null;
   hint: string;
 }) {
-  const a = ACCENTS[accent];
   const names = leader ? leader.members.map((m) => m.displayName).join(", ") : null;
   return (
     <div className="relative overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
-      <div className={`absolute inset-x-0 top-0 h-1 ${a.bar}`} />
-      <div className={`pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br ${a.glow} to-transparent blur-xl`} />
+      <div className="absolute inset-x-0 top-0 h-1 bg-emerald-500" />
+      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-emerald-500/10 to-transparent blur-xl" />
       <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
         <span className="text-base">{emoji}</span>
         {label}
       </div>
       {leader && valueText ? (
         <>
-          <p className={`mt-3 text-3xl font-bold tabular-nums ${a.text}`}>{valueText}</p>
+          <p className="mt-3 text-3xl font-bold tabular-nums text-emerald-400">{valueText}</p>
           <p className="mt-1 truncate text-sm font-medium text-neutral-100">{names}</p>
         </>
       ) : (
@@ -148,7 +139,6 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
               <RecordCard
                 emoji="🔥"
                 label="Racha más larga"
-                accent="amber"
                 leader={stats.longestStreak}
                 valueText={stats.longestStreak ? `${stats.longestStreak.value}` : null}
                 hint="Partidos seguidos sumando puntos"
@@ -156,7 +146,6 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
               <RecordCard
                 emoji="📈"
                 label="Mejor promedio"
-                accent="emerald"
                 leader={stats.bestAvg}
                 valueText={stats.bestAvg ? `${fmtAvg(stats.bestAvg.value)} pts` : null}
                 hint="Puntos por partido predicho"
@@ -164,7 +153,6 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
               <RecordCard
                 emoji="🎯"
                 label="Más certero"
-                accent="sky"
                 leader={stats.bestAccuracy}
                 valueText={stats.bestAccuracy ? fmtPct(stats.bestAccuracy.value) : null}
                 hint="Aciertos sobre partidos predichos"
@@ -176,18 +164,25 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
           <section className="flex flex-col gap-4">
             <h2 className="text-lg font-semibold">Por jugador</h2>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[34rem] text-left text-sm">
+              <table className="w-full min-w-[44rem] text-left text-sm">
                 <thead className="border-b border-neutral-800 text-xs text-neutral-400 sm:text-sm">
                   <tr>
                     <th scope="col" className="py-2 pl-2 pr-3">Jugador</th>
-                    <th scope="col" className="w-14 py-2 text-center" title="Partidos terminados que predijo">PJ</th>
-                    <th scope="col" className="w-16 py-2 text-center" title="Aciertos sobre partidos predichos">
+                    <th scope="col" className="w-20 py-2 text-center" title="Partidos terminados que predijo">PJ</th>
+                    <th scope="col" className="w-24 py-2 text-center" title="Aciertos sobre partidos predichos">
                       <span className="sm:hidden">% Ac.</span>
                       <span className="hidden sm:inline">% Acierto</span>
                     </th>
-                    <th scope="col" className="w-16 py-2 text-center" title="Puntos por partido predicho">Prom.</th>
-                    <th scope="col" className="w-16 py-2 text-center" title="Racha más larga · activa">Racha</th>
-                    <th scope="col" className="w-16 py-2 text-center" title="Marcadores exactos (5 pts)">
+                    <th scope="col" className="w-24 py-2 text-center" title="Puntos por partido predicho">Prom.</th>
+                    <th scope="col" className="w-24 py-2 text-center" title="Racha más larga (partidos seguidos sumando)">
+                      <span className="sm:hidden">R. máx</span>
+                      <span className="hidden sm:inline">Racha máx</span>
+                    </th>
+                    <th scope="col" className="w-24 py-2 text-center" title="Racha activa ahora mismo">
+                      <span className="sm:hidden">R. act.</span>
+                      <span className="hidden sm:inline">Racha actual</span>
+                    </th>
+                    <th scope="col" className="w-24 py-2 text-center" title="Marcadores exactos (5 pts)">
                       <span className="sm:hidden">Exact.</span>
                       <span className="hidden sm:inline">Exactos</span>
                     </th>
@@ -208,20 +203,22 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
                             {m.championCorrect && <span className="ml-1" title="Campeón acertado">🏆</span>}
                           </Link>
                         </td>
-                        <td className="w-14 py-2 text-center tabular-nums text-neutral-400">{m.predictedFinished}</td>
-                        <td className="w-16 py-2 text-center tabular-nums text-neutral-300">
+                        <td className="w-20 py-2 text-center tabular-nums text-neutral-400">{m.predictedFinished}</td>
+                        <td className="w-24 py-2 text-center tabular-nums text-neutral-300">
                           {m.predictedFinished > 0 ? fmtPct(m.accuracy) : "—"}
                         </td>
-                        <td className="w-16 py-2 text-center tabular-nums text-neutral-300">
+                        <td className="w-24 py-2 text-center tabular-nums text-neutral-300">
                           {m.predictedFinished > 0 ? fmtAvg(m.avgPerPredicted) : "—"}
                         </td>
-                        <td className="w-16 py-2 text-center tabular-nums text-neutral-300">
-                          {m.longestStreak}
-                          {m.currentStreak > 0 && (
-                            <span className="ml-1 text-xs text-amber-400" title="Racha activa">🔥{m.currentStreak}</span>
+                        <td className="w-24 py-2 text-center tabular-nums text-neutral-300">{m.longestStreak}</td>
+                        <td className="w-24 py-2 text-center tabular-nums">
+                          {m.currentStreak > 0 ? (
+                            <span className="font-medium text-emerald-400" title="Racha activa">🔥 {m.currentStreak}</span>
+                          ) : (
+                            <span className="text-neutral-600">0</span>
                           )}
                         </td>
-                        <td className="w-16 py-2 text-center tabular-nums text-neutral-400">{m.exactCount}</td>
+                        <td className="w-24 py-2 text-center tabular-nums text-neutral-400">{m.exactCount}</td>
                       </tr>
                     );
                   })}
