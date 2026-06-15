@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ChickenRain } from "@/components/ChickenRain";
 import { Flag } from "@/components/Flag";
 import { TeamName } from "@/components/TeamName";
 import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
@@ -107,6 +108,9 @@ export default async function PlayerProfilePage({
 
   const name = profile?.display_name ?? "Jugador";
 
+  // Easter egg: el perfil de "basti" llueve gallinas 🐔.
+  const chickenRain = name.trim().toLowerCase() === "basti";
+
   const DATE_FMT = new Intl.DateTimeFormat("es", {
     day: "numeric",
     month: "short",
@@ -180,6 +184,7 @@ export default async function PlayerProfilePage({
 
   return (
     <div className="flex flex-col gap-8">
+      {chickenRain && <ChickenRain />}
       <Link
         href={`/pool/${pool.id}`}
         className="text-sm text-neutral-400 hover:text-white"
