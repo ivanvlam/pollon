@@ -114,12 +114,12 @@ export function PredictionForm({
   return (
     <div className="flex flex-col gap-3">
       {/* Nombres en mobile (fila separada): los steppers no dejan espacio inline */}
-      <div className="flex items-center justify-between text-sm font-medium sm:hidden">
-        <span className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between gap-2 text-sm font-medium sm:hidden">
+        <span className="flex min-w-0 items-center gap-1.5">
           <Flag team={homeTeam} className="shrink-0" />
           {homeTeamEl ?? <span className="truncate">{homeTeam}</span>}
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex min-w-0 items-center gap-1.5">
           {awayTeamEl ?? <span className="truncate">{awayTeam}</span>}
           <Flag team={awayTeam} className="shrink-0" />
         </span>

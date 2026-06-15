@@ -283,39 +283,39 @@ export default async function PlayerProfilePage({
                       key={m.id}
                       className="flex flex-col gap-1 rounded-lg border border-neutral-800 p-3 text-sm"
                     >
-                      <div className="flex items-center justify-between text-xs text-neutral-500">
-                        <span>
-                          {m.group_name ? displayGroup(m.group_name) : ROUND_LABELS[m.round as Round]}
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          {m.status === "live" && (
+                      <div className="flex items-start justify-between gap-2 text-xs text-neutral-500">
+                        <div className="min-w-0">
+                          <div className="truncate">
+                            {m.group_name ? displayGroup(m.group_name) : ROUND_LABELS[m.round as Round]}
+                          </div>
+                          <div className="text-neutral-600">
+                            {DATE_FMT.format(new Date(m.kickoff_at))}
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          {m.status === "live" ? (
                             <span className="inline-flex items-center gap-1 font-medium text-red-400">
                               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
                               EN VIVO
                             </span>
-                          )}
-                          {DATE_FMT.format(new Date(m.kickoff_at))}
-                          {finished && (
-                            <>
-                              {" · "}
-                              <span className="font-medium text-neutral-300">
-                                Final {fmt(m.home_score, m.away_score)}
-                                {knockout && m.winner
-                                  ? ` (${qualifierName(m.winner, m.home_team, m.away_team)})`
-                                  : ""}
-                              </span>
-                            </>
-                          )}
-                        </span>
+                          ) : finished ? (
+                            <span className="font-medium text-neutral-300">
+                              Final {fmt(m.home_score, m.away_score)}
+                              {knockout && m.winner
+                                ? ` (${qualifierName(m.winner, m.home_team, m.away_team)})`
+                                : ""}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-2 font-medium">
-                          <Flag team={m.home_team} />
-                          <TeamName team={m.home_team} />
-                          <span className="text-neutral-500">vs</span>
-                          <TeamName team={m.away_team} />
-                          <Flag team={m.away_team} />
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="flex min-w-0 flex-1 items-center gap-1.5 font-medium">
+                          <Flag team={m.home_team} className="shrink-0" />
+                          <TeamName team={m.home_team} className="min-w-0 truncate" />
+                          <span className="shrink-0 text-neutral-500">vs</span>
+                          <TeamName team={m.away_team} className="min-w-0 truncate" />
+                          <Flag team={m.away_team} className="shrink-0" />
                         </span>
                         {score ? (
                           <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">

@@ -106,12 +106,12 @@ export function NextMatchCard({
         )}
       </div>
 
-      <div className="mt-2 flex items-center gap-2 text-base font-medium">
-        <Flag team={nextMatch.homeTeam} />
-        <TeamName team={nextMatch.homeTeam} />
-        <span className="text-neutral-500">vs</span>
-        <TeamName team={nextMatch.awayTeam} />
-        <Flag team={nextMatch.awayTeam} />
+      <div className="mt-2 flex items-center gap-1.5 text-base font-medium">
+        <Flag team={nextMatch.homeTeam} className="shrink-0" />
+        <TeamName team={nextMatch.homeTeam} className="min-w-0 truncate" />
+        <span className="shrink-0 text-neutral-500">vs</span>
+        <TeamName team={nextMatch.awayTeam} className="min-w-0 truncate" />
+        <Flag team={nextMatch.awayTeam} className="shrink-0" />
       </div>
 
       <p className="mt-1 text-sm capitalize text-neutral-400">
