@@ -418,12 +418,17 @@ export function PredictionsClient({
                             key={userId}
                             className={`flex items-center justify-between gap-2 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
                           >
-                            <Link
-                              href={`/pool/${poolId}/player/${userId}`}
-                              className="truncate hover:text-emerald-400 hover:underline"
-                            >
-                              {isMe ? "Tú" : (nameById[userId] ?? "?")}
-                            </Link>
+                            <div className="flex min-w-0 items-center">
+                              <Link
+                                href={`/pool/${poolId}/player/${userId}`}
+                                className="truncate hover:text-emerald-400 hover:underline"
+                              >
+                                {nameById[userId] ?? "?"}
+                              </Link>
+                              {isMe && (
+                                <span className="ml-2 shrink-0 text-xs text-emerald-400">(tú)</span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2">
                               {pred ? (
                                 <span className="flex items-center gap-0.5 tabular-nums">
