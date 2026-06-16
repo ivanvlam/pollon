@@ -416,7 +416,7 @@ export function PredictionsClient({
                         {playerRows.map(({ userId, isMe, pred, score }) => (
                           <li
                             key={userId}
-                            className={`flex items-center justify-between gap-2 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
+                            className={`-mx-2 flex items-center justify-between gap-2 rounded px-2 py-0.5 transition-colors hover:bg-neutral-800/50 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
                           >
                             <div className="flex min-w-0 items-center">
                               <Link
