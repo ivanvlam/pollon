@@ -8,8 +8,11 @@ import type { ChartMember, HistoryPoint } from "@/components/RankingHistoryChart
 import { buttonClasses } from "@/components/ui/Button";
 import { buildColorMap, CHART_COLORS } from "@/lib/chart-colors";
 import { cn } from "@/lib/cn";
-import { computeRaceFrames, type RaceData } from "@/lib/race";
+import { computeRaceFrames, type RaceData, type RaceFrame } from "@/lib/race";
 import { toSpanish } from "@/lib/teamNames";
+
+/** Frame de display: los frames de partido más un frame inicial de "Salida". */
+type DisplayFrame = RaceFrame & { isStart?: boolean };
 
 interface Props {
   history: HistoryPoint[];
@@ -62,7 +65,24 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
     [history, members, totalMatches],
   );
 
-  const total = race.frames.length;
+  // Frames de display: un frame de "Salida" (todos en 0, línea de largada) y
+  // luego los partidos. Así la carrera arranca con todos parejos y largan al
+  // primer partido del Mundial.
+  const frames = useMemo<DisplayFrame[]>(() => {
+    const start: DisplayFrame = {
+      isStart: true,
+      played: 0,
+      homeTeam: "",
+      awayTeam: "",
+      homeScore: null,
+      awayScore: null,
+      kickoffAt: "",
+      cars: members.map((m) => ({ userId: m.id, x: 0, points: 0, gained: 0, rank: 1 })),
+    };
+    return [start, ...race.frames];
+  }, [race, members]);
+  const total = frames.length;
+
   const colorMap = useMemo(() => buildColorMap(members.map((m) => m.id)), [members]);
   const colorOf = useCallback(
     (id: string) => colorMap.get(id) ?? CHART_COLORS[0]!,
@@ -71,12 +91,12 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
 
   // Carriles ordenados por posición final (rank en el último partido).
   const lanes = useMemo(() => {
-    const last = race.frames[total - 1];
+    const last = race.frames[race.frames.length - 1];
     const rankOf = new Map(last ? last.cars.map((c) => [c.userId, c.rank]) : []);
     return [...members].sort(
       (a, b) => (rankOf.get(a.id) ?? 999) - (rankOf.get(b.id) ?? 999),
     );
-  }, [race, members, total]);
+  }, [race, members]);
 
   const [phase, setPhase] = useState<"countdown" | "racing" | "finished">("countdown");
   const [countdownNum, setCountdownNum] = useState(3);
@@ -165,27 +185,28 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
     return () => timers.forEach(clearTimeout);
   }, [phase, reduceMotion, play]);
 
-  const handlePlayPause = useCallback(() => {
-    if (frameRef.current >= total - 1) {
-      // Reiniciar desde el principio si está al final.
-      frameRef.current = 0;
-      accumRef.current = 0;
-      setFrame(0);
-      setPhase("racing");
-      play();
-      return;
-    }
-    if (playingRef.current) pause();
-    else play();
-  }, [total, play, pause]);
-
   const handleRestart = useCallback(() => {
     frameRef.current = 0;
     accumRef.current = 0;
     setFrame(0);
-    setPhase("racing");
-    play();
-  }, [play]);
+    pause();
+    if (reduceMotion) {
+      frameRef.current = total - 1;
+      setFrame(total - 1);
+      setPhase("finished");
+      return;
+    }
+    setPhase("countdown"); // re-dispara el countdown 3·2·1·GO
+  }, [pause, reduceMotion, total]);
+
+  const handlePlayPause = useCallback(() => {
+    if (frameRef.current >= total - 1) {
+      handleRestart(); // al final, repetir desde el principio con countdown
+      return;
+    }
+    if (playingRef.current) pause();
+    else play();
+  }, [total, play, pause, handleRestart]);
 
   const handleScrub = useCallback(
     (value: number) => {
@@ -200,7 +221,7 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
 
   if (total === 0) return null;
 
-  const current = race.frames[Math.min(frame, total - 1)]!;
+  const current = frames[Math.min(frame, total - 1)]!;
   const carMap = new Map(current.cars.map((c) => [c.userId, c]));
   const stepMs = isPlaying && !reduceMotion ? BASE_MS_PER_FRAME / speed : 140;
   const showCountdown = phase === "countdown" && !reduceMotion;
@@ -209,20 +230,26 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
     <div className="flex flex-col gap-3">
       {/* Cabecera: partido actual + contador X / total */}
       <div className="flex items-center justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <Flag team={current.homeTeam} className="shrink-0" />
-          <span className="shrink-0 tabular-nums text-sm font-semibold text-neutral-100">
-            {current.homeScore ?? "–"}&nbsp;–&nbsp;{current.awayScore ?? "–"}
-          </span>
-          <Flag team={current.awayTeam} className="shrink-0" />
-          <span className="hidden truncate text-sm text-neutral-400 sm:inline">
-            {toSpanish(current.homeTeam)} vs {toSpanish(current.awayTeam)}
-          </span>
-        </div>
-        <div className="shrink-0 tabular-nums text-sm text-neutral-400">
-          <span className="font-semibold text-neutral-100">{current.played}</span>
-          {" / "}
-          {totalMatches}
+        {current.isStart ? (
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="text-sm font-semibold text-neutral-100">Salida</span>
+            <span className="hidden text-sm text-neutral-400 sm:inline">en la línea de largada</span>
+          </div>
+        ) : (
+          <div className="flex min-w-0 items-center gap-2">
+            <Flag team={current.homeTeam} className="shrink-0" />
+            <span className="shrink-0 tabular-nums text-sm font-semibold text-neutral-100">
+              {current.homeScore ?? "–"}&nbsp;–&nbsp;{current.awayScore ?? "–"}
+            </span>
+            <Flag team={current.awayTeam} className="shrink-0" />
+            <span className="hidden truncate text-sm text-neutral-400 sm:inline">
+              {toSpanish(current.homeTeam)} vs {toSpanish(current.awayTeam)}
+            </span>
+          </div>
+        )}
+        <div className="shrink-0 whitespace-nowrap tabular-nums text-xs text-neutral-400 sm:text-sm">
+          <span className="font-semibold text-neutral-100">{current.played}</span>/{totalMatches}{" "}
+          partidos jugados
         </div>
       </div>
 
@@ -252,8 +279,13 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
                   </p>
                 </div>
 
-                {/* Carril */}
-                <div className="relative h-9 flex-1">
+                {/* Carril (pista de asfalto) */}
+                <div className="relative h-9 flex-1 rounded bg-neutral-900/40">
+                  {/* Línea central discontinua */}
+                  <div className="pointer-events-none absolute inset-x-2 top-1/2 -translate-y-1/2 border-t border-dashed border-neutral-600/60" />
+                  {/* Línea de largada */}
+                  <div className="pointer-events-none absolute bottom-1 left-0 top-1 w-px bg-neutral-500/70" />
+
                   <div
                     className="absolute bottom-0 top-0 my-auto h-7 w-10"
                     style={{
@@ -276,7 +308,7 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
                     )}
                   </div>
 
-                  {/* Línea de meta (vuelta completa = los 104) */}
+                  {/* Línea de meta a cuadros */}
                   <div
                     className="pointer-events-none absolute bottom-0 right-0 top-0 w-1.5 rounded-sm"
                     style={CHECKER}
@@ -356,7 +388,7 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
       />
 
       <p className="text-center text-xs text-neutral-500">
-        La meta es la vuelta completa: los {totalMatches} partidos del Mundial.
+        La meta (línea a cuadros) está en los {totalMatches} partidos del Mundial.
       </p>
     </div>
   );
