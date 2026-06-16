@@ -30,3 +30,52 @@ input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* Carrera del historial — badge "+N" que sube y se desvanece sobre el auto. */
+@keyframes race-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 2px) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -8px) scale(1);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -10px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -16px) scale(0.9);
+  }
+}
+.race-pop {
+  animation: race-pop 1s ease-out forwards;
+}
+
+/* Carrera del historial — número del countdown (3·2·1·GO). */
+@keyframes race-count {
+  0% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+.race-count {
+  animation: race-count 0.8s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .race-pop,
+  .race-count {
+    animation: none;
+  }
+}

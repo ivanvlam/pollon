@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { Flag } from "@/components/Flag";
+import { buildColorMap, CHART_COLORS } from "@/lib/chart-colors";
 import { flagUrl, teamFlagCode } from "@/lib/flags";
 import { toSpanish } from "@/lib/teamNames";
 
@@ -34,21 +35,6 @@ interface Props {
   members: ChartMember[];
   poolId: string;
 }
-
-const COLORS = [
-  "#34d399",
-  "#60a5fa",
-  "#fbbf24",
-  "#f87171",
-  "#a78bfa",
-  "#f472b6",
-  "#2dd4bf",
-  "#fb923c",
-  "#a3e635",
-  "#38bdf8",
-  "#c084fc",
-  "#4ade80",
-];
 
 const MIN_COL = 56;
 const ROW_H = 48;
@@ -98,8 +84,8 @@ export function RankingHistoryChart({ history, members, poolId }: Props) {
   const cx = (i: number) => PAD_L + i * colStep;
   const ry = (r: number) => PAD_T + (r - 0.5) * rowH;
 
-  const colorIdx = new Map(members.map((m, i) => [m.id, i]));
-  const colorOf = (uid: string) => COLORS[(colorIdx.get(uid) ?? 0) % COLORS.length]!;
+  const colorMap = buildColorMap(members.map((m) => m.id));
+  const colorOf = (uid: string) => colorMap.get(uid) ?? CHART_COLORS[0]!;
 
   const buildPath = (uid: string) => {
     const pts = history.map((h, i) => ({ x: cx(i), y: ry(h.rankings[uid] ?? N) }));

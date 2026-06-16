@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { HistorialView } from "@/components/HistorialView";
 import {
-  RankingHistoryChart,
   type ChartMember,
   type HistoryPoint,
 } from "@/components/RankingHistoryChart";
+import { TOTAL_TOURNAMENT_MATCHES } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { toSpanish } from "@/lib/teamNames";
 
@@ -179,7 +180,12 @@ export default async function PoolHistorialPage({
           El historial aparece cuando hay al menos 2 partidos terminados.
         </p>
       ) : (
-        <RankingHistoryChart history={history} members={members} poolId={pool.id} />
+        <HistorialView
+          history={history}
+          members={members}
+          poolId={pool.id}
+          totalMatches={TOTAL_TOURNAMENT_MATCHES}
+        />
       )}
     </div>
   );

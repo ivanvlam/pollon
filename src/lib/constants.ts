@@ -33,6 +33,16 @@ export const POINTS = {
 /** Debounce (ms) antes de enviar una predicción desde el frontend. */
 export const PREDICTION_DEBOUNCE_MS = 500;
 
+/** Total de partidos del Mundial 2026 (FIFA). La "vuelta" de la carrera del
+ *  historial se completa cuando se juegan los 104; es el denominador del
+ *  contador X / 104. */
+export const TOTAL_TOURNAMENT_MATCHES = 104;
+
+/** Deriva constante (en "unidades de punto") que avanza a cada auto de la
+ *  carrera por partido jugado, aunque no sume puntos. Chica para que el creep
+ *  sea lento y el acierto se note "harto". Ver `src/lib/race.ts`. */
+export const RACE_DRIFT = 0.6;
+
 /** Rondas del torneo. */
 export const ROUNDS = [
   "group_stage",
