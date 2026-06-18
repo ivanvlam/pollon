@@ -121,6 +121,81 @@ export async function saveMatchResult(
   return { ok: true };
 }
 
+const adminPredictionSchema = z.object({
+  predictedHome: z.number().int().min(0).max(99),
+  predictedAway: z.number().int().min(0).max(99),
+  predictedWinner: z.enum(["home", "away"]).nullable(),
+});
+
+/**
+ * Guarda la predicción del propio admin en un partido, haciendo bypass del
+ * cierre normal (kickoff - 1h). Sirve para registrar una predicción que no
+ * se alcanzó a enviar a tiempo. Solo partidos NO terminados (cerrados o en
+ * vivo): un partido terminado ya no se puede predecir. Replica el upsert +
+ * historial de submit_prediction.
+ */
+export async function adminUpsertPrediction(
+  matchId: string,
+  input: { predictedHome: number; predictedAway: number; predictedWinner: "home" | "away" | null },
+): Promise<AdminResult> {
+  const auth = await assertAdmin();
+  if (!auth.ok) return auth;
+
+  const parsed = adminPredictionSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.errors[0]?.message ?? "Datos inválidos" };
+  }
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "No autenticado" };
+
+  const svc = createServiceRoleClient();
+
+  const { data: match } = await svc
+    .from("matches")
+    .select("id, round, status")
+    .eq("id", matchId)
+    .single();
+  if (!match) return { ok: false, error: "Partido no encontrado" };
+  if (match.status === "finished") {
+    return { ok: false, error: "No se puede predecir un partido terminado" };
+  }
+
+  // En fase de grupos no hay clasificado.
+  const winner = match.round === "group_stage" ? null : parsed.data.predictedWinner;
+
+  const { data: pred, error } = await svc
+    .from("predictions")
+    .upsert(
+      {
+        user_id: user.id,
+        match_id: matchId,
+        predicted_home: parsed.data.predictedHome,
+        predicted_away: parsed.data.predictedAway,
+        predicted_winner: winner,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,match_id" },
+    )
+    .select("id")
+    .single();
+
+  if (error || !pred) return { ok: false, error: "No se pudo guardar la predicción" };
+
+  await svc.from("prediction_history").insert({
+    prediction_id: pred.id,
+    predicted_home: parsed.data.predictedHome,
+    predicted_away: parsed.data.predictedAway,
+    predicted_winner: winner,
+  });
+
+  revalidateTournament();
+  return { ok: true };
+}
+
 /** Sincroniza los jugadores via función SECURITY DEFINER (no requiere service role). */
 export async function syncPlayers(): Promise<AdminResult & { count?: number }> {
   const auth = await assertAdmin();

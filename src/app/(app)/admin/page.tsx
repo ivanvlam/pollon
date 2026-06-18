@@ -11,6 +11,7 @@ import { isKnockoutRound, ROUNDS } from "@/lib/constants";
 import { ROUND_LABELS } from "@/lib/labels";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { toSpanish } from "@/lib/teamNames";
+import { isPredictionLocked } from "@/lib/timing";
 import type { MatchStatus, MatchWinner, Round } from "@/types";
 
 export const metadata = { title: "Admin" };
@@ -77,6 +78,15 @@ export default async function GlobalAdminPage() {
     svc.from("champion_predictions").select("user_id, team"),
     svc.from("top_scorer_predictions").select("user_id, player_name"),
   ]);
+
+  // Predicciones del propio admin (para prellenar el bloque de predicción).
+  const { data: myPreds } = await svc
+    .from("predictions")
+    .select("match_id, predicted_home, predicted_away, predicted_winner")
+    .eq("user_id", user.id);
+  const myPredByMatch = new Map(
+    (myPreds ?? []).map((p) => [p.match_id, p]),
+  );
 
   // Emails desde Auth admin (paginado).
   const emailById = new Map<string, string>();
@@ -374,20 +384,29 @@ export default async function GlobalAdminPage() {
                       <AdminRoundActivator round={round} label={ROUND_LABELS[round] ?? round} />
                     )}
                   </div>
-                  {roundMatches.map((match) => (
-                    <AdminMatchRow
-                      key={match.id}
-                      matchId={match.id}
-                      homeTeam={match.home_team}
-                      awayTeam={match.away_team}
-                      isKnockout={isKnockoutRound(match.round as Round)}
-                      isActive={match.is_active}
-                      status={match.status as MatchStatus}
-                      homeScore={match.home_score}
-                      awayScore={match.away_score}
-                      winner={match.winner as MatchWinner | null}
-                    />
-                  ))}
+                  {roundMatches.map((match) => {
+                    const myPred = myPredByMatch.get(match.id);
+                    return (
+                      <AdminMatchRow
+                        key={match.id}
+                        matchId={match.id}
+                        homeTeam={match.home_team}
+                        awayTeam={match.away_team}
+                        isKnockout={isKnockoutRound(match.round as Round)}
+                        isActive={match.is_active}
+                        status={match.status as MatchStatus}
+                        homeScore={match.home_score}
+                        awayScore={match.away_score}
+                        winner={match.winner as MatchWinner | null}
+                        canAdminPredict={
+                          match.status !== "finished" && isPredictionLocked(match.kickoff_at)
+                        }
+                        myPredHome={myPred?.predicted_home ?? null}
+                        myPredAway={myPred?.predicted_away ?? null}
+                        myPredWinner={(myPred?.predicted_winner as MatchWinner | null) ?? null}
+                      />
+                    );
+                  })}
                 </div>
               );
             })}
@@ -396,20 +415,29 @@ export default async function GlobalAdminPage() {
               <h3 className="font-semibold text-neutral-300">Fase de grupos</h3>
               {allMatches
                 .filter((m) => m.round === "group_stage")
-                .map((match) => (
-                  <AdminMatchRow
-                    key={match.id}
-                    matchId={match.id}
-                    homeTeam={match.home_team}
-                    awayTeam={match.away_team}
-                    isKnockout={false}
-                    isActive={match.is_active}
-                    status={match.status as MatchStatus}
-                    homeScore={match.home_score}
-                    awayScore={match.away_score}
-                    winner={match.winner as MatchWinner | null}
-                  />
-                ))}
+                .map((match) => {
+                  const myPred = myPredByMatch.get(match.id);
+                  return (
+                    <AdminMatchRow
+                      key={match.id}
+                      matchId={match.id}
+                      homeTeam={match.home_team}
+                      awayTeam={match.away_team}
+                      isKnockout={false}
+                      isActive={match.is_active}
+                      status={match.status as MatchStatus}
+                      homeScore={match.home_score}
+                      awayScore={match.away_score}
+                      winner={match.winner as MatchWinner | null}
+                      canAdminPredict={
+                        match.status !== "finished" && isPredictionLocked(match.kickoff_at)
+                      }
+                      myPredHome={myPred?.predicted_home ?? null}
+                      myPredAway={myPred?.predicted_away ?? null}
+                      myPredWinner={null}
+                    />
+                  );
+                })}
             </div>
           </div>
         )}
