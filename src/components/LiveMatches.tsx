@@ -52,7 +52,7 @@ function GroupPosBadge({ proj }: { proj: LivePosition }) {
   );
 }
 
-function useNow(intervalMs = 30_000): number {
+function useNow(intervalMs = 1_000): number {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
