@@ -92,9 +92,7 @@ export default async function DashboardPage() {
     const t = m.updated_at ? new Date(m.updated_at).getTime() : 0;
     return t > max ? t : max;
   }, 0);
-  const agoSec = latestUpdate ? Math.floor((Date.now() - latestUpdate) / 1_000) : null;
-  const updatedAgoLabel =
-    agoSec === null ? null : agoSec <= 15 ? "actualizado recién" : agoSec <= 60 ? `actualizado hace ${agoSec} segundos` : agoSec <= 120 ? "actualizado hace 1 minuto" : `actualizado hace ${Math.floor(agoSec / 60)} minutos`;
+  const latestUpdateAt = latestUpdate ? new Date(latestUpdate).toISOString() : null;
 
   // Tu predicción para los partidos en vivo (para mostrarla en la tarjeta).
   const liveIds = live.map((m) => m.id);
@@ -211,7 +209,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <LiveMatches matches={liveRows} updatedAgoLabel={updatedAgoLabel} poolId={pools[0]?.id ?? null} />
+      <LiveMatches matches={liveRows} latestUpdateAt={latestUpdateAt} poolId={pools[0]?.id ?? null} />
 
       {pools.length > 0 && (
         <ChampionReminder

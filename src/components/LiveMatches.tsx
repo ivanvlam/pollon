@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { useRouter } from "next/navigation";
 
 import { Flag } from "@/components/Flag";
@@ -50,18 +52,45 @@ function GroupPosBadge({ proj }: { proj: LivePosition }) {
   );
 }
 
+function useNow(intervalMs = 30_000): number {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+
+  return now;
+}
+
+function formatUpdatedAgoLabel(latestUpdateAt: string | null, now: number): string | null {
+  if (!latestUpdateAt) return null;
+
+  const latestUpdate = new Date(latestUpdateAt).getTime();
+  if (Number.isNaN(latestUpdate)) return null;
+
+  const agoSec = Math.floor((now - latestUpdate) / 1_000);
+  if (agoSec <= 15) return "actualizado recién";
+  if (agoSec <= 60) return `actualizado hace ${agoSec} segundos`;
+  if (agoSec <= 120) return "actualizado hace 1 minuto";
+  return `actualizado hace ${Math.floor(agoSec / 60)} minutos`;
+}
+
 export function LiveMatches({
   matches,
-  updatedAgoLabel,
+  latestUpdateAt,
   poolId,
 }: {
   matches: LiveMatchRow[];
-  updatedAgoLabel: string | null;
+  latestUpdateAt: string | null;
   poolId?: string | null;
 }) {
   const router = useRouter();
+  const now = useNow();
 
   if (matches.length === 0) return null;
+
+  const updatedAgoLabel = formatUpdatedAgoLabel(latestUpdateAt, now);
 
   return (
     <section className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
