@@ -74,7 +74,7 @@ export function LiveMatches({
           </h2>
         </span>
         <span className="text-xs text-neutral-500">
-          · datos cada ~10 min{updatedAgoLabel ? ` · ${updatedAgoLabel}` : ""}
+          · datos cada ~2 min{updatedAgoLabel ? ` · ${updatedAgoLabel}` : ""}
         </span>
       </div>
 
