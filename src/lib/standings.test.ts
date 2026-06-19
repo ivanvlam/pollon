@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { computeGroupStandings, type GroupMatch } from "@/lib/standings";
+import {
+  computeGroupStandings,
+  projectLivePositions,
+  type GroupMatch,
+} from "@/lib/standings";
 
 function m(
   home: string,
@@ -52,5 +56,41 @@ describe("computeGroupStandings", () => {
     const a = rows.find((r) => r.team === "A")!;
     expect(a.played).toBe(1);
     expect(a.points).toBe(3);
+  });
+});
+
+describe("projectLivePositions", () => {
+  it("marca subir/bajar/mantener según el marcador en vivo", () => {
+    // Fecha 1 jugada: A 1°, B 2°, C 3°, D 4°.
+    // En vivo: D le gana a A → D sube, A baja.
+    const proj = projectLivePositions([
+      m("A", "X", 3, 0),
+      m("B", "X", 2, 0),
+      m("C", "X", 1, 0),
+      m("D", "X", 0, 0),
+      m("D", "A", 2, 0, "live"),
+    ]);
+    expect(proj.get("D")!.dir).toBe("up");
+    expect(proj.get("A")!.dir).toBe("down");
+    expect(proj.get("D")!.pos).toBeLessThan(proj.get("A")!.pos);
+  });
+
+  it("se mantiene cuando el marcador en vivo no cambia el orden", () => {
+    // A va 1° tras la fecha 1 y en vivo gana de nuevo → se mantiene.
+    const proj = projectLivePositions([
+      m("A", "B", 3, 0),
+      m("A", "C", 1, 0, "live"),
+    ]);
+    expect(proj.get("A")!.dir).toBe("same");
+  });
+
+  it("aplica el desempate puntos → diferencia → goles a favor en la proyección", () => {
+    // Tras proyectar el live, A y B quedan a 3 pts: A gd+1, B gd+3 → B 1°, A 2°.
+    const proj = projectLivePositions([
+      m("A", "X", 1, 0, "live"), // A: 3pts gd+1
+      m("B", "X", 3, 0, "live"), // B: 3pts gd+3
+    ]);
+    expect(proj.get("B")!.pos).toBe(1);
+    expect(proj.get("A")!.pos).toBe(2);
   });
 });

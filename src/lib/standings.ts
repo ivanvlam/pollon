@@ -99,3 +99,46 @@ export function computeGroupStandings(matches: GroupMatch[]): StandingRow[] {
 
   return rows;
 }
+
+/** Dirección del cambio de posición proyectado para un equipo. */
+export type PositionDir = "up" | "down" | "same";
+
+export interface LivePosition {
+  pos: number; // posición proyectada en el grupo (1-based)
+  dir: PositionDir; // sube / baja / se mantiene respecto a la tabla actual
+}
+
+/**
+ * Proyecta la posición final en el grupo de cada equipo si los resultados en
+ * vivo se mantienen. Compara dos tablas:
+ *  - base: solo partidos `finished`.
+ *  - proyectada: base + todos los partidos `live` (con su marcador actual)
+ *    contados como finalizados.
+ * Así funciona también en la última fecha, cuando hay dos partidos del mismo
+ * grupo en vivo simultáneamente.
+ *
+ * `groupMatches` debe contener todos los partidos del grupo (finalizados y en
+ * vivo). Devuelve un mapa equipo → posición proyectada + dirección.
+ */
+export function projectLivePositions(
+  groupMatches: GroupMatch[],
+): Map<string, LivePosition> {
+  const base = computeGroupStandings(groupMatches);
+  const projectedInput = groupMatches.map((m) =>
+    m.status === "live" && m.home_score !== null && m.away_score !== null
+      ? { ...m, status: "finished" }
+      : m,
+  );
+  const projected = computeGroupStandings(projectedInput);
+
+  const basePos = new Map(base.map((r, i) => [r.team, i + 1]));
+  const result = new Map<string, LivePosition>();
+  projected.forEach((r, i) => {
+    const before = basePos.get(r.team);
+    if (before === undefined) return;
+    const pos = i + 1;
+    const dir: PositionDir = pos < before ? "up" : pos > before ? "down" : "same";
+    result.set(r.team, { pos, dir });
+  });
+  return result;
+}

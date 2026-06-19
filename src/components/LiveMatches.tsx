@@ -7,11 +7,13 @@ import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
 import { TeamName } from "@/components/TeamName";
 import { liveProgressLabel } from "@/lib/liveMinute";
 import { calculateMatchScore } from "@/lib/scoring";
+import type { LivePosition } from "@/lib/standings";
 import type { MatchWinner, Round } from "@/types";
 
 export interface LiveMatchRow {
   id: string;
   round: Round;
+  group_name: string | null;
   home_team: string;
   away_team: string;
   home_score: number | null;
@@ -23,6 +25,29 @@ export interface LiveMatchRow {
     predicted_away: number | null;
     predicted_winner: string | null;
   } | null;
+  // Posición proyectada en el grupo si el marcador en vivo se mantiene.
+  // Solo presente en partidos de fase de grupos.
+  homeProj: LivePosition | null;
+  awayProj: LivePosition | null;
+}
+
+/** Recuadro parpadeante con la posición proyectada en el grupo. */
+function GroupPosBadge({ proj }: { proj: LivePosition }) {
+  const style =
+    proj.dir === "up"
+      ? { box: "bg-emerald-500/15 text-emerald-400", symbol: "↑", verb: "subiría a" }
+      : proj.dir === "down"
+        ? { box: "bg-red-500/15 text-red-400", symbol: "↓", verb: "bajaría a" }
+        : { box: "bg-neutral-500/15 text-neutral-400", symbol: "–", verb: "se mantiene" };
+  return (
+    <span
+      aria-label={`Posición en el grupo: ${style.verb} ${proj.pos}°`}
+      className={`inline-flex animate-pulse items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium tabular-nums ${style.box}`}
+    >
+      <span aria-hidden>{style.symbol}</span>
+      <span aria-hidden>{proj.pos}°</span>
+    </span>
+  );
 }
 
 export function LiveMatches({
@@ -96,14 +121,19 @@ export function LiveMatches({
                 )}
               </div>
 
-              {/* nombre bandera | marcador | bandera nombre */}
+              {/* nombre bandera | marcador | bandera nombre.
+                  Cada equipo apila su nombre+bandera y, debajo, el recuadro de
+                  posición proyectada en el grupo (solo fase de grupos). */}
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2">
-                <div className="flex min-w-0 items-center justify-end gap-1.5">
-                  <TeamName
-                    team={m.home_team}
-                    className="text-right text-sm font-medium leading-tight"
-                  />
-                  <Flag team={m.home_team} />
+                <div className="flex min-w-0 flex-col items-end gap-1.5">
+                  <div className="flex min-w-0 items-center justify-end gap-1.5">
+                    <TeamName
+                      team={m.home_team}
+                      className="text-right text-sm font-medium leading-tight"
+                    />
+                    <Flag team={m.home_team} />
+                  </div>
+                  {m.homeProj && <GroupPosBadge proj={m.homeProj} />}
                 </div>
 
                 <div className="flex flex-col items-center px-2">
@@ -112,12 +142,15 @@ export function LiveMatches({
                   </span>
                 </div>
 
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <Flag team={m.away_team} />
-                  <TeamName
-                    team={m.away_team}
-                    className="text-sm font-medium leading-tight"
-                  />
+                <div className="flex min-w-0 flex-col items-start gap-1.5">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <Flag team={m.away_team} />
+                    <TeamName
+                      team={m.away_team}
+                      className="text-sm font-medium leading-tight"
+                    />
+                  </div>
+                  {m.awayProj && <GroupPosBadge proj={m.awayProj} />}
                 </div>
               </div>
 

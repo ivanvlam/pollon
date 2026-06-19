@@ -9,6 +9,7 @@ import { buttonClasses } from "@/components/ui/Button";
 import type { Round } from "@/types";
 import { createClient } from "@/lib/supabase/server";
 import { syncLiveMatchesNow } from "@/lib/sync-live";
+import { projectLivePositions, type GroupMatch } from "@/lib/standings";
 
 export const metadata = { title: "Mis pollas" };
 
@@ -53,7 +54,7 @@ export default async function DashboardPage() {
       .maybeSingle(),
     supabase
       .from("matches")
-      .select("id, round, sdb_round, home_team, away_team, home_score, away_score, live_minute, kickoff_at, updated_at")
+      .select("id, round, sdb_round, group_name, home_team, away_team, home_score, away_score, live_minute, kickoff_at, updated_at")
       .eq("status", "live")
       .order("kickoff_at", { ascending: true }),
   ]);
@@ -74,7 +75,7 @@ export default async function DashboardPage() {
         // Re-fetch tras el sync para obtener datos frescos
         const { data: fresh } = await supabase
           .from("matches")
-          .select("id, round, sdb_round, home_team, away_team, home_score, away_score, live_minute, kickoff_at, updated_at")
+          .select("id, round, sdb_round, group_name, home_team, away_team, home_score, away_score, live_minute, kickoff_at, updated_at")
           .eq("status", "live")
           .order("kickoff_at", { ascending: true });
         liveMatches = fresh;
@@ -107,17 +108,61 @@ export default async function DashboardPage() {
   const predByLiveMatch = new Map(
     (livePreds ?? []).map((p) => [p.match_id, p]),
   );
-  const liveRows = live.map((m) => ({
-    id: m.id,
-    round: m.round as Round,
-    home_team: m.home_team,
-    away_team: m.away_team,
-    home_score: m.home_score,
-    away_score: m.away_score,
-    live_minute: m.live_minute,
-    kickoff_at: m.kickoff_at,
-    pred: predByLiveMatch.get(m.id) ?? null,
-  }));
+
+  // Proyección de posición en el grupo para los partidos de grupo en vivo:
+  // dónde quedaría cada equipo si el marcador en vivo se mantiene. Traemos
+  // todos los partidos de los grupos con algún partido live y calculamos.
+  const liveGroupNames = [
+    ...new Set(
+      live
+        .filter((m) => m.round === "group_stage" && m.group_name)
+        .map((m) => m.group_name as string),
+    ),
+  ];
+  const { data: groupMatchRows } = liveGroupNames.length
+    ? await supabase
+        .from("matches")
+        .select("group_name, home_team, away_team, home_score, away_score, status")
+        .in("group_name", liveGroupNames)
+    : { data: [] };
+  const projByGroup = new Map<string, ReturnType<typeof projectLivePositions>>();
+  {
+    const byGroup = new Map<string, GroupMatch[]>();
+    for (const r of groupMatchRows ?? []) {
+      if (!r.group_name) continue;
+      const arr = byGroup.get(r.group_name) ?? [];
+      arr.push({
+        home_team: r.home_team,
+        away_team: r.away_team,
+        home_score: r.home_score,
+        away_score: r.away_score,
+        status: r.status,
+      });
+      byGroup.set(r.group_name, arr);
+    }
+    for (const [g, ms] of byGroup) projByGroup.set(g, projectLivePositions(ms));
+  }
+
+  const liveRows = live.map((m) => {
+    const proj =
+      m.round === "group_stage" && m.group_name
+        ? projByGroup.get(m.group_name)
+        : null;
+    return {
+      id: m.id,
+      round: m.round as Round,
+      group_name: m.group_name ?? null,
+      home_team: m.home_team,
+      away_team: m.away_team,
+      home_score: m.home_score,
+      away_score: m.away_score,
+      live_minute: m.live_minute,
+      kickoff_at: m.kickoff_at,
+      pred: predByLiveMatch.get(m.id) ?? null,
+      homeProj: proj?.get(m.home_team) ?? null,
+      awayProj: proj?.get(m.away_team) ?? null,
+    };
+  });
 
   const { data: nextPred } = nextMatch
     ? await supabase
