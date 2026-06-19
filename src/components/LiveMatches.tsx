@@ -126,13 +126,13 @@ export function LiveMatches({
                 <div className="flex min-w-0 items-center justify-end gap-1.5">
                   <TeamName
                     team={m.home_team}
-                    className="text-right text-sm font-medium leading-tight"
+                    className="text-right text-sm font-medium leading-tight sm:text-lg"
                   />
                   <Flag team={m.home_team} />
                 </div>
 
                 <div className="flex flex-col items-center px-2">
-                  <span className="text-2xl font-bold tabular-nums text-neutral-100">
+                  <span className="text-2xl font-bold tabular-nums text-neutral-100 sm:text-3xl">
                     {m.home_score ?? 0} – {m.away_score ?? 0}
                   </span>
                 </div>
@@ -141,20 +141,21 @@ export function LiveMatches({
                   <Flag team={m.away_team} />
                   <TeamName
                     team={m.away_team}
-                    className="text-sm font-medium leading-tight"
+                    className="text-sm font-medium leading-tight sm:text-lg"
                   />
                 </div>
               </div>
 
-              {/* Posición proyectada en el grupo: fila propia, centrada bajo cada
-                  equipo (separada del marcador). Solo fase de grupos. */}
+              {/* Posición proyectada en el grupo: fila propia, alineada bajo cada
+                  equipo (mismo lado que su nombre, separada del marcador). Solo
+                  fase de grupos. */}
               {(m.homeProj || m.awayProj) && (
                 <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-x-2">
-                  <div className="flex justify-center">
+                  <div className="flex justify-end">
                     {m.homeProj && <GroupPosBadge proj={m.homeProj} />}
                   </div>
                   <div className="px-2" />
-                  <div className="flex justify-center">
+                  <div className="flex justify-start">
                     {m.awayProj && <GroupPosBadge proj={m.awayProj} />}
                   </div>
                 </div>
