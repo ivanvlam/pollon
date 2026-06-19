@@ -17,6 +17,21 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      api_usage: {
+        Row: {
+          day: string;
+          count: number;
+        };
+        Insert: {
+          day?: string;
+          count?: number;
+        };
+        Update: {
+          day?: string;
+          count?: number;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
@@ -325,6 +340,14 @@ export interface Database {
     };
     Views: Record<never, never>;
     Functions: {
+      increment_api_usage: {
+        Args: { p_delta: number };
+        Returns: undefined;
+      };
+      get_api_usage: {
+        Args: { p_days?: number };
+        Returns: { day: string; count: number }[];
+      };
       join_pool_by_code: {
         Args: { p_invite_code: string };
         Returns: string | null;

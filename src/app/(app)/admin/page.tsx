@@ -88,6 +88,12 @@ export default async function GlobalAdminPage() {
     (myPreds ?? []).map((p) => [p.match_id, p]),
   );
 
+  // Uso de la API de TheSportsDB (cuota gratuita: 100 req/día).
+  const { data: apiUsage } = await svc.rpc("get_api_usage", { p_days: 7 });
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const sdbToday = (apiUsage ?? []).find((u) => u.day === todayStr)?.count ?? 0;
+  const sdb7d = (apiUsage ?? []).reduce((sum, u) => sum + u.count, 0);
+
   // Emails desde Auth admin (paginado).
   const emailById = new Map<string, string>();
   for (let page = 1; ; page++) {
@@ -207,6 +213,8 @@ export default async function GlobalAdminPage() {
           <Stat label="Usuarios sin polla" value={usersWithoutPool} />
           <Stat label="Eligieron campeón" value={champCount} />
           <Stat label="Eligieron goleador" value={scorerCount} />
+          <Stat label="API TheSportsDB (hoy)" value={`${sdbToday} / 100`} />
+          <Stat label="API TheSportsDB (7 días)" value={sdb7d} />
         </div>
       </section>
 

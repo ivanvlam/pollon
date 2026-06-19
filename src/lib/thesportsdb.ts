@@ -14,6 +14,7 @@
 // THESPORTSDB_KEY: "3" es el key de prueba gratis. Un key premium da más
 // cuota y livescores cada 2 min.
 
+import { recordSdbRequests } from "@/lib/sdb-usage";
 import type { MatchStatus, MatchWinner, Round } from "@/types";
 
 const WORLD_CUP_LEAGUE_ID = 4429;
@@ -175,6 +176,7 @@ export async function fetchWorldCupPlayers(): Promise<ExternalPlayer[]> {
       return json.events ?? [];
     }),
   );
+  await recordSdbRequests(3);
 
   // Construir mapa nombre → id (deduplicado)
   const teamMap = new Map<string, string>();
@@ -197,6 +199,7 @@ export async function fetchWorldCupPlayers(): Promise<ExternalPlayer[]> {
     );
     all.push(...results.flat());
   }
+  await recordSdbRequests(entries.length);
 
   return all;
 }
@@ -225,6 +228,7 @@ export async function fetchWorldCupFixtures(sdbRounds?: number[]): Promise<Exter
       return (json.events ?? []).map((ev) => toExternal(ev, round, r));
     }),
   );
+  await recordSdbRequests(roundsToFetch.length);
 
   // Deduplicar por external_id (por si un partido aparece en dos rondas).
   const byId = new Map<string, ExternalMatch>();
@@ -258,6 +262,7 @@ export async function fetchEventsByIds(ids: string[]): Promise<ExternalMatch[]> 
       return round ? toExternal(ev, round, sdbRound) : null;
     }),
   );
+  await recordSdbRequests(ids.length);
 
   return results.filter((m): m is ExternalMatch => m !== null);
 }
