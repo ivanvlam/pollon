@@ -95,7 +95,6 @@ export function RankingHistoryChart({ history, members, poolId }: Props) {
   };
 
   const trunc = (s: string, n = 18) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
-  const every = nC <= 24 ? 1 : nC <= 48 ? 2 : 4;
   const flagY = PAD_T + N * rowH + 12;
 
   const selPt = sel !== null ? history[sel] : null;
@@ -224,7 +223,6 @@ export function RankingHistoryChart({ history, members, poolId }: Props) {
 
           {/* X-axis flags */}
           {history.map((h, i) => {
-            if (i % every !== 0) return null;
             const homeCode = teamFlagCode(h.homeTeam);
             const awayCode = teamFlagCode(h.awayTeam);
             const gap = 8;
