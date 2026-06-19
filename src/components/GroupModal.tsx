@@ -48,11 +48,11 @@ export function GroupModal({ name, standings, matches, onClose, qualifyingThirds
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
       onClick={onClose}
     >
       <div
-        className="flex max-h-[90dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl border border-neutral-700 bg-neutral-950 sm:rounded-2xl"
+        className="flex max-h-[90dvh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-neutral-700 bg-neutral-950"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

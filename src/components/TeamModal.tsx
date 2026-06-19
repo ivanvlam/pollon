@@ -75,11 +75,11 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 sm:items-center"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4"
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl border border-neutral-700 bg-neutral-950 sm:rounded-2xl"
+        className="flex max-h-[85dvh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-neutral-700 bg-neutral-950"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
