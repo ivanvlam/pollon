@@ -164,7 +164,7 @@ export function LiveMatches({
               {/* Predicción + puntos provisionales. Mismo grid que el marcador
                   para que el "-" de la predicción quede alineado con el "–". */}
               {hasPred ? (
-                <div className="mt-2.5 grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 text-xs">
+                <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 text-xs">
                   <span className="text-right text-neutral-500">Tu predicción:</span>
                   <span className="px-2 font-medium tabular-nums text-neutral-200">
                     {m.pred!.predicted_home}-{m.pred!.predicted_away}
@@ -180,7 +180,7 @@ export function LiveMatches({
                   </span>
                 </div>
               ) : (
-                <div className="mt-2.5 text-center text-xs text-neutral-600">
+                <div className="mt-4 text-center text-xs text-neutral-600">
                   No predijiste este partido
                 </div>
               )}
