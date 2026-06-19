@@ -42,7 +42,7 @@ function GroupPosBadge({ proj }: { proj: LivePosition }) {
   return (
     <span
       aria-label={`Posición en el grupo: ${style.verb} ${proj.pos}°`}
-      className={`inline-flex animate-pulse items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium tabular-nums ${style.box}`}
+      className={`inline-flex animate-pulse items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] font-medium leading-none tabular-nums ${style.box}`}
     >
       <span aria-hidden>{style.symbol}</span>
       <span aria-hidden>{proj.pos}°</span>
@@ -121,19 +121,14 @@ export function LiveMatches({
                 )}
               </div>
 
-              {/* nombre bandera | marcador | bandera nombre.
-                  Cada equipo apila su nombre+bandera y, debajo, el recuadro de
-                  posición proyectada en el grupo (solo fase de grupos). */}
+              {/* nombre bandera | marcador | bandera nombre */}
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2">
-                <div className="flex min-w-0 flex-col items-end gap-1.5">
-                  <div className="flex min-w-0 items-center justify-end gap-1.5">
-                    <TeamName
-                      team={m.home_team}
-                      className="text-right text-sm font-medium leading-tight"
-                    />
-                    <Flag team={m.home_team} />
-                  </div>
-                  {m.homeProj && <GroupPosBadge proj={m.homeProj} />}
+                <div className="flex min-w-0 items-center justify-end gap-1.5">
+                  <TeamName
+                    team={m.home_team}
+                    className="text-right text-sm font-medium leading-tight"
+                  />
+                  <Flag team={m.home_team} />
                 </div>
 
                 <div className="flex flex-col items-center px-2">
@@ -142,17 +137,28 @@ export function LiveMatches({
                   </span>
                 </div>
 
-                <div className="flex min-w-0 flex-col items-start gap-1.5">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <Flag team={m.away_team} />
-                    <TeamName
-                      team={m.away_team}
-                      className="text-sm font-medium leading-tight"
-                    />
-                  </div>
-                  {m.awayProj && <GroupPosBadge proj={m.awayProj} />}
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <Flag team={m.away_team} />
+                  <TeamName
+                    team={m.away_team}
+                    className="text-sm font-medium leading-tight"
+                  />
                 </div>
               </div>
+
+              {/* Posición proyectada en el grupo: fila propia, centrada bajo cada
+                  equipo (separada del marcador). Solo fase de grupos. */}
+              {(m.homeProj || m.awayProj) && (
+                <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-x-2">
+                  <div className="flex justify-center">
+                    {m.homeProj && <GroupPosBadge proj={m.homeProj} />}
+                  </div>
+                  <div className="px-2" />
+                  <div className="flex justify-center">
+                    {m.awayProj && <GroupPosBadge proj={m.awayProj} />}
+                  </div>
+                </div>
+              )}
 
               {/* Predicción + puntos provisionales. Mismo grid que el marcador
                   para que el "-" de la predicción quede alineado con el "–". */}
