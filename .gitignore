@@ -90,3 +90,4 @@ Icon?
 .cache/
 .turbo/
 *.pem
+.vercel
