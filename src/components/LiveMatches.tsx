@@ -81,6 +81,12 @@ export function LiveMatches({
       <ul className="flex flex-col gap-3">
         {matches.map((m) => {
           const minute = liveProgressLabel(m.live_minute, m.kickoff_at);
+          // Etiqueta de fase (solo grupos): "Fase de Grupos · Grupo X". Se
+          // muestra arriba a la izquierda en desktop.
+          const groupLabel =
+            m.round === "group_stage" && m.group_name
+              ? `Fase de Grupos · ${m.group_name.replace(/^Group\s+/i, "Grupo ")}`
+              : null;
           const hasPred =
             m.pred !== null &&
             m.pred.predicted_home !== null &&
@@ -112,10 +118,18 @@ export function LiveMatches({
 
           const inner = (
             <>
-              {/* Fase del partido (mitad / entretiempo), en fila propia arriba a la
-                  derecha — en flujo normal para que nunca se solape con nombres largos.
-                  Altura mínima reservada aunque no haya fase, para uniformar las tarjetas. */}
-              <div className="mb-1 flex min-h-[1rem] justify-end">
+              {/* Fila superior: a la izquierda la fase (solo grupos, solo desktop);
+                  a la derecha la fase del partido (mitad / entretiempo). En flujo
+                  normal para que nunca se solape con nombres largos. Altura mínima
+                  reservada aunque estén vacías, para uniformar las tarjetas. */}
+              <div className="mb-1 flex min-h-[1rem] items-center justify-between gap-2">
+                {groupLabel ? (
+                  <span className="hidden text-xs font-medium text-neutral-500 sm:inline">
+                    {groupLabel}
+                  </span>
+                ) : (
+                  <span />
+                )}
                 {minute && (
                   <span className="text-xs font-medium text-neutral-400">{minute}</span>
                 )}
