@@ -70,8 +70,8 @@ function formatUpdatedAgoLabel(latestUpdateAt: string | null, now: number): stri
   if (Number.isNaN(latestUpdate)) return null;
 
   const agoSec = Math.floor((now - latestUpdate) / 1_000);
-  if (agoSec <= 1) return "actualizado recién";
-  if (agoSec <= 60) return `actualizado hace ${agoSec} segundos`;
+  if (agoSec <= 30) return "actualizado recién";
+  if (agoSec <= 60) return `actualizado hace menos de 1 minuto`;
   if (agoSec <= 120) return "actualizado hace 1 minuto";
   return `actualizado hace ${Math.floor(agoSec / 60)} minutos`;
 }
