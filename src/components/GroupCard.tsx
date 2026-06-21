@@ -6,7 +6,7 @@ import { Flag } from "@/components/Flag";
 import { GroupModal } from "@/components/GroupModal";
 import { TeamName } from "@/components/TeamName";
 import { Card } from "@/components/ui/Card";
-import type { StandingRow } from "@/lib/standings";
+import type { GroupClinch, StandingRow } from "@/lib/standings";
 import { toSpanish } from "@/lib/teamNames";
 import { isPredictionLocked } from "@/lib/timing";
 
@@ -30,9 +30,26 @@ interface Props {
   matches: GroupMatchRow[];
   yourPoints: number;
   qualifyingThirds?: Set<string>;
+  clinch?: Map<string, GroupClinch>;
 }
 
-export function GroupCard({ name, standings, matches, yourPoints, qualifyingThirds }: Props) {
+/**
+ * Borde izquierdo de cada fila de la tabla de grupo:
+ *  - verde  → clasificado 100% (matemático)
+ *  - rojo   → eliminado 100% (matemático)
+ *  - amarillo → clasificando ahora (proyección actual: top-2 o mejor tercero)
+ */
+export function rowClinchClass(
+  clinch: GroupClinch | undefined,
+  projectedQualifying: boolean,
+): string {
+  if (clinch === "qualified") return " border-l-2 border-emerald-500";
+  if (clinch === "eliminated") return " border-l-2 border-red-500/60";
+  if (projectedQualifying) return " border-l-2 border-yellow-500";
+  return "";
+}
+
+export function GroupCard({ name, standings, matches, yourPoints, qualifyingThirds, clinch }: Props) {
   const [open, setOpen] = useState(false);
 
   const pendingCount = matches.filter(
@@ -68,10 +85,11 @@ export function GroupCard({ name, standings, matches, yourPoints, qualifyingThir
             </thead>
             <tbody>
               {standings.map((row, i) => {
-                const qualifies = i < 2 || (i === 2 && (qualifyingThirds?.has(row.team) ?? false));
+                const projected = i < 2 || (i === 2 && (qualifyingThirds?.has(row.team) ?? false));
+                const state = clinch?.get(row.team);
                 return (
-                <tr key={row.team} className="border-b border-neutral-900 last:border-0">
-                  <td className={`w-7 py-1.5 pr-2 text-center tabular-nums text-neutral-500${qualifies ? " border-l-2 border-emerald-500" : ""}`}>{i + 1}</td>
+                <tr key={row.team} className={`border-b border-neutral-900 last:border-0${state === "eliminated" ? " opacity-50" : ""}`}>
+                  <td className={`w-7 py-1.5 pr-2 text-center tabular-nums text-neutral-500${rowClinchClass(state, projected)}`}>{i + 1}</td>
                   <td className="py-1.5">
                     <span className="flex items-center gap-2">
                       <Flag team={row.team} />
@@ -114,6 +132,7 @@ export function GroupCard({ name, standings, matches, yourPoints, qualifyingThir
           matches={matches}
           onClose={() => setOpen(false)}
           qualifyingThirds={qualifyingThirds}
+          clinch={clinch}
         />
       )}
     </>

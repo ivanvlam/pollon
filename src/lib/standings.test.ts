@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  computeGroupClinch,
   computeGroupStandings,
   projectLivePositions,
   type GroupMatch,
@@ -92,5 +93,79 @@ describe("projectLivePositions", () => {
     ]);
     expect(proj.get("B")!.pos).toBe(1);
     expect(proj.get("A")!.pos).toBe(2);
+  });
+});
+
+describe("computeGroupClinch", () => {
+  it("marca 'qualified' a quien ya no puede salir del top-2", () => {
+    // A ganó sus 3 partidos (9 pts). B, C, D aún juegan entre sí pero ninguno
+    // puede alcanzar 9 → A es 1° o 2° pase lo que pase.
+    const clinch = computeGroupClinch([
+      m("A", "B", 1, 0),
+      m("A", "C", 1, 0),
+      m("A", "D", 1, 0),
+      m("B", "C", null, null, "scheduled"),
+      m("B", "D", null, null, "scheduled"),
+      m("C", "D", null, null, "scheduled"),
+    ]);
+    expect(clinch.get("A")).toBe("qualified");
+    expect(clinch.get("B")).toBe("open");
+  });
+
+  it("marca 'eliminated' a quien ya no puede salir del último puesto", () => {
+    // D perdió sus 3 partidos (0 pts, ya jugó todo). A, B y C tienen ≥3 → D es
+    // último seguro.
+    const clinch = computeGroupClinch([
+      m("A", "D", 1, 0),
+      m("B", "D", 1, 0),
+      m("C", "D", 1, 0),
+      m("A", "B", null, null, "scheduled"),
+      m("A", "C", null, null, "scheduled"),
+      m("B", "C", null, null, "scheduled"),
+    ]);
+    expect(clinch.get("D")).toBe("eliminated");
+    expect(clinch.get("A")).toBe("open");
+  });
+
+  it("deja todo en 'open' cuando aún no se juega nada", () => {
+    const clinch = computeGroupClinch([
+      m("A", "B", null, null, "scheduled"),
+      m("A", "C", null, null, "scheduled"),
+      m("A", "D", null, null, "scheduled"),
+      m("B", "C", null, null, "scheduled"),
+      m("B", "D", null, null, "scheduled"),
+      m("C", "D", null, null, "scheduled"),
+    ]);
+    expect([...clinch.values()].every((v) => v === "open")).toBe(true);
+  });
+
+  it("grupo terminado: 1°/2° qualified, último eliminated, 3° open", () => {
+    // A=9, B=6, C=3, D=0 (sin empates → sin ambigüedad de desempate).
+    const clinch = computeGroupClinch([
+      m("A", "B", 1, 0),
+      m("A", "C", 1, 0),
+      m("A", "D", 1, 0),
+      m("B", "C", 1, 0),
+      m("B", "D", 1, 0),
+      m("C", "D", 1, 0),
+    ]);
+    expect(clinch.get("A")).toBe("qualified");
+    expect(clinch.get("B")).toBe("qualified");
+    expect(clinch.get("C")).toBe("open");
+    expect(clinch.get("D")).toBe("eliminated");
+  });
+
+  it("no confía en el marcador en vivo para declarar un clinch", () => {
+    // A ganó la fecha 1 (3 pts) y va ganando 5-0 en vivo, pero el resto está por
+    // jugarse: no está matemáticamente clasificado.
+    const clinch = computeGroupClinch([
+      m("A", "B", 1, 0),
+      m("A", "C", 5, 0, "live"),
+      m("A", "D", null, null, "scheduled"),
+      m("B", "C", null, null, "scheduled"),
+      m("B", "D", null, null, "scheduled"),
+      m("C", "D", null, null, "scheduled"),
+    ]);
+    expect(clinch.get("A")).not.toBe("qualified");
   });
 });

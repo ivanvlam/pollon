@@ -3,12 +3,12 @@
 import { useEffect } from "react";
 
 import { Flag } from "@/components/Flag";
-import type { GroupMatchRow } from "@/components/GroupCard";
+import { rowClinchClass, type GroupMatchRow } from "@/components/GroupCard";
 import { LockCountdown } from "@/components/LockCountdown";
 import { PredictionForm } from "@/components/PredictionForm";
 import { TeamName } from "@/components/TeamName";
 import { formatLiveMinute } from "@/lib/liveMinute";
-import type { StandingRow } from "@/lib/standings";
+import type { GroupClinch, StandingRow } from "@/lib/standings";
 import { toSpanish } from "@/lib/teamNames";
 import { hasMatchStarted, isPredictionLocked } from "@/lib/timing";
 
@@ -18,6 +18,7 @@ interface Props {
   matches: GroupMatchRow[];
   onClose: () => void;
   qualifyingThirds?: Set<string>;
+  clinch?: Map<string, GroupClinch>;
 }
 
 const fmt = (h: number | null, a: number | null) =>
@@ -30,7 +31,7 @@ const fmtDate = (iso: string) => {
   return `${day} · ${time}`;
 };
 
-export function GroupModal({ name, standings, matches, onClose, qualifyingThirds }: Props) {
+export function GroupModal({ name, standings, matches, onClose, qualifyingThirds, clinch }: Props) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -84,10 +85,11 @@ export function GroupModal({ name, standings, matches, onClose, qualifyingThirds
               </thead>
               <tbody>
                 {standings.map((row, i) => {
-                  const qualifies = i < 2 || (i === 2 && (qualifyingThirds?.has(row.team) ?? false));
+                  const projected = i < 2 || (i === 2 && (qualifyingThirds?.has(row.team) ?? false));
+                  const state = clinch?.get(row.team);
                   return (
-                  <tr key={row.team} className="border-b border-neutral-900 last:border-0">
-                    <td className={`w-7 py-1.5 pr-2 text-center tabular-nums text-neutral-500${qualifies ? " border-l-2 border-emerald-500" : ""}`}>{i + 1}</td>
+                  <tr key={row.team} className={`border-b border-neutral-900 last:border-0${state === "eliminated" ? " opacity-50" : ""}`}>
+                    <td className={`w-7 py-1.5 pr-2 text-center tabular-nums text-neutral-500${rowClinchClass(state, projected)}`}>{i + 1}</td>
                     <td className="py-1.5">
                       <span className="flex items-center gap-2">
                         <Flag team={row.team} />

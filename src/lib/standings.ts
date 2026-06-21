@@ -142,3 +142,130 @@ export function projectLivePositions(
   });
   return result;
 }
+
+/**
+ * Estado de clasificación MATEMÁTICA de un equipo dentro de su grupo, válido en
+ * TODOS los escenarios posibles de los partidos que faltan:
+ *  - "qualified": termina 1° o 2° pase lo que pase (clasificado seguro, ya que
+ *    el top-2 siempre avanza; ignora la vía del "mejor tercero", así que nunca
+ *    sobre-afirma).
+ *  - "eliminated": termina último pase lo que pase (el último nunca clasifica,
+ *    ni como tercero).
+ *  - "open": todavía puede terminar 3° en algún escenario → su suerte depende de
+ *    la carrera de los mejores terceros (cross-grupo), no se afirma nada.
+ */
+export type GroupClinch = "qualified" | "eliminated" | "open";
+
+/** Cuántos clasifican directo por grupo (1° y 2°). */
+const DIRECT_QUALIFY = 2;
+
+/**
+ * Calcula el clinch de cada equipo del grupo por fuerza bruta sobre los
+ * resultados (V/E/D) de los partidos no finalizados. Los partidos `live` se
+ * tratan como indecisos: un "100%" no debe fiarse de un marcador que aún cambia.
+ *
+ * Es deliberadamente CONSERVADOR: solo usa puntos y resuelve los empates en
+ * contra del equipo para "qualified" y a su favor para "eliminated", por lo que
+ * jamás declara un clinch que dependa del desempate por diferencia de gol (que
+ * los partidos futuros pueden alterar). Puede dejar en "open" a un equipo ya
+ * clasificado solo por diferencia de gol; nunca se equivoca al marcar verde/rojo.
+ *
+ * `matches` debe contener TODOS los partidos del grupo (finalizados + por jugar).
+ * Cada grupo tiene a lo sumo 6 partidos → ≤ 3⁶ = 729 escenarios.
+ */
+export function computeGroupClinch(matches: GroupMatch[]): Map<string, GroupClinch> {
+  const teams = new Set<string>();
+  for (const m of matches) {
+    teams.add(m.home_team);
+    teams.add(m.away_team);
+  }
+  const teamList = [...teams];
+
+  const isDecided = (m: GroupMatch) =>
+    m.status === "finished" && m.home_score !== null && m.away_score !== null;
+
+  // Puntos ya asegurados por los partidos finalizados.
+  const add = (map: Map<string, number>, team: string, pts: number) =>
+    map.set(team, (map.get(team) ?? 0) + pts);
+  const basePoints = new Map<string, number>();
+  for (const t of teamList) basePoints.set(t, 0);
+  for (const m of matches) {
+    if (!isDecided(m)) continue;
+    if (m.home_score! > m.away_score!) add(basePoints, m.home_team, 3);
+    else if (m.home_score! < m.away_score!) add(basePoints, m.away_team, 3);
+    else {
+      add(basePoints, m.home_team, 1);
+      add(basePoints, m.away_team, 1);
+    }
+  }
+
+  const remaining = matches.filter((m) => !isDecided(m));
+  const n = remaining.length;
+  const lastRank = teamList.length; // "último" del grupo
+
+  // Grupo ya terminado: la diferencia de gol está fijada, así que usamos la
+  // tabla real (con su desempate) en vez del cálculo conservador por puntos.
+  // 1°/2° clasifican; el último queda eliminado; el 3° depende de los terceros.
+  if (n === 0) {
+    const standings = computeGroupStandings(matches);
+    const exact = new Map<string, GroupClinch>();
+    standings.forEach((row, i) => {
+      exact.set(
+        row.team,
+        i < DIRECT_QUALIFY ? "qualified" : i === lastRank - 1 ? "eliminated" : "open",
+      );
+    });
+    return exact;
+  }
+
+  // Por cada equipo: ¿hay algún escenario en que NO llegue al top-2? ¿alguno en
+  // que NO sea último? Si nunca falla el top-2 → qualified. Si nunca escapa del
+  // último → eliminated.
+  const canMissTopTwo = new Map<string, boolean>();
+  const canAvoidLast = new Map<string, boolean>();
+  for (const t of teamList) {
+    canMissTopTwo.set(t, false);
+    canAvoidLast.set(t, false);
+  }
+
+  const total = 3 ** n;
+  for (let s = 0; s < total; s++) {
+    const pts = new Map(basePoints);
+    let code = s;
+    for (const rm of remaining) {
+      const outcome = code % 3;
+      code = Math.floor(code / 3);
+      if (outcome === 0) add(pts, rm.home_team, 3);
+      else if (outcome === 1) add(pts, rm.away_team, 3);
+      else {
+        add(pts, rm.home_team, 1);
+        add(pts, rm.away_team, 1);
+      }
+    }
+
+    for (const t of teamList) {
+      const tp = pts.get(t)!;
+      let strictlyAbove = 0;
+      let tied = 0;
+      for (const r of teamList) {
+        if (r === t) continue;
+        const rp = pts.get(r)!;
+        if (rp > tp) strictlyAbove += 1;
+        else if (rp === tp) tied += 1;
+      }
+      // Peor caso (empates en contra) y mejor caso (empates a favor).
+      const worstRank = 1 + strictlyAbove + tied;
+      const bestRank = 1 + strictlyAbove;
+      if (worstRank > DIRECT_QUALIFY) canMissTopTwo.set(t, true);
+      if (bestRank < lastRank) canAvoidLast.set(t, true);
+    }
+  }
+
+  const result = new Map<string, GroupClinch>();
+  for (const t of teamList) {
+    if (!canMissTopTwo.get(t)) result.set(t, "qualified");
+    else if (!canAvoidLast.get(t)) result.set(t, "eliminated");
+    else result.set(t, "open");
+  }
+  return result;
+}

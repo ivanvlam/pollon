@@ -3,7 +3,11 @@ import Link from "next/link";
 import { GroupCard, type GroupMatchRow } from "@/components/GroupCard";
 import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
 import { createClient } from "@/lib/supabase/server";
-import { computeGroupStandings, type GroupMatch } from "@/lib/standings";
+import {
+  computeGroupClinch,
+  computeGroupStandings,
+  type GroupMatch,
+} from "@/lib/standings";
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -91,10 +95,25 @@ export default async function GroupsPage({
         <p className="text-neutral-400">Aún no hay partidos de fase de grupos.</p>
       )}
 
+      {groupNames.length > 0 && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-neutral-400">
+          <span className="flex items-center gap-1.5">
+            <span className="h-3 w-1 rounded-sm bg-emerald-500" /> Clasificado
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-3 w-1 rounded-sm bg-yellow-500" /> Clasificando
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-3 w-1 rounded-sm bg-red-500/60" /> Eliminado
+          </span>
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2">
         {groupNames.map((name) => {
           const groupMatches = groups.get(name)!;
           const standings = allStandings.get(name)!;
+          const clinch = computeGroupClinch(groupMatches as GroupMatch[]);
           const yourPoints = groupMatches.reduce(
             (sum, m) => sum + (pointsByMatch.get(m.id) ?? 0),
             0,
@@ -121,6 +140,7 @@ export default async function GroupsPage({
               matches={rows}
               yourPoints={yourPoints}
               qualifyingThirds={qualifyingThirds}
+              clinch={clinch}
             />
           );
         })}
