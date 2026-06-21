@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
 import { Flag } from "@/components/Flag";
+import { GoalCelebration, type GoalEvent } from "@/components/GoalCelebration";
 import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
 import { TeamName } from "@/components/TeamName";
 import { liveProgressLabel } from "@/lib/liveMinute";
@@ -76,6 +77,92 @@ function formatUpdatedAgoLabel(latestUpdateAt: string | null, now: number): stri
   return `actualizado hace ${Math.floor(agoSec / 60)} minutos`;
 }
 
+const GOAL_STORAGE_KEY = "pollon:goal-seen";
+
+/**
+ * Detecta goles en los partidos en vivo y los encola para celebrarlos:
+ *  - al entrar a la página, si hay más goles que la última vez que se vio el
+ *    partido (persistido en localStorage; el 0-0 y la primera vez no cuentan);
+ *  - con la página abierta, cada vez que el marcador sube en un refresh.
+ * Devuelve el gol actual a mostrar (uno a la vez, en cola) y su onDone.
+ */
+function useGoalCelebrations(matches: LiveMatchRow[]) {
+  const seenRef = useRef<Map<string, { h: number; a: number }>>(new Map());
+  const loadedRef = useRef(false);
+  const [queue, setQueue] = useState<GoalEvent[]>([]);
+  const [current, setCurrent] = useState<GoalEvent | null>(null);
+
+  const signature = matches
+    .map((m) => `${m.id}:${m.home_score ?? 0}-${m.away_score ?? 0}`)
+    .join(",");
+
+  useEffect(() => {
+    const seen = seenRef.current;
+
+    if (!loadedRef.current) {
+      loadedRef.current = true;
+      try {
+        const raw = localStorage.getItem(GOAL_STORAGE_KEY);
+        if (raw) {
+          const obj = JSON.parse(raw) as Record<string, { h: number; a: number }>;
+          for (const [id, v] of Object.entries(obj)) seen.set(id, v);
+        }
+      } catch {
+        /* localStorage no disponible: seguimos sin persistencia */
+      }
+    }
+
+    const events: GoalEvent[] = [];
+    for (const m of matches) {
+      const h = m.home_score ?? 0;
+      const a = m.away_score ?? 0;
+      const prev = seen.get(m.id);
+      if (prev === undefined) {
+        seen.set(m.id, { h, a }); // primera vez: baseline, no anima
+        continue;
+      }
+      if (h + a > prev.h + prev.a && h + a > 0) {
+        const scoringSide = h - prev.h >= a - prev.a ? "home" : "away";
+        events.push({
+          id: `${m.id}-${h}-${a}-${Date.now()}`,
+          homeTeam: m.home_team,
+          awayTeam: m.away_team,
+          homeScore: h,
+          awayScore: a,
+          scoringSide,
+        });
+      }
+      seen.set(m.id, { h, a });
+    }
+
+    // Persistir solo los partidos vigentes (limpia los que ya no están en vivo).
+    try {
+      const obj: Record<string, { h: number; a: number }> = {};
+      for (const m of matches) {
+        const v = seen.get(m.id);
+        if (v) obj[m.id] = v;
+      }
+      localStorage.setItem(GOAL_STORAGE_KEY, JSON.stringify(obj));
+    } catch {
+      /* sin persistencia */
+    }
+
+    if (events.length) setQueue((q) => [...q, ...events]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature]);
+
+  // Promueve el siguiente de la cola cuando no hay nada mostrándose.
+  useEffect(() => {
+    if (!current && queue.length > 0) {
+      setCurrent(queue[0]!);
+      setQueue((q) => q.slice(1));
+    }
+  }, [current, queue]);
+
+  const onDone = useCallback(() => setCurrent(null), []);
+  return { goal: current, onDone };
+}
+
 export function LiveMatches({
   matches,
   latestUpdateAt,
@@ -87,14 +174,17 @@ export function LiveMatches({
 }) {
   const router = useRouter();
   const now = useNow();
+  const { goal, onDone } = useGoalCelebrations(matches);
 
   if (matches.length === 0) return null;
 
   const updatedAgoLabel = formatUpdatedAgoLabel(latestUpdateAt, now);
 
   return (
-    <section className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
-      <MatchLiveRefresh matches={[{ status: "live" }]} />
+    <>
+      {goal && <GoalCelebration goal={goal} onDone={onDone} />}
+      <section className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
+        <MatchLiveRefresh matches={[{ status: "live" }]} />
       <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="inline-flex items-center gap-1.5">
           <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
@@ -251,6 +341,7 @@ export function LiveMatches({
           );
         })}
       </ul>
-    </section>
+      </section>
+    </>
   );
 }
