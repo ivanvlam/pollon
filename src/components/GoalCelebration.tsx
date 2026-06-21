@@ -17,8 +17,8 @@ export interface GoalEvent {
   scoringSide: "home" | "away";
 }
 
-const DURATION_MS = 2200;
-const REDUCED_MS = 1400;
+const DURATION_MS = 4000;
+const REDUCED_MS = 2500;
 
 function prefersReducedMotion(): boolean {
   return (
@@ -28,21 +28,60 @@ function prefersReducedMotion(): boolean {
 }
 
 /** Pelota de fútbol estilizada (SVG, nítida a cualquier tamaño). */
-const SoccerBall = () => (
-  <svg viewBox="0 0 100 100" className="h-full w-full" aria-hidden>
-    <circle cx="50" cy="50" r="48" fill="#ffffff" stroke="#111111" strokeWidth="2" />
-    {/* costuras desde el pentágono central hacia el borde */}
-    <g stroke="#111111" strokeWidth="2.5" strokeLinecap="round">
-      <line x1="50" y1="34" x2="50" y2="4" />
-      <line x1="65.2" y1="45.1" x2="93.8" y2="35.8" />
-      <line x1="59.4" y1="62.9" x2="77" y2="87.2" />
-      <line x1="40.6" y1="62.9" x2="23" y2="87.2" />
-      <line x1="34.8" y1="45.1" x2="6.2" y2="35.8" />
-    </g>
-    {/* pentágono central */}
-    <polygon points="50,34 65.2,45.1 59.4,62.9 40.6,62.9 34.8,45.1" fill="#111111" />
-  </svg>
-);
+const C = 50; // centro
+const CENTER_R = 15; // radio del pentágono central
+const OUTER_DIST = 40; // distancia del centro a los pentágonos del borde
+const OUTER_R = 13; // radio de los pentágonos del borde
+
+/** Puntos de un pentágono (un vértice apuntando según `rotDeg`). */
+function pentagon(cx: number, cy: number, r: number, rotDeg: number): string {
+  return Array.from({ length: 5 }, (_, k) => {
+    const a = ((-90 + rotDeg + k * 72) * Math.PI) / 180;
+    return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`;
+  }).join(" ");
+}
+
+const SoccerBall = () => {
+  // Vértices del pentágono central: de cada uno sale una costura radial hacia
+  // un pentágono del borde (recortado por el círculo).
+  const centerVerts = Array.from({ length: 5 }, (_, k) => {
+    const a = ((-90 + k * 72) * Math.PI) / 180;
+    return [C + CENTER_R * Math.cos(a), C + CENTER_R * Math.sin(a)] as const;
+  });
+  const outer = Array.from({ length: 5 }, (_, k) => {
+    const a = ((-90 + k * 72) * Math.PI) / 180;
+    return {
+      cx: C + OUTER_DIST * Math.cos(a),
+      cy: C + OUTER_DIST * Math.sin(a),
+      rot: 180 + k * 72, // un vértice apuntando hacia el centro
+    };
+  });
+
+  return (
+    <svg viewBox="0 0 100 100" className="h-full w-full" aria-hidden>
+      <defs>
+        <clipPath id="goal-ball-clip">
+          <circle cx="50" cy="50" r="47" />
+        </clipPath>
+      </defs>
+      <circle cx="50" cy="50" r="48" fill="#ffffff" stroke="#111111" strokeWidth="2" />
+      <g clipPath="url(#goal-ball-clip)">
+        {/* costuras radiales */}
+        <g stroke="#111111" strokeWidth="2.5" strokeLinecap="round">
+          {centerVerts.map(([x, y], i) => (
+            <line key={i} x1={x} y1={y} x2={outer[i]!.cx} y2={outer[i]!.cy} />
+          ))}
+        </g>
+        {/* pentágono central */}
+        <polygon points={pentagon(C, C, CENTER_R, 0)} fill="#111111" />
+        {/* pentágonos del borde */}
+        {outer.map((o, i) => (
+          <polygon key={i} points={pentagon(o.cx, o.cy, OUTER_R, o.rot)} fill="#111111" />
+        ))}
+      </g>
+    </svg>
+  );
+};
 
 export function GoalCelebration({
   goal,
@@ -79,6 +118,8 @@ export function GoalCelebration({
       fire(0.5);
       timers.push(window.setTimeout(() => { fire(0.18); fire(0.82); }, 250));
       timers.push(window.setTimeout(() => fire(0.5), 650));
+      timers.push(window.setTimeout(() => { fire(0.3); fire(0.7); }, 1600));
+      timers.push(window.setTimeout(() => fire(0.5), 2700));
     }
 
     timers.push(window.setTimeout(onDone, reduced ? REDUCED_MS : DURATION_MS));
@@ -97,15 +138,7 @@ export function GoalCelebration({
         style={{ background: `radial-gradient(circle, ${accent}55, transparent 70%)` }}
       />
 
-      {/* pelota que viene hacia la pantalla */}
-      <div
-        className="goal-ball absolute left-1/2 top-1/2"
-        style={{ width: "42vmin", height: "42vmin" }}
-      >
-        <SoccerBall />
-      </div>
-
-      {/* GOOOL con letras animadas */}
+      {/* GOOOL con letras animadas (arriba de la pelota) */}
       <div
         className="relative flex"
         style={{ filter: `drop-shadow(0 6px 18px ${accent})` }}
@@ -125,8 +158,16 @@ export function GoalCelebration({
         ))}
       </div>
 
+      {/* pelota que viene hacia la pantalla, debajo del GOOOL */}
+      <div
+        className="goal-ball relative my-5"
+        style={{ width: "38vmin", height: "38vmin" }}
+      >
+        <SoccerBall />
+      </div>
+
       {/* contexto: banderas + nuevo marcador */}
-      <div className="goal-context relative mt-6 flex items-center gap-2 rounded-full bg-neutral-950/80 px-4 py-2 text-lg font-bold text-neutral-100 ring-1 ring-white/10">
+      <div className="goal-context relative flex items-center gap-2 rounded-full bg-neutral-950/80 px-4 py-2 text-lg font-bold text-neutral-100 ring-1 ring-white/10">
         <Flag team={goal.homeTeam} />
         <span className="tabular-nums">
           {goal.homeScore} – {goal.awayScore}

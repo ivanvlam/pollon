@@ -86,30 +86,34 @@ input[type="number"]::-webkit-inner-spin-button {
 
 /* Pelota que viene hacia la pantalla: chica (lejos) → grande (cerca), girando. */
 .goal-ball {
-  transform: translate(-50%, -50%) scale(1);
-  animation: goal-ball-in 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  transform: scale(1);
+  animation: goal-ball-in 4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 @keyframes goal-ball-in {
   0% {
-    transform: translate(-50%, -50%) scale(0.05) rotate(0deg);
+    transform: scale(0.05) rotate(0deg);
     opacity: 0;
   }
-  12% {
+  8% {
     opacity: 1;
   }
-  55% {
-    transform: translate(-50%, -50%) scale(1) rotate(540deg);
+  38% {
+    transform: scale(1) rotate(540deg);
     opacity: 1;
   }
-  68% {
-    transform: translate(-50%, -50%) scale(1.08) rotate(610deg);
+  48% {
+    transform: scale(1.08) rotate(600deg);
   }
-  82% {
-    transform: translate(-50%, -50%) scale(0.98) rotate(650deg);
+  60% {
+    transform: scale(0.98) rotate(650deg);
+    opacity: 1;
+  }
+  88% {
+    transform: scale(1.03) rotate(700deg);
     opacity: 1;
   }
   100% {
-    transform: translate(-50%, -50%) scale(1.15) rotate(690deg);
+    transform: scale(1.12) rotate(720deg);
     opacity: 0;
   }
 }
@@ -142,17 +146,20 @@ input[type="number"]::-webkit-inner-spin-button {
 /* Destello de fondo con el color del equipo. */
 .goal-flash {
   opacity: 0;
-  animation: goal-flash 2.2s ease-out forwards;
+  animation: goal-flash 4s ease-out forwards;
 }
 @keyframes goal-flash {
   0% {
     opacity: 0;
   }
-  15% {
+  10% {
     opacity: 1;
   }
-  60% {
+  45% {
     opacity: 0.5;
+  }
+  80% {
+    opacity: 0.3;
   }
   100% {
     opacity: 0;
