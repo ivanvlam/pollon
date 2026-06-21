@@ -2,8 +2,10 @@
 
 import { useCallback, useRef, useState } from "react";
 
+import type { GroupMatchRow } from "@/components/GroupCard";
+import { GroupModal } from "@/components/GroupModal";
 import { TeamModal } from "@/components/TeamModal";
-import type { StandingRow } from "@/lib/standings";
+import type { GroupClinch, StandingRow } from "@/lib/standings";
 import { toSpanish } from "@/lib/teamNames";
 
 interface TeamData {
@@ -27,6 +29,14 @@ interface TeamData {
   }>;
   groupName: string | null;
   position: number | null;
+  // Tabla completa del grupo (para abrir su modal desde el del equipo).
+  group: {
+    name: string;
+    standings: StandingRow[];
+    matches: GroupMatchRow[];
+    clinch: Array<[string, GroupClinch]>;
+  } | null;
+  qualifyingThirds: string[];
 }
 
 export function TeamName({
@@ -37,6 +47,7 @@ export function TeamName({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState(false);
   const [loading, setLoading] = useState(false);
   const dataRef = useRef<TeamData | null>(null);
 
@@ -57,6 +68,8 @@ export function TeamName({
     [team],
   );
 
+  const group = dataRef.current?.group ?? null;
+
   return (
     <>
       <button
@@ -74,8 +87,29 @@ export function TeamName({
           matches={dataRef.current.matches}
           groupName={dataRef.current.groupName}
           position={dataRef.current.position}
+          onOpenGroup={
+            group
+              ? () => {
+                  setOpen(false);
+                  setOpenGroup(true);
+                }
+              : undefined
+          }
           onClose={() => {
             setOpen(false);
+            dataRef.current = null;
+          }}
+        />
+      )}
+      {openGroup && group && (
+        <GroupModal
+          name={group.name}
+          standings={group.standings}
+          matches={group.matches}
+          clinch={new Map(group.clinch)}
+          qualifyingThirds={new Set(dataRef.current?.qualifyingThirds ?? [])}
+          onClose={() => {
+            setOpenGroup(false);
             dataRef.current = null;
           }}
         />

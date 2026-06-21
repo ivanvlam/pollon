@@ -6,12 +6,22 @@ import { useRouter } from "next/navigation";
 
 import { Flag } from "@/components/Flag";
 import { GoalCelebration, type GoalEvent } from "@/components/GoalCelebration";
+import type { GroupMatchRow } from "@/components/GroupCard";
+import { GroupModal } from "@/components/GroupModal";
 import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
 import { TeamName } from "@/components/TeamName";
 import { liveProgressLabel } from "@/lib/liveMinute";
 import { calculateMatchScore } from "@/lib/scoring";
-import type { LivePosition } from "@/lib/standings";
+import type { GroupClinch, LivePosition, StandingRow } from "@/lib/standings";
 import type { MatchWinner, Round } from "@/types";
+
+/** Datos completos de un grupo para abrir su modal desde la tarjeta en vivo. */
+export interface LiveGroupData {
+  name: string; // etiqueta "Grupo X"
+  standings: StandingRow[];
+  matches: GroupMatchRow[];
+  clinch?: Map<string, GroupClinch>;
+}
 
 export interface LiveMatchRow {
   id: string;
@@ -167,14 +177,20 @@ export function LiveMatches({
   matches,
   latestUpdateAt,
   poolId,
+  groups,
+  qualifyingThirds,
 }: {
   matches: LiveMatchRow[];
   latestUpdateAt: string | null;
   poolId?: string | null;
+  groups?: Map<string, LiveGroupData>;
+  qualifyingThirds?: Set<string>;
 }) {
   const router = useRouter();
   const now = useNow();
   const { goal, onDone } = useGoalCelebrations(matches);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const openGroupData = openGroup ? groups?.get(openGroup) : undefined;
 
   if (matches.length === 0) return null;
 
@@ -183,6 +199,16 @@ export function LiveMatches({
   return (
     <>
       {goal && <GoalCelebration goal={goal} onDone={onDone} />}
+      {openGroup && openGroupData && (
+        <GroupModal
+          name={openGroupData.name}
+          standings={openGroupData.standings}
+          matches={openGroupData.matches}
+          clinch={openGroupData.clinch}
+          qualifyingThirds={qualifyingThirds}
+          onClose={() => setOpenGroup(null)}
+        />
+      )}
       <section className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
         <MatchLiveRefresh matches={[{ status: "live" }]} />
       <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -211,7 +237,7 @@ export function LiveMatches({
             m.round === "group_stage" && m.group_name
               ? m.group_name.replace(/^Group\s+/i, "Grupo ")
               : null;
-          const groupHref = poolId ? `/pool/${poolId}/grupos` : null;
+          const groupData = m.group_name ? groups?.get(m.group_name) : undefined;
           const hasPred =
             m.pred !== null &&
             m.pred.predicted_home !== null &&
@@ -248,12 +274,12 @@ export function LiveMatches({
                   normal para que nunca se solape con nombres largos. Altura mínima
                   reservada aunque estén vacías, para uniformar las tarjetas. */}
               <div className="mb-1 flex min-h-[1rem] items-center justify-between gap-2">
-                {groupShort && groupHref ? (
+                {groupShort && groupData ? (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      router.push(groupHref);
+                      setOpenGroup(m.group_name);
                     }}
                     className="-ml-1.5 rounded px-1.5 py-0.5 text-xs font-medium text-neutral-400 transition hover:bg-neutral-800 hover:text-neutral-100"
                   >

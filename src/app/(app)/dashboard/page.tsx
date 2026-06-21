@@ -1,15 +1,22 @@
 import Link from "next/link";
 
 import { CreatePoolForm } from "@/components/CreatePoolForm";
+import type { GroupMatchRow } from "@/components/GroupCard";
 import { ChampionReminder, NextMatchCard } from "@/components/HomeReminders";
 import { JoinPoolForm } from "@/components/JoinPoolForm";
-import { LiveMatches } from "@/components/LiveMatches";
+import { LiveMatches, type LiveGroupData } from "@/components/LiveMatches";
 import { TimezoneSync } from "@/components/TimezoneSync";
 import { buttonClasses } from "@/components/ui/Button";
 import type { Round } from "@/types";
 import { createClient } from "@/lib/supabase/server";
 import { syncLiveMatchesNow } from "@/lib/sync-live";
-import { projectLivePositions, type GroupMatch } from "@/lib/standings";
+import {
+  computeGroupClinch,
+  computeGroupStandings,
+  projectLivePositions,
+  type GroupMatch,
+  type StandingRow,
+} from "@/lib/standings";
 
 export const metadata = { title: "Mis pollas" };
 
@@ -31,6 +38,23 @@ export default async function DashboardPage() {
   // Pollas + ranking en UNA sola llamada (sin N+1). Devuelve una fila por
   // (polla, miembro) ya ordenada por posición.
   const { data: rankingRows } = await supabase.rpc("get_my_pools_ranking");
+
+  // Agrupar por polla, preservando el orden por posición de la RPC.
+  const byPool = new Map<
+    string,
+    { name: string; created_by: string; rows: NonNullable<typeof rankingRows> }
+  >();
+  for (const r of rankingRows ?? []) {
+    const entry =
+      byPool.get(r.pool_id) ??
+      { name: r.pool_name, created_by: r.pool_created_by, rows: [] };
+    entry.rows.push(r);
+    byPool.set(r.pool_id, entry);
+  }
+  const pools = [...byPool.entries()]
+    .map(([id, e]) => ({ id, name: e.name, created_by: e.created_by, rows: e.rows }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const livePoolId = pools[0]?.id ?? null;
 
   // Datos para los recordatorios del inicio (campeón/goleador + próximo partido).
   const nowIso = new Date().toISOString();
@@ -107,9 +131,9 @@ export default async function DashboardPage() {
     (livePreds ?? []).map((p) => [p.match_id, p]),
   );
 
-  // Proyección de posición en el grupo para los partidos de grupo en vivo:
-  // dónde quedaría cada equipo si el marcador en vivo se mantiene. Traemos
-  // todos los partidos de los grupos con algún partido live y calculamos.
+  // Datos de grupo para los partidos de grupo en vivo: proyección de posición
+  // (si el marcador en vivo se mantiene) y la tabla completa del grupo, para
+  // poder abrir su modal desde la tarjeta en vivo.
   const liveGroupNames = [
     ...new Set(
       live
@@ -117,28 +141,91 @@ export default async function DashboardPage() {
         .map((m) => m.group_name as string),
     ),
   ];
-  const { data: groupMatchRows } = liveGroupNames.length
-    ? await supabase
-        .from("matches")
-        .select("group_name, home_team, away_team, home_score, away_score, status")
-        .in("group_name", liveGroupNames)
-    : { data: [] };
+
   const projByGroup = new Map<string, ReturnType<typeof projectLivePositions>>();
-  {
-    const byGroup = new Map<string, GroupMatch[]>();
-    for (const r of groupMatchRows ?? []) {
-      if (!r.group_name) continue;
-      const arr = byGroup.get(r.group_name) ?? [];
-      arr.push({
-        home_team: r.home_team,
-        away_team: r.away_team,
-        home_score: r.home_score,
-        away_score: r.away_score,
-        status: r.status,
-      });
-      byGroup.set(r.group_name, arr);
+  let liveGroupData: Map<string, LiveGroupData> | undefined;
+  let qualifyingThirds: Set<string> | undefined;
+
+  if (liveGroupNames.length) {
+    // Todos los partidos de fase de grupos: para standings, mejores terceros
+    // (cross-grupo) y el contenido del modal.
+    const { data: allGroupMatches } = await supabase
+      .from("matches")
+      .select(
+        "id, group_name, home_team, away_team, kickoff_at, status, home_score, away_score, is_active, live_minute",
+      )
+      .eq("round", "group_stage")
+      .order("kickoff_at", { ascending: true });
+    const allG = allGroupMatches ?? [];
+
+    const byGroup = new Map<string, typeof allG>();
+    for (const m of allG) {
+      if (!m.group_name) continue;
+      const arr = byGroup.get(m.group_name) ?? [];
+      arr.push(m);
+      byGroup.set(m.group_name, arr);
     }
-    for (const [g, ms] of byGroup) projByGroup.set(g, projectLivePositions(ms));
+
+    const standingsByGroup = new Map<string, StandingRow[]>();
+    for (const [g, ms] of byGroup) {
+      standingsByGroup.set(g, computeGroupStandings(ms as GroupMatch[]));
+      projByGroup.set(g, projectLivePositions(ms as GroupMatch[]));
+    }
+
+    // 8 mejores terceros entre todos los grupos.
+    const thirds = [...byGroup.keys()].flatMap((g) => {
+      const s = standingsByGroup.get(g)!;
+      return s[2] ? [s[2]] : [];
+    });
+    thirds.sort((a, b) => b.points - a.points || b.gd - a.gd || a.team.localeCompare(b.team));
+    qualifyingThirds = new Set(thirds.slice(0, 8).map((r) => r.team));
+
+    // Predicciones y puntos del usuario, solo para los partidos de los grupos
+    // que tienen un partido en vivo (los que abren modal).
+    const liveGroupMatchIds = allG
+      .filter((m) => m.group_name && liveGroupNames.includes(m.group_name))
+      .map((m) => m.id);
+    const { data: gPreds } = liveGroupMatchIds.length
+      ? await supabase
+          .from("predictions")
+          .select("match_id, predicted_home, predicted_away")
+          .eq("user_id", uid)
+          .in("match_id", liveGroupMatchIds)
+      : { data: [] };
+    const { data: gScores } = livePoolId && liveGroupMatchIds.length
+      ? await supabase
+          .from("scores")
+          .select("match_id, points")
+          .eq("pool_id", livePoolId)
+          .eq("user_id", uid)
+          .in("match_id", liveGroupMatchIds)
+      : { data: [] };
+    const predByGroupMatch = new Map((gPreds ?? []).map((p) => [p.match_id, p]));
+    const pointsByGroupMatch = new Map((gScores ?? []).map((s) => [s.match_id, s.points]));
+
+    liveGroupData = new Map();
+    for (const g of liveGroupNames) {
+      const ms = byGroup.get(g) ?? [];
+      const rows: GroupMatchRow[] = ms.map((m) => ({
+        id: m.id,
+        home_team: m.home_team,
+        away_team: m.away_team,
+        kickoff_at: m.kickoff_at,
+        status: m.status,
+        home_score: m.home_score,
+        away_score: m.away_score,
+        live_minute: m.live_minute,
+        is_active: m.is_active,
+        pred: predByGroupMatch.get(m.id) ?? null,
+        myPoints: pointsByGroupMatch.get(m.id),
+      }));
+      liveGroupData.set(g, {
+        name: g.replace(/^Group\s+/i, "Grupo "),
+        standings: standingsByGroup.get(g) ?? [],
+        matches: rows,
+        clinch: computeGroupClinch(ms as GroupMatch[]),
+      });
+    }
   }
 
   const liveRows = live.map((m) => {
@@ -171,23 +258,6 @@ export default async function DashboardPage() {
         .maybeSingle()
     : { data: null };
 
-  // Agrupar por polla, preservando el orden por posición de la RPC.
-  const byPool = new Map<
-    string,
-    { name: string; created_by: string; rows: NonNullable<typeof rankingRows> }
-  >();
-  for (const r of rankingRows ?? []) {
-    const entry =
-      byPool.get(r.pool_id) ??
-      { name: r.pool_name, created_by: r.pool_created_by, rows: [] };
-    entry.rows.push(r);
-    byPool.set(r.pool_id, entry);
-  }
-
-  const pools = [...byPool.entries()]
-    .map(([id, e]) => ({ id, name: e.name, created_by: e.created_by, rows: e.rows }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
   return (
     <div className="flex flex-col gap-10">
       <TimezoneSync current={profile?.timezone ?? null} />
@@ -209,7 +279,13 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <LiveMatches matches={liveRows} latestUpdateAt={latestUpdateAt} poolId={pools[0]?.id ?? null} />
+      <LiveMatches
+        matches={liveRows}
+        latestUpdateAt={latestUpdateAt}
+        poolId={livePoolId}
+        groups={liveGroupData}
+        qualifyingThirds={qualifyingThirds}
+      />
 
       {pools.length > 0 && (
         <ChampionReminder

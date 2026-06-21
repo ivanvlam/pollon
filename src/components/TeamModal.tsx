@@ -32,6 +32,7 @@ interface Props {
   groupName: string | null;
   position: number | null;
   onClose: () => void;
+  onOpenGroup?: () => void;
 }
 
 const fmtDate = (iso: string) => {
@@ -41,7 +42,7 @@ const fmtDate = (iso: string) => {
   return `${day} · ${time}`;
 };
 
-export function TeamModal({ team, standing, matches, groupName, position, onClose }: Props) {
+export function TeamModal({ team, standing, matches, groupName, position, onClose, onOpenGroup }: Props) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -90,7 +91,17 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
               <h2 className="text-xl font-bold">{teamEs}</h2>
               {groupLabel && (
                 <p className="text-sm text-neutral-400">
-                  {groupLabel}
+                  {onOpenGroup ? (
+                    <button
+                      type="button"
+                      onClick={onOpenGroup}
+                      className="font-medium text-neutral-300 underline-offset-2 transition-colors hover:text-neutral-100 hover:underline"
+                    >
+                      {groupLabel}
+                    </button>
+                  ) : (
+                    groupLabel
+                  )}
                   {position !== null && (
                     <>
                       {" · "}
