@@ -8,7 +8,12 @@ import { BracketGroupLabel, type GroupModalData } from "@/components/BracketGrou
 import { TeamName } from "@/components/TeamName";
 import { toSpanish } from "@/lib/teamNames";
 import { createClient } from "@/lib/supabase/server";
-import { computeGroupStandings } from "@/lib/standings";
+import {
+  computeGroupPositionLock,
+  computeGroupStandings,
+  type GroupMatch,
+  type GroupPositionLock,
+} from "@/lib/standings";
 import type { MatchWinner, Round } from "@/types";
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
@@ -132,10 +137,12 @@ export default async function BracketPage({ params }: { params: { id: string } }
   );
 
   const groupLeaders: Record<string, { winner: string | null; runnerUp: string | null }> = {};
+  const positionLockMap = new Map<string, Map<string, GroupPositionLock>>();
   const groupModalDataMap = new Map<string, GroupModalData>();
   for (const [g, ms] of groupsMap) {
     const standings = computeGroupStandings(ms);
     groupLeaders[g] = { winner: standings[0]?.team ?? null, runnerUp: standings[1]?.team ?? null };
+    positionLockMap.set(g, computeGroupPositionLock(ms as GroupMatch[]));
     const modalMatches: GroupMatchRow[] = ms.map((m) => ({
       id: m.id,
       home_team: m.home_team,
@@ -164,6 +171,15 @@ export default async function BracketPage({ params }: { params: { id: string } }
   const getGroupData = (s: SlotDef): GroupModalData | null => {
     if (s.type === "best_third") return null;
     return groupModalDataMap.get(s.group) ?? null;
+  };
+  // Slot "1° Grupo X" verde solo si ese equipo tiene el 1° asegurado; "2° Grupo
+  // X" solo si tiene el 2° exacto asegurado. La vía del mejor 3° nunca se fija.
+  const isSlotLocked = (s: SlotDef): boolean => {
+    if (s.type === "best_third") return false;
+    const team = resolveTeam(s);
+    if (!team) return false;
+    const lock = positionLockMap.get(s.group)?.get(team);
+    return s.type === "winner" ? lock === "first" : lock === "second";
   };
 
   // ── R32 matches from DB (for date/time) ──────────────────────────────────
@@ -199,6 +215,11 @@ export default async function BracketPage({ params }: { params: { id: string } }
         </Link>
       </header>
 
+      <p className="flex items-center gap-1.5 text-xs text-neutral-500">
+        <span className="font-semibold text-emerald-400">✓ verde</span>
+        = equipo con esa posición de grupo (1°/2°) ya asegurada matemáticamente.
+      </p>
+
       {/* ── Mobile view ─────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-8 md:hidden">
         {/* Dieciseisavos */}
@@ -218,9 +239,11 @@ export default async function BracketPage({ params }: { params: { id: string } }
                   homeTeam={resolveTeam(def.home)}
                   homeLabel={slotLabel(def.home)}
                   homeGroupData={getGroupData(def.home)}
+                  homeLocked={isSlotLocked(def.home)}
                   awayTeam={resolveTeam(def.away)}
                   awayLabel={slotLabel(def.away)}
                   awayGroupData={getGroupData(def.away)}
+                  awayLocked={isSlotLocked(def.away)}
                 />
               );
             })}
@@ -307,9 +330,11 @@ export default async function BracketPage({ params }: { params: { id: string } }
                   homeTeam={resolveTeam(def.home)}
                   homeLabel={slotLabel(def.home)}
                   homeGroupData={getGroupData(def.home)}
+                  homeLocked={isSlotLocked(def.home)}
                   awayTeam={resolveTeam(def.away)}
                   awayLabel={slotLabel(def.away)}
                   awayGroupData={getGroupData(def.away)}
+                  awayLocked={isSlotLocked(def.away)}
                 />
               </div>
             );
@@ -405,12 +430,12 @@ export default async function BracketPage({ params }: { params: { id: string } }
 // ─── R32 card ─────────────────────────────────────────────────────────────────
 function R32Card({
   matchNum, date,
-  homeTeam, homeLabel, homeGroupData,
-  awayTeam, awayLabel, awayGroupData,
+  homeTeam, homeLabel, homeGroupData, homeLocked,
+  awayTeam, awayLabel, awayGroupData, awayLocked,
 }: {
   matchNum: number; date: string | null;
-  homeTeam: string | null; homeLabel: string; homeGroupData: GroupModalData | null;
-  awayTeam: string | null; awayLabel: string; awayGroupData: GroupModalData | null;
+  homeTeam: string | null; homeLabel: string; homeGroupData: GroupModalData | null; homeLocked: boolean;
+  awayTeam: string | null; awayLabel: string; awayGroupData: GroupModalData | null; awayLocked: boolean;
 }) {
   return (
     <div className="w-full rounded-lg border border-neutral-800 bg-neutral-900/80 px-2.5 py-2 text-xs">
@@ -418,19 +443,20 @@ function R32Card({
         <span className="font-medium">Partido {matchNum}</span>
         {date && <span className="text-neutral-500">{date}</span>}
       </div>
-      <SlotRow team={homeTeam} label={homeLabel} groupData={homeGroupData} />
+      <SlotRow team={homeTeam} label={homeLabel} groupData={homeGroupData} locked={homeLocked} />
       <div className="my-1 border-t border-neutral-800" />
-      <SlotRow team={awayTeam} label={awayLabel} groupData={awayGroupData} />
+      <SlotRow team={awayTeam} label={awayLabel} groupData={awayGroupData} locked={awayLocked} />
     </div>
   );
 }
 
 function SlotRow({
-  team, label, groupData,
+  team, label, groupData, locked,
 }: {
   team: string | null;
   label: string;
   groupData: GroupModalData | null;
+  locked: boolean;
 }) {
   const labelEl = groupData ? (
     <BracketGroupLabel
@@ -442,9 +468,10 @@ function SlotRow({
   ) : label;
 
   return team ? (
-    <div className="flex min-h-[20px] items-center gap-1 text-neutral-100">
+    <div className={`flex min-h-[20px] items-center gap-1 ${locked ? "text-emerald-400" : "text-neutral-100"}`}>
       <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
       <TeamName team={team} className="min-w-0 flex-1 truncate font-medium" />
+      {locked && <span aria-hidden className="shrink-0 text-emerald-400">✓</span>}
       <span className="shrink-0 text-[10px] text-neutral-500">{labelEl}</span>
     </div>
   ) : (
