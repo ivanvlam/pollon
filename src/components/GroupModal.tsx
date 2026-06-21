@@ -148,38 +148,47 @@ export function GroupModal({ name, standings, matches, onClose, qualifyingThirds
 
               return (
                 <div key={match.id} className="rounded-xl border border-neutral-800 p-3">
-                  <div className="mb-3 flex items-start justify-between gap-2 text-xs text-neutral-500">
-                    <span className="min-w-0 truncate">{fmtDate(match.kickoff_at)}</span>
-                    <span className="shrink-0 text-right">
+                  <div className="mb-3 flex items-start justify-between gap-2 text-xs">
+                    {/* Izquierda: fecha + estado (EN VIVO / Final / cuenta regresiva). */}
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-neutral-500">
+                      <span className="truncate">{fmtDate(match.kickoff_at)}</span>
                       {finished ? (
-                        <span className="font-medium text-neutral-300">
-                          Final {fmt(match.home_score, match.away_score)}
-                        </span>
+                        <span className="font-medium text-neutral-400">Final</span>
                       ) : match.status === "live" ? (
-                        <span className="inline-flex flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5">
-                          <span className="inline-flex items-center gap-1.5">
-                            <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-                            <span className="font-medium text-red-400">EN VIVO</span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                          <span className="font-medium text-red-400">
+                            EN VIVO
+                            {formatLiveMinute(match.live_minute)
+                              ? ` · ${formatLiveMinute(match.live_minute)}`
+                              : ""}
                           </span>
-                          {match.home_score !== null && match.away_score !== null && (
-                            <span className="text-neutral-200">
-                              {fmt(match.home_score, match.away_score)}
-                            </span>
-                          )}
-                          {formatLiveMinute(match.live_minute) && (
-                            <span className="text-neutral-400">
-                              {formatLiveMinute(match.live_minute)}
-                            </span>
-                          )}
                         </span>
                       ) : started ? (
                         <span>Empezó</span>
                       ) : locked ? (
-                        <span className="text-neutral-500">Cerrado</span>
+                        <span>Cerrado</span>
                       ) : (
                         <LockCountdown kickoffAt={match.kickoff_at} />
                       )}
                     </span>
+                    {/* Derecha: mi predicción (en partidos ya no editables). */}
+                    {!canPredict && (
+                      <span className="shrink-0 text-right text-neutral-500">
+                        {match.pred &&
+                        match.pred.predicted_home !== null &&
+                        match.pred.predicted_away !== null ? (
+                          <>
+                            Mi predicción:{" "}
+                            <span className="font-medium tabular-nums text-neutral-300">
+                              {match.pred.predicted_home}–{match.pred.predicted_away}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-neutral-600">Sin predicción</span>
+                        )}
+                      </span>
+                    )}
                   </div>
 
                   {canPredict ? (
@@ -211,13 +220,11 @@ export function GroupModal({ name, standings, matches, onClose, qualifyingThirds
                           <Flag team={match.home_team} className="shrink-0" />
                         </div>
                         <div className="flex flex-col items-center px-2">
-                          {match.pred ? (
-                            <span className="whitespace-nowrap text-xl font-bold tabular-nums text-neutral-200">
-                              {match.pred.predicted_home ?? "–"}{" – "}{match.pred.predicted_away ?? "–"}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-neutral-600">sin predicción</span>
-                          )}
+                          <span className="whitespace-nowrap text-xl font-bold tabular-nums text-neutral-100">
+                            {finished || match.status === "live"
+                              ? fmt(match.home_score, match.away_score)
+                              : "vs"}
+                          </span>
                         </div>
                         <div className="hidden min-w-0 items-center gap-1.5 sm:flex">
                           <Flag team={match.away_team} className="shrink-0" />
