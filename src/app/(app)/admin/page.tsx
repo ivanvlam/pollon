@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { AdminChampion } from "@/components/AdminChampion";
 import { AdminDeleteButton } from "@/components/AdminDeleteButton";
+import { AdminGoalTest } from "@/components/AdminGoalTest";
 import { AdminMatchRow } from "@/components/AdminMatchRow";
 import { AdminRoundActivator } from "@/components/AdminRoundActivator";
 import { AdminTopScorer } from "@/components/AdminTopScorer";
@@ -368,6 +369,8 @@ export default async function GlobalAdminPage() {
         <AdminTopScorer players={players ?? []} />
 
         <AdminChampion teams={teams} />
+
+        <AdminGoalTest />
 
         <p className="text-sm text-neutral-400">
           Activa los partidos para habilitar las predicciones e ingresa
