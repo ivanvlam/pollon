@@ -69,7 +69,7 @@ export default function ComoFuncionaPage() {
           </li>
           <li>
             <span className="font-semibold text-emerald-400">2 puntos</span>:
-            aciertas solo el ganador o el empate.
+            aciertas solo el ganador.
           </li>
           <li className="text-neutral-500">Son excluyentes: se aplica el nivel más alto.</li>
         </ul>
@@ -88,7 +88,7 @@ export default function ComoFuncionaPage() {
           </li>
           <li>
             <span className="font-semibold text-emerald-400">2 puntos</span>:
-            solo aciertas quién clasifica.
+            solo aciertas quién clasifica o el empate a 90 minutos.
           </li>
           <li className="text-neutral-500">
             El marcador es siempre a 90 minutos. Puedes predecir empate y elegir quién clasifica
