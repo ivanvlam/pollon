@@ -81,8 +81,9 @@ const GOAL_STORAGE_KEY = "pollon:goal-seen";
 
 /**
  * Detecta goles en los partidos en vivo y los encola para celebrarlos:
- *  - al entrar a la página, si hay más goles que la última vez que se vio el
- *    partido (persistido en localStorage; el 0-0 y la primera vez no cuentan);
+ *  - al entrar a la página, si el partido tiene goles que aún no celebramos
+ *    (último visto persistido en localStorage; en la primera visita el "antes"
+ *    es 0-0, así un partido ya 1-0 también anima; el 0-0 nunca anima);
  *  - con la página abierta, cada vez que el marcador sube en un refresh.
  * Devuelve el gol actual a mostrar (uno a la vez, en cola) y su onDone.
  */
@@ -116,11 +117,10 @@ function useGoalCelebrations(matches: LiveMatchRow[]) {
     for (const m of matches) {
       const h = m.home_score ?? 0;
       const a = m.away_score ?? 0;
-      const prev = seen.get(m.id);
-      if (prev === undefined) {
-        seen.set(m.id, { h, a }); // primera vez: baseline, no anima
-        continue;
-      }
+      // Primera vez que vemos el partido: tratamos el "antes" como 0-0, así
+      // entrar con el partido ya 1-0 (o más) también dispara la animación.
+      // El 0-0 nunca anima (no hay goles).
+      const prev = seen.get(m.id) ?? { h: 0, a: 0 };
       if (h + a > prev.h + prev.a && h + a > 0) {
         const scoringSide = h - prev.h >= a - prev.a ? "home" : "away";
         events.push({
