@@ -156,14 +156,6 @@ export function projectLivePositions(
  */
 export type GroupClinch = "qualified" | "eliminated" | "open";
 
-/**
- * Posición de grupo matemáticamente asegurada (para los slots del bracket):
- *  - "first": tiene el 1° asegurado pase lo que pase.
- *  - "second": tiene exactamente el 2° asegurado (ni puede ser 1° ni caer al 3°).
- *  - "none": su posición exacta todavía puede variar.
- */
-export type GroupPositionLock = "first" | "second" | "none";
-
 /** Cuántos clasifican directo por grupo (1° y 2°). */
 const DIRECT_QUALIFY = 2;
 
@@ -173,8 +165,6 @@ const isDecidedMatch = (m: GroupMatch) =>
 interface GroupScenarioStats {
   canMissTopTwo: boolean; // algún escenario fuera del top-2
   canAvoidLast: boolean; // algún escenario sin ser último
-  canNotBeSoleFirst: boolean; // algún escenario sin ser 1° en solitario
-  canNotBeExactlySecond: boolean; // algún escenario sin ser exactamente 2°
 }
 
 /**
@@ -218,12 +208,7 @@ function bruteForceGroupStats(matches: GroupMatch[]): Map<string, GroupScenarioS
   const remaining = matches.filter((m) => !isDecidedMatch(m));
   const stats = new Map<string, GroupScenarioStats>();
   for (const t of teamList) {
-    stats.set(t, {
-      canMissTopTwo: false,
-      canAvoidLast: false,
-      canNotBeSoleFirst: false,
-      canNotBeExactlySecond: false,
-    });
+    stats.set(t, { canMissTopTwo: false, canAvoidLast: false });
   }
 
   const total = 3 ** remaining.length;
@@ -257,8 +242,6 @@ function bruteForceGroupStats(matches: GroupMatch[]): Map<string, GroupScenarioS
       const bestRank = 1 + strictlyAbove;
       if (worstRank > DIRECT_QUALIFY) st.canMissTopTwo = true;
       if (bestRank < lastRank) st.canAvoidLast = true;
-      if (strictlyAbove > 0 || tied > 0) st.canNotBeSoleFirst = true;
-      if (!(strictlyAbove === 1 && tied === 0)) st.canNotBeExactlySecond = true;
     }
   }
   return stats;
@@ -290,34 +273,6 @@ export function computeGroupClinch(matches: GroupMatch[]): Map<string, GroupClin
     if (!st.canMissTopTwo) result.set(team, "qualified");
     else if (!st.canAvoidLast) result.set(team, "eliminated");
     else result.set(team, "open");
-  }
-  return result;
-}
-
-/**
- * Posición de grupo asegurada de cada equipo. Ver {@link GroupPositionLock}.
- * Pensado para los slots del bracket ("1° Grupo X" / "2° Grupo X"). Grupo ya
- * terminado: usa la tabla real con desempate.
- */
-export function computeGroupPositionLock(
-  matches: GroupMatch[],
-): Map<string, GroupPositionLock> {
-  const remaining = matches.filter((m) => !isDecidedMatch(m));
-  if (remaining.length === 0) {
-    const standings = computeGroupStandings(matches);
-    const exact = new Map<string, GroupPositionLock>();
-    standings.forEach((row, i) => {
-      exact.set(row.team, i === 0 ? "first" : i === 1 ? "second" : "none");
-    });
-    return exact;
-  }
-
-  const stats = bruteForceGroupStats(matches);
-  const result = new Map<string, GroupPositionLock>();
-  for (const [team, st] of stats) {
-    if (!st.canNotBeSoleFirst) result.set(team, "first");
-    else if (!st.canNotBeExactlySecond) result.set(team, "second");
-    else result.set(team, "none");
   }
   return result;
 }

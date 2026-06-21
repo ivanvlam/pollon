@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   computeGroupClinch,
-  computeGroupPositionLock,
   computeGroupStandings,
   projectLivePositions,
   type GroupMatch,
@@ -168,76 +167,5 @@ describe("computeGroupClinch", () => {
       m("C", "D", null, null, "scheduled"),
     ]);
     expect(clinch.get("A")).not.toBe("qualified");
-  });
-});
-
-describe("computeGroupPositionLock", () => {
-  it("marca 'first' a quien ya tiene el 1° asegurado", () => {
-    // A ganó sus 3 (9 pts). Nadie puede alcanzar 9 → 1° asegurado.
-    const lock = computeGroupPositionLock([
-      m("A", "B", 1, 0),
-      m("A", "C", 1, 0),
-      m("A", "D", 1, 0),
-      m("B", "C", null, null, "scheduled"),
-      m("B", "D", null, null, "scheduled"),
-      m("C", "D", null, null, "scheduled"),
-    ]);
-    expect(lock.get("A")).toBe("first");
-    expect(lock.get("B")).not.toBe("first");
-  });
-
-  it("marca 'second' a quien tiene el 2° exacto asegurado", () => {
-    // A=9 (1°), B=6 jugó todo; C y D solo pueden llegar a 3 → B es 2° fijo.
-    const lock = computeGroupPositionLock([
-      m("A", "B", 1, 0),
-      m("A", "C", 1, 0),
-      m("A", "D", 1, 0),
-      m("B", "C", 1, 0),
-      m("B", "D", 1, 0),
-      m("C", "D", null, null, "scheduled"),
-    ]);
-    expect(lock.get("A")).toBe("first");
-    expect(lock.get("B")).toBe("second");
-  });
-
-  it("no fija posición cuando 1° y 2° aún pueden intercambiarse", () => {
-    // A y B a 6 pts; el A-B directo decide el orden → ambos clasificados pero
-    // sin posición fija.
-    const lock = computeGroupPositionLock([
-      m("A", "C", 1, 0),
-      m("A", "D", 1, 0),
-      m("B", "C", 1, 0),
-      m("B", "D", 1, 0),
-      m("A", "B", null, null, "scheduled"),
-      m("C", "D", null, null, "scheduled"),
-    ]);
-    expect(lock.get("A")).toBe("none");
-    expect(lock.get("B")).toBe("none");
-    // pero ambos están clasificados al top-2:
-    const clinch = computeGroupClinch([
-      m("A", "C", 1, 0),
-      m("A", "D", 1, 0),
-      m("B", "C", 1, 0),
-      m("B", "D", 1, 0),
-      m("A", "B", null, null, "scheduled"),
-      m("C", "D", null, null, "scheduled"),
-    ]);
-    expect(clinch.get("A")).toBe("qualified");
-    expect(clinch.get("B")).toBe("qualified");
-  });
-
-  it("grupo terminado: 1°='first', 2°='second', resto 'none'", () => {
-    const lock = computeGroupPositionLock([
-      m("A", "B", 1, 0),
-      m("A", "C", 1, 0),
-      m("A", "D", 1, 0),
-      m("B", "C", 1, 0),
-      m("B", "D", 1, 0),
-      m("C", "D", 1, 0),
-    ]);
-    expect(lock.get("A")).toBe("first");
-    expect(lock.get("B")).toBe("second");
-    expect(lock.get("C")).toBe("none");
-    expect(lock.get("D")).toBe("none");
   });
 });

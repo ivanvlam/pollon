@@ -10,11 +10,9 @@ import { toSpanish } from "@/lib/teamNames";
 import { createClient } from "@/lib/supabase/server";
 import {
   computeGroupClinch,
-  computeGroupPositionLock,
   computeGroupStandings,
   type GroupClinch,
   type GroupMatch,
-  type GroupPositionLock,
 } from "@/lib/standings";
 import type { MatchWinner, Round } from "@/types";
 
@@ -139,13 +137,11 @@ export default async function BracketPage({ params }: { params: { id: string } }
   );
 
   const groupLeaders: Record<string, { winner: string | null; runnerUp: string | null }> = {};
-  const positionLockMap = new Map<string, Map<string, GroupPositionLock>>();
   const clinchMap = new Map<string, Map<string, GroupClinch>>();
   const groupModalDataMap = new Map<string, GroupModalData>();
   for (const [g, ms] of groupsMap) {
     const standings = computeGroupStandings(ms);
     groupLeaders[g] = { winner: standings[0]?.team ?? null, runnerUp: standings[1]?.team ?? null };
-    positionLockMap.set(g, computeGroupPositionLock(ms as GroupMatch[]));
     clinchMap.set(g, computeGroupClinch(ms as GroupMatch[]));
     const modalMatches: GroupMatchRow[] = ms.map((m) => ({
       id: m.id,
@@ -175,15 +171,6 @@ export default async function BracketPage({ params }: { params: { id: string } }
   const getGroupData = (s: SlotDef): GroupModalData | null => {
     if (s.type === "best_third") return null;
     return groupModalDataMap.get(s.group) ?? null;
-  };
-  // Slot "1° Grupo X" con ✓ solo si ese equipo tiene el 1° asegurado; "2° Grupo
-  // X" solo si tiene el 2° exacto asegurado. La vía del mejor 3° nunca se fija.
-  const isSlotLocked = (s: SlotDef): boolean => {
-    if (s.type === "best_third") return false;
-    const team = resolveTeam(s);
-    if (!team) return false;
-    const lock = positionLockMap.get(s.group)?.get(team);
-    return s.type === "winner" ? lock === "first" : lock === "second";
   };
   // El equipo del slot ya está clasificado a la siguiente ronda (top-2 asegurado),
   // aunque su posición exacta 1°/2° pueda variar.
@@ -227,15 +214,9 @@ export default async function BracketPage({ params }: { params: { id: string } }
         </Link>
       </header>
 
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500">
-        <span>
-          <span className="font-semibold text-emerald-400">Verde</span> = clasificado
-          a la siguiente ronda.
-        </span>
-        <span>
-          <span className="font-semibold text-emerald-400">✓</span> = además con su
-          posición (1°/2°) ya asegurada.
-        </span>
+      <p className="text-xs text-neutral-500">
+        <span className="font-semibold text-emerald-400">Verde</span> = clasificado a
+        la siguiente ronda.
       </p>
 
       {/* ── Mobile view ─────────────────────────────────────────────────── */}
@@ -257,12 +238,10 @@ export default async function BracketPage({ params }: { params: { id: string } }
                   homeTeam={resolveTeam(def.home)}
                   homeLabel={slotLabel(def.home)}
                   homeGroupData={getGroupData(def.home)}
-                  homeLocked={isSlotLocked(def.home)}
                   homeQualified={isSlotQualified(def.home)}
                   awayTeam={resolveTeam(def.away)}
                   awayLabel={slotLabel(def.away)}
                   awayGroupData={getGroupData(def.away)}
-                  awayLocked={isSlotLocked(def.away)}
                   awayQualified={isSlotQualified(def.away)}
                 />
               );
@@ -350,12 +329,10 @@ export default async function BracketPage({ params }: { params: { id: string } }
                   homeTeam={resolveTeam(def.home)}
                   homeLabel={slotLabel(def.home)}
                   homeGroupData={getGroupData(def.home)}
-                  homeLocked={isSlotLocked(def.home)}
                   homeQualified={isSlotQualified(def.home)}
                   awayTeam={resolveTeam(def.away)}
                   awayLabel={slotLabel(def.away)}
                   awayGroupData={getGroupData(def.away)}
-                  awayLocked={isSlotLocked(def.away)}
                   awayQualified={isSlotQualified(def.away)}
                 />
               </div>
@@ -452,12 +429,12 @@ export default async function BracketPage({ params }: { params: { id: string } }
 // ─── R32 card ─────────────────────────────────────────────────────────────────
 function R32Card({
   matchNum, date,
-  homeTeam, homeLabel, homeGroupData, homeLocked, homeQualified,
-  awayTeam, awayLabel, awayGroupData, awayLocked, awayQualified,
+  homeTeam, homeLabel, homeGroupData, homeQualified,
+  awayTeam, awayLabel, awayGroupData, awayQualified,
 }: {
   matchNum: number; date: string | null;
-  homeTeam: string | null; homeLabel: string; homeGroupData: GroupModalData | null; homeLocked: boolean; homeQualified: boolean;
-  awayTeam: string | null; awayLabel: string; awayGroupData: GroupModalData | null; awayLocked: boolean; awayQualified: boolean;
+  homeTeam: string | null; homeLabel: string; homeGroupData: GroupModalData | null; homeQualified: boolean;
+  awayTeam: string | null; awayLabel: string; awayGroupData: GroupModalData | null; awayQualified: boolean;
 }) {
   return (
     <div className="w-full rounded-lg border border-neutral-800 bg-neutral-900/80 px-2.5 py-2 text-xs">
@@ -465,20 +442,19 @@ function R32Card({
         <span className="font-medium">Partido {matchNum}</span>
         {date && <span className="text-neutral-500">{date}</span>}
       </div>
-      <SlotRow team={homeTeam} label={homeLabel} groupData={homeGroupData} locked={homeLocked} qualified={homeQualified} />
+      <SlotRow team={homeTeam} label={homeLabel} groupData={homeGroupData} qualified={homeQualified} />
       <div className="my-1 border-t border-neutral-800" />
-      <SlotRow team={awayTeam} label={awayLabel} groupData={awayGroupData} locked={awayLocked} qualified={awayQualified} />
+      <SlotRow team={awayTeam} label={awayLabel} groupData={awayGroupData} qualified={awayQualified} />
     </div>
   );
 }
 
 function SlotRow({
-  team, label, groupData, locked, qualified,
+  team, label, groupData, qualified,
 }: {
   team: string | null;
   label: string;
   groupData: GroupModalData | null;
-  locked: boolean;
   qualified: boolean;
 }) {
   const labelEl = groupData ? (
@@ -490,14 +466,11 @@ function SlotRow({
     />
   ) : label;
 
-  // Clasificado (top-2 asegurado) → verde; con posición exacta asegurada → +✓.
-  const teamColor = locked || qualified ? "text-emerald-400" : "text-neutral-100";
-
+  // Clasificado a la siguiente ronda (top-2 asegurado) → verde.
   return team ? (
-    <div className={`flex min-h-[20px] items-center gap-1 ${teamColor}`}>
+    <div className={`flex min-h-[20px] items-center gap-1 ${qualified ? "text-emerald-400" : "text-neutral-100"}`}>
       <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
       <TeamName team={team} className="min-w-0 flex-1 truncate font-medium" />
-      {locked && <span aria-hidden className="shrink-0 text-emerald-400">✓</span>}
       <span className="shrink-0 text-[10px] text-neutral-500">{labelEl}</span>
     </div>
   ) : (
