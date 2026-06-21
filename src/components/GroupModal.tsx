@@ -8,6 +8,7 @@ import { LockCountdown } from "@/components/LockCountdown";
 import { PredictionForm } from "@/components/PredictionForm";
 import { TeamName } from "@/components/TeamName";
 import { formatLiveMinute } from "@/lib/liveMinute";
+import { calculateMatchScore } from "@/lib/scoring";
 import type { GroupClinch, StandingRow } from "@/lib/standings";
 import { toSpanish } from "@/lib/teamNames";
 import { hasMatchStarted, isPredictionLocked } from "@/lib/timing";
@@ -121,6 +122,30 @@ export function GroupModal({ name, standings, matches, onClose, qualifyingThirds
               const homeEs = toSpanish(match.home_team);
               const awayEs = toSpanish(match.away_team);
 
+              // Puntos provisionales del partido en vivo (lo que ganarías si
+              // terminara ahora). Los finalizados usan match.myPoints (scores).
+              const liveScore =
+                match.status === "live" &&
+                match.home_score !== null &&
+                match.away_score !== null &&
+                match.pred &&
+                match.pred.predicted_home !== null &&
+                match.pred.predicted_away !== null
+                  ? calculateMatchScore(
+                      {
+                        round: "group_stage",
+                        home_score: match.home_score,
+                        away_score: match.away_score,
+                        winner: null,
+                      },
+                      {
+                        predicted_home: match.pred.predicted_home,
+                        predicted_away: match.pred.predicted_away,
+                        predicted_winner: null,
+                      },
+                    )
+                  : null;
+
               return (
                 <div key={match.id} className="rounded-xl border border-neutral-800 p-3">
                   <div className="mb-3 flex items-start justify-between gap-2 text-xs text-neutral-500">
@@ -199,11 +224,19 @@ export function GroupModal({ name, standings, matches, onClose, qualifyingThirds
                           <span className="truncate">{awayEs}</span>
                         </div>
                       </div>
-                      {(match.myPoints !== undefined || (finished && match.pred !== null) || (match.status === "live" && match.home_score !== null && match.pred !== null)) && (
+                      {(match.myPoints !== undefined || (finished && match.pred !== null) || liveScore !== null) && (
                         <div className="mt-2 text-center">
-                          {match.myPoints && match.myPoints > 0 ? (
-                            <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
-                              +{match.myPoints} puntos
+                          {finished ? (
+                            match.myPoints && match.myPoints > 0 ? (
+                              <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
+                                +{match.myPoints} puntos
+                              </span>
+                            ) : (
+                              <span className="rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">0 puntos</span>
+                            )
+                          ) : liveScore && liveScore.points > 0 ? (
+                            <span className="animate-pulse rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
+                              +{liveScore.points} puntos
                             </span>
                           ) : (
                             <span className="rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">0 puntos</span>
