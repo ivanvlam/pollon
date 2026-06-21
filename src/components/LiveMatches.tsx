@@ -206,6 +206,12 @@ export function LiveMatches({
             m.round === "group_stage" && m.group_name
               ? `Fase de Grupos · ${m.group_name.replace(/^Group\s+/i, "Grupo ")}`
               : null;
+          // Versión corta para el chip presionable (visible también en móvil).
+          const groupShort =
+            m.round === "group_stage" && m.group_name
+              ? m.group_name.replace(/^Group\s+/i, "Grupo ")
+              : null;
+          const groupHref = poolId ? `/pool/${poolId}/grupos` : null;
           const hasPred =
             m.pred !== null &&
             m.pred.predicted_home !== null &&
@@ -242,7 +248,19 @@ export function LiveMatches({
                   normal para que nunca se solape con nombres largos. Altura mínima
                   reservada aunque estén vacías, para uniformar las tarjetas. */}
               <div className="mb-1 flex min-h-[1rem] items-center justify-between gap-2">
-                {groupLabel ? (
+                {groupShort && groupHref ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(groupHref);
+                    }}
+                    className="-ml-1.5 rounded px-1.5 py-0.5 text-xs font-medium text-neutral-400 transition hover:bg-neutral-800 hover:text-neutral-100"
+                  >
+                    <span className="hidden sm:inline">Fase de Grupos · </span>
+                    {groupShort}
+                  </button>
+                ) : groupLabel ? (
                   <span className="hidden text-xs font-medium text-neutral-500 sm:inline">
                     {groupLabel}
                   </span>
