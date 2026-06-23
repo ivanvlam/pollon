@@ -1,9 +1,7 @@
 import Link from "next/link";
 
-import { CreatePoolForm } from "@/components/CreatePoolForm";
 import type { GroupMatchRow } from "@/components/GroupCard";
 import { ChampionReminder, NextMatchCard } from "@/components/HomeReminders";
-import { JoinPoolForm } from "@/components/JoinPoolForm";
 import { LiveMatches, type LiveGroupData } from "@/components/LiveMatches";
 import { TimezoneSync } from "@/components/TimezoneSync";
 import { buttonClasses } from "@/components/ui/Button";
@@ -265,6 +263,9 @@ export default async function DashboardPage() {
       <section className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Mis pollas</h1>
         <div className="flex flex-wrap items-center gap-2">
+          <Link href="/pools/nueva" className={buttonClasses("primary", "sm")}>
+            ＋ Nueva polla
+          </Link>
           <Link href="/como-funciona" className={buttonClasses("ghost", "sm")}>
             ¿Cómo funciona?
           </Link>
@@ -305,6 +306,12 @@ export default async function DashboardPage() {
             <p className="mt-2 text-base text-neutral-400">
               Tus predicciones cuentan en todas las pollas en las que participes.
             </p>
+            <Link
+              href="/pools/nueva"
+              className={`${buttonClasses("primary", "md")} mt-5 inline-flex`}
+            >
+              ＋ Nueva polla
+            </Link>
           </div>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
@@ -355,17 +362,6 @@ export default async function DashboardPage() {
           </ul>
         )}
       </section>
-
-      <div className="grid gap-8 sm:grid-cols-2">
-        <section className="rounded-xl border border-neutral-800 p-6">
-          <h2 className="mb-4 text-lg font-semibold">Crear una polla</h2>
-          <CreatePoolForm />
-        </section>
-        <section className="rounded-xl border border-neutral-800 p-6">
-          <h2 className="mb-4 text-lg font-semibold">Unirme a una polla</h2>
-          <JoinPoolForm />
-        </section>
-      </div>
 
       {pools.length > 0 && nextMatch && (
         <NextMatchCard
