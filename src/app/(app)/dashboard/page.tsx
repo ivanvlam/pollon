@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { GroupMatchRow } from "@/components/GroupCard";
 import { ChampionReminder, NextMatchCard } from "@/components/HomeReminders";
 import { LiveMatches, type LiveGroupData } from "@/components/LiveMatches";
+import { MusicTicker } from "@/components/MusicTicker";
 import { TimezoneSync } from "@/components/TimezoneSync";
 import { buttonClasses } from "@/components/ui/Button";
 import type { Round } from "@/types";
@@ -383,6 +384,8 @@ export default async function DashboardPage() {
           predictPoolId={pools[0]?.id ?? null}
         />
       )}
+
+      <MusicTicker />
     </div>
   );
 }
