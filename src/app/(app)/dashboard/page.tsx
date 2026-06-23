@@ -261,20 +261,24 @@ export default async function DashboardPage() {
     <div className="flex flex-col gap-10">
       <TimezoneSync current={profile?.timezone ?? null} />
 
-      <section className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Mis pollas</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/pools/nueva" className={buttonClasses("primary", "sm")}>
+      <section className="flex flex-col gap-3">
+        {/* Fila 1: título + acción principal (misma altura) */}
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold">Mis pollas</h1>
+          <Link href="/pools/nueva" className={buttonClasses("primary", "sm", "shrink-0")}>
             ＋ Nueva polla
           </Link>
-          <Link href="/como-funciona" className={buttonClasses("ghost", "sm")}>
+        </div>
+        {/* Fila 2: accesos secundarios */}
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <Link href="/como-funciona" className={buttonClasses("secondary", "sm", "w-full sm:w-auto")}>
             ¿Cómo funciona?
           </Link>
-          <Link href="/champion" className={buttonClasses("secondary", "sm")}>
+          <Link href="/champion" className={buttonClasses("secondary", "sm", "w-full sm:w-auto")}>
             🏆 Mi campeón
           </Link>
           {isAdmin && (
-            <Link href="/admin" className={buttonClasses("secondary", "sm")}>
+            <Link href="/admin" className={buttonClasses("secondary", "sm", "w-full sm:w-auto")}>
               ⚙️ Admin
             </Link>
           )}
