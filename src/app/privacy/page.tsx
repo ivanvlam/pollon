@@ -33,8 +33,11 @@ export default function PrivacyPage() {
         <h2 className="mt-4 text-lg font-semibold text-white">Terceros</h2>
         <p>
           Usamos Supabase (autenticación y base de datos), Vercel (hosting) y
-          Resend (envío de emails). No vendemos ni compartimos tus datos con
-          fines publicitarios.
+          Resend (envío de emails). La sección «La música de Pollon» incrusta el
+          reproductor de Spotify: cuando se carga, Spotify puede instalar
+          cookies en tu navegador y procesar datos conforme a su propia política
+          de privacidad. No vendemos ni compartimos tus datos con fines
+          publicitarios.
         </p>
       </div>
 
