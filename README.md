@@ -25,7 +25,7 @@ Polla del Mundial 2026. App web privada donde grupos de amigos predicen los resu
 - **Base de datos y auth:** Supabase (Postgres + RLS + Auth). La visibilidad de predicciones ajenas y los cierres se enforced con **RLS** y funciones `SECURITY DEFINER`, no solo en el cliente.
 - **Hosting:** Vercel
 - **Cron jobs:** [cron-job.org](https://cron-job.org) llamando a los endpoints `/api/cron/*` protegidos con `CRON_SECRET`
-- **Emails:** Resend
+- **Emails:** Resend (recordatorios planificados, hoy inactivos)
 - **Datos del Mundial:** TheSportsDB (fixtures y resultados; cliente alternativo para [football-data.org](https://www.football-data.org) preparado como *drop-in*)
 - **Planteles:** datos estáticos (planteles oficiales FIFA 2026, 48 equipos) cargados vía RPC
 - **Lenguaje:** TypeScript estricto en todo el proyecto
@@ -52,7 +52,7 @@ Ver `.env.example` para la lista completa. Las obligatorias antes del deploy:
 | `ADMIN_EMAIL` | Email del único administrador de la app |
 | `CRON_SECRET` | String aleatorio ≥ 16 chars para proteger los endpoints de cron |
 | `THESPORTSDB_KEY` | Clave de TheSportsDB (la gratuita permite 30 req/min, sin tope diario) |
-| `RESEND_API_KEY` | Para los recordatorios de cierre por email |
+| `RESEND_API_KEY` | Opcional — recordatorios de cierre por email (planificado, hoy inactivo) |
 
 > **Nota sobre las claves de Supabase:** el nuevo formato `sb_secret_*` no otorga el rol PostgreSQL `service_role` vía PostgREST. Para operaciones con privilegios elevados se usan funciones `SECURITY DEFINER` en la DB.
 
@@ -98,7 +98,8 @@ Los endpoints `/api/cron/*` verifican el header `Authorization: Bearer ${CRON_SE
 |----------|------------|----------|
 | `sync-matches` | Cada 1 min | Sincroniza fixture y resultados desde TheSportsDB. *Smart windowing:* no llama a la API fuera de las ventanas de partido, así que 0 requests cuando no hay nada en juego. |
 | `lock-predictions` | Cada hora | Marca `is_locked` y gestiona el cierre de campeón/goleador |
-| `send-reminders` | Cada hora | Envía recordatorios por email (Resend) a quienes tienen predicciones pendientes próximas a cerrar |
+
+> ⏳ **Planificado (no implementado):** recordatorios de cierre por email (`send-reminders` vía Resend). El endpoint existe en el repo pero está inactivo.
 
 ## Licencia
 
