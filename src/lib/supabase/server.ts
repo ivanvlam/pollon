@@ -7,6 +7,13 @@ import type { Database } from "@/types/database";
 /**
  * Cliente Supabase para Server Components, Server Actions y route handlers.
  * Usa la anon key + cookies de sesión del usuario (respeta RLS).
+ *
+ * IMPORTANTE: forzamos `cache: "no-store"` en todas las lecturas. Las queries
+ * `.select()` son GET y el App Router de Next las guarda en su Data Cache por
+ * defecto, lo que provocaba que datos por-usuario (predicciones, etc.) se
+ * mostraran obsoletos tras guardarlos y, peor aún, que el caché compartido
+ * pudiera servir filas RLS de un usuario a otro. Estos datos son siempre
+ * dinámicos (dependen de la sesión), así que nunca deben cachearse.
  */
 export function createClient() {
   const cookieStore = cookies();
@@ -15,6 +22,9 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: {
+        fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+      },
       cookies: {
         getAll() {
           return cookieStore.getAll();
