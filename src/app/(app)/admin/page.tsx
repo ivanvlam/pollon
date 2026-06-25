@@ -10,6 +10,7 @@ import { AdminTopScorer } from "@/components/AdminTopScorer";
 import { adminDeletePool, adminDeleteUser } from "@/lib/admin/actions";
 import { isKnockoutRound, ROUNDS } from "@/lib/constants";
 import { ROUND_LABELS } from "@/lib/labels";
+import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { toSpanish } from "@/lib/teamNames";
 import { isPredictionLocked } from "@/lib/timing";
@@ -59,8 +60,8 @@ export default async function GlobalAdminPage() {
     { data: profiles },
     { data: pools },
     { data: members },
-    { data: scoreRows },
-    { data: predRows },
+    scoreRows,
+    predRows,
     { data: matches },
     { data: players },
     { data: champPicks },
@@ -69,8 +70,15 @@ export default async function GlobalAdminPage() {
     svc.from("profiles").select("id, display_name, created_at"),
     svc.from("pools").select("id, name, created_at, created_by"),
     svc.from("pool_members").select("pool_id, user_id"),
-    svc.from("scores").select("pool_id, user_id, points"),
-    svc.from("predictions").select("user_id"),
+    // Paginados: scores y predictions superan (o superarán) las 1000 filas que
+    // PostgREST devuelve por defecto. Sin paginar, el total de predicciones del
+    // panel quedaba clavado en 1000 y "Más predicciones" subcontaba.
+    fetchAllRows<{ pool_id: string; user_id: string; points: number }>((from, to) =>
+      svc.from("scores").select("pool_id, user_id, points").order("id").range(from, to),
+    ),
+    fetchAllRows<{ user_id: string }>((from, to) =>
+      svc.from("predictions").select("user_id").order("id").range(from, to),
+    ),
     svc
       .from("matches")
       .select("id, round, home_team, away_team, kickoff_at, is_active, home_score, away_score, winner, status")
