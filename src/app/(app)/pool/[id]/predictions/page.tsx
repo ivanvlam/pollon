@@ -53,10 +53,36 @@ export default async function PredictionsPage({
     (profiles ?? []).map((p) => [p.id, p.display_name ?? "?"]),
   );
 
-  const { data: allPreds } = await supabase
-    .from("predictions")
-    .select("user_id, match_id, predicted_home, predicted_away, predicted_winner")
-    .in("match_id", matchIds.length > 0 ? matchIds : ["x"]);
+  // PostgREST corta los resultados en 1000 filas por defecto. Con muchas
+  // predicciones (todos los pool-mates en partidos ya revelados son visibles
+  // por RLS) el resultado supera 1000 y se truncaba en orden físico, dejando
+  // fuera las filas creadas más recientemente —típicamente las predicciones
+  // nuevas del propio usuario, que así aparecían como "sin predicción".
+  // Paginamos con un orden total estable (match_id, user_id es UNIQUE) para
+  // traerlas todas.
+  type PredRow = {
+    user_id: string;
+    match_id: string;
+    predicted_home: number | null;
+    predicted_away: number | null;
+    predicted_winner: string | null;
+  };
+  const allPreds: PredRow[] = [];
+  if (matchIds.length > 0) {
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from("predictions")
+        .select("user_id, match_id, predicted_home, predicted_away, predicted_winner")
+        .in("match_id", matchIds)
+        .order("match_id", { ascending: true })
+        .order("user_id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error || !data || data.length === 0) break;
+      allPreds.push(...data);
+      if (data.length < PAGE) break;
+    }
+  }
 
   const { data: myScores } = await supabase
     .from("scores")
