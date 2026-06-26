@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 
 import { Flag } from "@/components/Flag";
 import { rowClinchClass, type GroupMatchRow } from "@/components/GroupCard";
@@ -48,7 +49,7 @@ export function GroupModal({ name, standings, matches, onClose, qualifyingThirds
     };
   }, []);
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
       onClick={onClose}
@@ -258,6 +259,7 @@ export function GroupModal({ name, standings, matches, onClose, qualifyingThirds
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

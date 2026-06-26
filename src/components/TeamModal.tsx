@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 
 import { Flag } from "@/components/Flag";
 import { formatLiveMinute } from "@/lib/liveMinute";
@@ -74,7 +75,7 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
       ]
     : [];
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4"
       onClick={onClose}
@@ -205,6 +206,7 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
