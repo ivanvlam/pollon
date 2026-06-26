@@ -4,12 +4,14 @@ import { useState } from "react";
 
 import type { GroupMatchRow } from "@/components/GroupCard";
 import { GroupModal } from "@/components/GroupModal";
-import type { StandingRow } from "@/lib/standings";
+import type { GroupClinch, StandingRow } from "@/lib/standings";
 
 export interface GroupModalData {
   groupName: string;
   standings: StandingRow[];
   matches: GroupMatchRow[];
+  clinch?: Map<string, GroupClinch>;
+  qualifyingThirds?: Set<string>;
 }
 
 export function BracketGroupLabel({
@@ -17,6 +19,8 @@ export function BracketGroupLabel({
   groupName,
   standings,
   matches,
+  clinch,
+  qualifyingThirds,
 }: GroupModalData & { label: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -33,6 +37,8 @@ export function BracketGroupLabel({
           name={groupName}
           standings={standings}
           matches={matches}
+          clinch={clinch}
+          qualifyingThirds={qualifyingThirds}
           onClose={() => setOpen(false)}
         />
       )}

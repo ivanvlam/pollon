@@ -13,6 +13,7 @@ import {
   computeGroupStandings,
   type GroupClinch,
   type GroupMatch,
+  type StandingRow,
 } from "@/lib/standings";
 import type { MatchWinner, Round } from "@/types";
 
@@ -139,10 +140,13 @@ export default async function BracketPage({ params }: { params: { id: string } }
   const groupLeaders: Record<string, { winner: string | null; runnerUp: string | null }> = {};
   const clinchMap = new Map<string, Map<string, GroupClinch>>();
   const groupModalDataMap = new Map<string, GroupModalData>();
+  const groupThirds: StandingRow[] = [];
   for (const [g, ms] of groupsMap) {
     const standings = computeGroupStandings(ms);
     groupLeaders[g] = { winner: standings[0]?.team ?? null, runnerUp: standings[1]?.team ?? null };
-    clinchMap.set(g, computeGroupClinch(ms as GroupMatch[]));
+    const clinch = computeGroupClinch(ms as GroupMatch[]);
+    clinchMap.set(g, clinch);
+    if (standings[2]) groupThirds.push(standings[2]);
     const modalMatches: GroupMatchRow[] = ms.map((m) => ({
       id: m.id,
       home_team: m.home_team,
@@ -156,8 +160,14 @@ export default async function BracketPage({ params }: { params: { id: string } }
       pred: predByGroupMatch.get(m.id) ?? null,
       myPoints: pointsByGroupMatch.get(m.id),
     }));
-    groupModalDataMap.set(g, { groupName: `Grupo ${g}`, standings, matches: modalMatches });
+    groupModalDataMap.set(g, { groupName: `Grupo ${g}`, standings, matches: modalMatches, clinch });
   }
+
+  // Los 8 mejores terceros clasifican: mismo cálculo que la pestaña de grupos,
+  // para colorear en amarillo al 3° que va clasificando dentro del modal.
+  groupThirds.sort((a, b) => b.points - a.points || b.gd - a.gd || a.team.localeCompare(b.team));
+  const qualifyingThirds = new Set(groupThirds.slice(0, 8).map((r) => r.team));
+  for (const data of groupModalDataMap.values()) data.qualifyingThirds = qualifyingThirds;
 
   const resolveTeam = (s: SlotDef): string | null => {
     if (s.type === "best_third") return null;
