@@ -181,7 +181,7 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
 
                     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 text-sm">
                       <div className="flex min-w-0 items-center justify-end gap-1.5">
-                        <span className="truncate text-right font-medium leading-tight">{homeEs}</span>
+                        <span className="min-w-0 break-words text-right font-medium leading-tight">{homeEs}</span>
                         <Flag team={match.home_team} className="shrink-0" />
                       </div>
                       <div className="px-3 text-center">
@@ -195,7 +195,7 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
                       </div>
                       <div className="flex min-w-0 items-center gap-1.5">
                         <Flag team={match.away_team} className="shrink-0" />
-                        <span className="truncate font-medium leading-tight">{awayEs}</span>
+                        <span className="min-w-0 break-words font-medium leading-tight">{awayEs}</span>
                       </div>
                     </div>
                   </div>

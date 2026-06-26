@@ -282,7 +282,7 @@ export function RankingHistoryChart({ history, members, poolId }: Props) {
             <div className="flex-1 min-w-0">
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2">
                 <div className="flex items-center justify-end gap-1.5 min-w-0">
-                  <span className="text-sm font-medium text-right leading-tight truncate">
+                  <span className="min-w-0 break-words text-sm font-medium text-right leading-tight">
                     {toSpanish(selPt.homeTeam)}
                   </span>
                   <Flag team={selPt.homeTeam} className="shrink-0" />
@@ -292,7 +292,7 @@ export function RankingHistoryChart({ history, members, poolId }: Props) {
                 </span>
                 <div className="flex items-center gap-1.5 min-w-0">
                   <Flag team={selPt.awayTeam} className="shrink-0" />
-                  <span className="text-sm font-medium leading-tight truncate">
+                  <span className="min-w-0 break-words text-sm font-medium leading-tight">
                     {toSpanish(selPt.awayTeam)}
                   </span>
                 </div>
