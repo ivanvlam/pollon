@@ -316,7 +316,17 @@ export function PredictionsClient({
                   <div className="mb-3 flex items-start justify-between gap-2 text-xs text-neutral-500">
                     <div className="min-w-0">
                       <div className="truncate">
-                        {match.group_name ? displayGroup(match.group_name) : ROUND_LABELS[match.round]}
+                        {match.group_name ? (
+                          <button
+                            type="button"
+                            onClick={() => setGroupFilter(match.group_name)}
+                            className="rounded text-left hover:text-emerald-400 hover:underline"
+                          >
+                            {displayGroup(match.group_name)}
+                          </button>
+                        ) : (
+                          ROUND_LABELS[match.round]
+                        )}
                       </div>
                       <div className="text-neutral-600">
                         {DATE_FMT.format(new Date(match.kickoff_at))}
