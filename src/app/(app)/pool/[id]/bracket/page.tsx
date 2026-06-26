@@ -10,6 +10,7 @@ import { toSpanish } from "@/lib/teamNames";
 import { createClient } from "@/lib/supabase/server";
 import {
   computeGroupClinch,
+  computeGroupPositionLock,
   computeGroupStandings,
   type GroupClinch,
   type GroupMatch,
@@ -139,6 +140,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
 
   const groupLeaders: Record<string, { winner: string | null; runnerUp: string | null }> = {};
   const clinchMap = new Map<string, Map<string, GroupClinch>>();
+  const positionLockMap = new Map<string, Set<string>>();
   const groupModalDataMap = new Map<string, GroupModalData>();
   const groupThirds: StandingRow[] = [];
   for (const [g, ms] of groupsMap) {
@@ -146,6 +148,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
     groupLeaders[g] = { winner: standings[0]?.team ?? null, runnerUp: standings[1]?.team ?? null };
     const clinch = computeGroupClinch(ms as GroupMatch[]);
     clinchMap.set(g, clinch);
+    positionLockMap.set(g, computeGroupPositionLock(ms as GroupMatch[]));
     if (standings[2]) groupThirds.push(standings[2]);
     const modalMatches: GroupMatchRow[] = ms.map((m) => ({
       id: m.id,
@@ -182,13 +185,15 @@ export default async function BracketPage({ params }: { params: { id: string } }
     if (s.type === "best_third") return null;
     return groupModalDataMap.get(s.group) ?? null;
   };
-  // El equipo del slot ya está clasificado a la siguiente ronda (top-2 asegurado),
-  // aunque su posición exacta 1°/2° pueda variar.
+  // Verde en el bracket SOLO si la posición exacta del equipo (1° o 2°) ya está
+  // fijada: en el cuadro, 1° y 2° van a llaves distintas, así que un equipo
+  // clasificado pero que todavía puede intercambiar 1°/2° no tiene su rama
+  // definida y no debe pintarse verde.
   const isSlotQualified = (s: SlotDef): boolean => {
     if (s.type === "best_third") return false;
     const team = resolveTeam(s);
     if (!team) return false;
-    return clinchMap.get(s.group)?.get(team) === "qualified";
+    return positionLockMap.get(s.group)?.has(team) ?? false;
   };
 
   // ── R32 matches from DB (for date/time) ──────────────────────────────────

@@ -165,6 +165,8 @@ const isDecidedMatch = (m: GroupMatch) =>
 interface GroupScenarioStats {
   canMissTopTwo: boolean; // algún escenario fuera del top-2
   canAvoidLast: boolean; // algún escenario sin ser último
+  minRank: number; // mejor puesto posible (1-based) en algún escenario
+  maxRank: number; // peor puesto posible (1-based) en algún escenario
 }
 
 /**
@@ -208,7 +210,12 @@ function bruteForceGroupStats(matches: GroupMatch[]): Map<string, GroupScenarioS
   const remaining = matches.filter((m) => !isDecidedMatch(m));
   const stats = new Map<string, GroupScenarioStats>();
   for (const t of teamList) {
-    stats.set(t, { canMissTopTwo: false, canAvoidLast: false });
+    stats.set(t, {
+      canMissTopTwo: false,
+      canAvoidLast: false,
+      minRank: Infinity,
+      maxRank: 0,
+    });
   }
 
   const total = 3 ** remaining.length;
@@ -242,6 +249,8 @@ function bruteForceGroupStats(matches: GroupMatch[]): Map<string, GroupScenarioS
       const bestRank = 1 + strictlyAbove;
       if (worstRank > DIRECT_QUALIFY) st.canMissTopTwo = true;
       if (bestRank < lastRank) st.canAvoidLast = true;
+      if (bestRank < st.minRank) st.minRank = bestRank;
+      if (worstRank > st.maxRank) st.maxRank = worstRank;
     }
   }
   return stats;
@@ -275,4 +284,31 @@ export function computeGroupClinch(matches: GroupMatch[]): Map<string, GroupClin
     else result.set(team, "open");
   }
   return result;
+}
+
+/**
+ * Equipos cuya POSICIÓN EXACTA dentro del grupo (1°, 2°, …) ya está fijada en
+ * TODOS los escenarios posibles de los partidos que faltan.
+ *
+ * Más estricto que {@link computeGroupClinch}: ese solo afirma "entra al top-2",
+ * mientras que acá exige que el puesto exacto no pueda cambiar. Lo usa el bracket
+ * porque 1° y 2° van a llaves distintas: si dos equipos ya clasificados todavía
+ * pueden intercambiar el 1°/2°, su rama del cuadro aún no está definida.
+ *
+ * Conservador igual que {@link bruteForceGroupStats} (solo puntos): un lock que
+ * dependa de la diferencia de gol entre partidos por jugar no se afirma, así que
+ * nunca sobre-afirma. Si el grupo ya terminó, las posiciones son finales.
+ */
+export function computeGroupPositionLock(matches: GroupMatch[]): Set<string> {
+  const remaining = matches.filter((m) => !isDecidedMatch(m));
+  if (remaining.length === 0) {
+    // Grupo terminado: la tabla real (con desempate por DG) es definitiva.
+    return new Set(computeGroupStandings(matches).map((r) => r.team));
+  }
+  const stats = bruteForceGroupStats(matches);
+  const locked = new Set<string>();
+  for (const [team, st] of stats) {
+    if (st.minRank === st.maxRank) locked.add(team);
+  }
+  return locked;
 }

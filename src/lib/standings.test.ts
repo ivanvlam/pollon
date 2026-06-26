@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   computeGroupClinch,
+  computeGroupPositionLock,
   computeGroupStandings,
   projectLivePositions,
   type GroupMatch,
@@ -167,5 +168,59 @@ describe("computeGroupClinch", () => {
       m("C", "D", null, null, "scheduled"),
     ]);
     expect(clinch.get("A")).not.toBe("qualified");
+  });
+});
+
+describe("computeGroupPositionLock", () => {
+  it("dos clasificados que aún pueden intercambiar 1°/2° NO están lockeados", () => {
+    // A y B tienen 6 pts cada uno con un partido por jugar; C y D no pueden
+    // alcanzarlos (top-2 asegurado), pero el 1°/2° todavía puede cambiar.
+    const locked = computeGroupPositionLock([
+      m("A", "C", 1, 0),
+      m("A", "D", 1, 0),
+      m("B", "C", 1, 0),
+      m("B", "D", 1, 0),
+      m("A", "B", null, null, "scheduled"),
+      m("C", "D", null, null, "scheduled"),
+    ]);
+    // Ambos clasifican, pero su puesto exacto no está fijado.
+    const clinch = computeGroupClinch([
+      m("A", "C", 1, 0),
+      m("A", "D", 1, 0),
+      m("B", "C", 1, 0),
+      m("B", "D", 1, 0),
+      m("A", "B", null, null, "scheduled"),
+      m("C", "D", null, null, "scheduled"),
+    ]);
+    expect(clinch.get("A")).toBe("qualified");
+    expect(clinch.get("B")).toBe("qualified");
+    expect(locked.has("A")).toBe(false);
+    expect(locked.has("B")).toBe(false);
+  });
+
+  it("lockea el 1° cuando nadie lo puede alcanzar ni igualar en puntos", () => {
+    // A tiene 9 (ya jugó todo); el resto, como mucho, llega a 6 → A es 1° seguro.
+    const locked = computeGroupPositionLock([
+      m("A", "B", 1, 0),
+      m("A", "C", 1, 0),
+      m("A", "D", 1, 0),
+      m("B", "C", null, null, "scheduled"),
+      m("B", "D", null, null, "scheduled"),
+      m("C", "D", null, null, "scheduled"),
+    ]);
+    expect(locked.has("A")).toBe(true);
+    expect(locked.has("B")).toBe(false);
+  });
+
+  it("grupo terminado: todas las posiciones quedan lockeadas", () => {
+    const locked = computeGroupPositionLock([
+      m("A", "B", 1, 0),
+      m("A", "C", 1, 0),
+      m("A", "D", 1, 0),
+      m("B", "C", 1, 0),
+      m("B", "D", 1, 0),
+      m("C", "D", 1, 0),
+    ]);
+    expect([...locked].sort()).toEqual(["A", "B", "C", "D"]);
   });
 });
