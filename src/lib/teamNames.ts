@@ -97,3 +97,8 @@ const EN_TO_ES: Record<string, string> = {
 export function toSpanish(name: string): string {
   return EN_TO_ES[name] ?? name;
 }
+
+/** "Group A" → "Grupo A". Idempotente: si ya viene traducido lo deja igual. */
+export function displayGroup(name: string): string {
+  return name.replace(/^Group\s+/i, "Grupo ");
+}

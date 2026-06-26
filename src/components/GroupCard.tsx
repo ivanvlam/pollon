@@ -7,7 +7,7 @@ import { GroupModal } from "@/components/GroupModal";
 import { TeamName } from "@/components/TeamName";
 import { Card } from "@/components/ui/Card";
 import type { GroupClinch, StandingRow } from "@/lib/standings";
-import { toSpanish } from "@/lib/teamNames";
+import { displayGroup, toSpanish } from "@/lib/teamNames";
 import { isPredictionLocked } from "@/lib/timing";
 
 export interface GroupMatchRow {
@@ -61,7 +61,7 @@ export function GroupCard({ name, standings, matches, yourPoints, qualifyingThir
     <>
       <Card className="flex flex-col gap-4 p-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">{name}</h2>
+          <h2 className="text-base font-semibold">{displayGroup(name)}</h2>
           {hasScores && (
             yourPoints > 0 ? (
               <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-sm font-medium text-emerald-400">{yourPoints} puntos</span>
