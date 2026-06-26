@@ -115,7 +115,9 @@ export function GroupModal({ name, standings, matches, onClose, qualifyingThirds
             <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
               Partidos
             </h3>
-            {matches.map((match) => {
+            {[...matches]
+              .sort((a, b) => a.kickoff_at.localeCompare(b.kickoff_at))
+              .map((match) => {
               const locked = isPredictionLocked(match.kickoff_at);
               const started = match.status === "live" || hasMatchStarted(match.kickoff_at);
               const finished = match.status === "finished";
