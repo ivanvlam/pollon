@@ -163,21 +163,37 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
 
                 return (
                   <div key={match.id} className="rounded-xl border border-neutral-800 p-3">
-                    <div className="mb-2.5 flex items-start justify-between gap-2 text-xs text-neutral-500">
-                      <span className="min-w-0 truncate">{fmtDate(match.kickoff_at)}</span>
-                      {live ? (
-                        <span className="inline-flex shrink-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5">
+                    <div className="mb-2.5 flex items-start justify-between gap-2 text-xs">
+                      {/* Izquierda: fecha + estado (EN VIVO). */}
+                      <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-neutral-500">
+                        <span className="truncate">{fmtDate(match.kickoff_at)}</span>
+                        {live ? (
                           <span className="inline-flex items-center gap-1.5">
                             <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-                            <span className="font-medium text-red-400">EN VIVO</span>
-                          </span>
-                          {formatLiveMinute(match.live_minute) && (
-                            <span className="text-neutral-400">
-                              {formatLiveMinute(match.live_minute)}
+                            <span className="font-medium text-red-400">
+                              EN VIVO
+                              {formatLiveMinute(match.live_minute)
+                                ? ` · ${formatLiveMinute(match.live_minute)}`
+                                : ""}
                             </span>
-                          )}
-                        </span>
-                      ) : null}
+                          </span>
+                        ) : null}
+                      </span>
+                      {/* Derecha: mi predicción. */}
+                      <span className="shrink-0 text-right text-neutral-500">
+                        {match.pred &&
+                        match.pred.predicted_home !== null &&
+                        match.pred.predicted_away !== null ? (
+                          <>
+                            Mi predicción:{" "}
+                            <span className="font-medium tabular-nums text-neutral-300">
+                              {match.pred.predicted_home}–{match.pred.predicted_away}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-neutral-600">Sin predicción</span>
+                        )}
+                      </span>
                     </div>
 
                     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 text-sm">
