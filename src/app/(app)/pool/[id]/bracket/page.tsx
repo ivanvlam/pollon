@@ -468,12 +468,7 @@ function SlotRow({
   qualified: boolean;
 }) {
   const labelEl = groupData ? (
-    <BracketGroupLabel
-      label={label}
-      groupName={groupData.groupName}
-      standings={groupData.standings}
-      matches={groupData.matches}
-    />
+    <BracketGroupLabel label={label} {...groupData} />
   ) : label;
 
   // Clasificado a la siguiente ronda (top-2 asegurado) → verde.
