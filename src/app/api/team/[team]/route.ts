@@ -2,7 +2,22 @@ import { NextResponse } from "next/server";
 
 import { calculateMatchScore } from "@/lib/scoring";
 import { createClient } from "@/lib/supabase/server";
-import { computeGroupClinch, computeGroupStandings, type GroupMatch } from "@/lib/standings";
+import {
+  computeGroupClinch,
+  computeGroupStandings,
+  resolveFinalClinch,
+  type GroupMatch,
+} from "@/lib/standings";
+import { computeTeamProgress } from "@/lib/teamProgress";
+import type { MatchWinner, Round } from "@/types";
+
+const KO_ROUNDS: Round[] = [
+  "round_of_32",
+  "round_of_16",
+  "quarterfinal",
+  "semifinal",
+  "final",
+];
 
 export async function GET(
   _req: Request,
@@ -69,6 +84,52 @@ export async function GET(
   const matchesWithPreds = teamMatches.map((m) => ({
     ...m,
     pred: predMap[m.id] ?? null,
+  }));
+
+  // ── Partidos de eliminatoria del equipo (perfil del torneo) ────────────────
+  // Pocos partidos KO en total: traemos todos y filtramos en memoria (evita un
+  // filtro .or con nombres de equipo).
+  const { data: koAll } = await supabase
+    .from("matches")
+    .select(
+      "id, round, home_team, away_team, kickoff_at, status, home_score, away_score, winner, is_active, live_minute",
+    )
+    .in("round", KO_ROUNDS)
+    .order("kickoff_at", { ascending: true });
+  const koList = (koAll ?? []).filter(
+    (m) => m.home_team === team || m.away_team === team,
+  );
+
+  const koIds = koList.map((m) => m.id);
+  const { data: koPreds } =
+    koIds.length > 0
+      ? await supabase
+          .from("predictions")
+          .select("match_id, predicted_home, predicted_away, predicted_winner")
+          .eq("user_id", user.id)
+          .in("match_id", koIds)
+      : { data: [] };
+  const koPredMap = new Map((koPreds ?? []).map((p) => [p.match_id, p]));
+
+  const koWithPreds = koList.map((m) => ({
+    id: m.id,
+    round: m.round as Round,
+    home_team: m.home_team,
+    away_team: m.away_team,
+    kickoff_at: m.kickoff_at,
+    status: m.status,
+    home_score: m.home_score,
+    away_score: m.away_score,
+    is_active: m.is_active,
+    live_minute: m.live_minute,
+    group_name: null as string | null,
+    pred: koPredMap.get(m.id)
+      ? {
+          predicted_home: koPredMap.get(m.id)!.predicted_home,
+          predicted_away: koPredMap.get(m.id)!.predicted_away,
+          predicted_winner: koPredMap.get(m.id)!.predicted_winner,
+        }
+      : null,
   }));
 
   // Datos de la tabla del grupo (para abrir su modal desde el modal del equipo).
@@ -160,20 +221,43 @@ export async function GET(
       };
     });
 
+    const groupStageComplete = all.length > 0 && all.every((m) => m.status === "finished");
     group = {
       name: groupName.replace(/^Group\s+/i, "Grupo "),
       standings,
       matches: groupRows,
-      clinch: [...computeGroupClinch(groupMatches as GroupMatch[])],
+      clinch: [
+        ...resolveFinalClinch(
+          computeGroupClinch(groupMatches as GroupMatch[]),
+          standings,
+          new Set(qualifyingThirds),
+          groupStageComplete,
+        ),
+      ],
     };
   }
 
+  const qualifiedFromGroup =
+    (position !== null && position <= 2) || qualifyingThirds.includes(team);
+  const progress = computeTeamProgress({
+    team,
+    qualifiedFromGroup,
+    koMatches: koList.map((m) => ({
+      round: m.round as Round,
+      home_team: m.home_team,
+      away_team: m.away_team,
+      status: m.status,
+      winner: m.winner as MatchWinner | null,
+    })),
+  });
+
   return NextResponse.json({
     standing,
-    matches: matchesWithPreds,
+    matches: [...matchesWithPreds, ...koWithPreds],
     groupName,
     position,
     group,
     qualifyingThirds,
+    progress,
   });
 }

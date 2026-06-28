@@ -4,9 +4,12 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 
 import { Flag } from "@/components/Flag";
+import { ROUND_LABELS } from "@/lib/labels";
 import { formatLiveMinute } from "@/lib/liveMinute";
 import type { StandingRow } from "@/lib/standings";
+import type { TeamProgress } from "@/lib/teamProgress";
 import { toSpanish } from "@/lib/teamNames";
+import type { Round } from "@/types";
 
 interface TeamMatch {
   id: string;
@@ -19,6 +22,7 @@ interface TeamMatch {
   is_active: boolean;
   live_minute: string | null;
   group_name: string | null;
+  round?: string | null;
   pred: {
     predicted_home: number | null;
     predicted_away: number | null;
@@ -32,9 +36,18 @@ interface Props {
   matches: TeamMatch[];
   groupName: string | null;
   position: number | null;
+  progress?: TeamProgress | null;
   onClose: () => void;
   onOpenGroup?: () => void;
 }
+
+/** Color del estado del torneo según el tipo de avance. */
+const PROGRESS_COLOR: Record<TeamProgress["kind"], string> = {
+  champion: "text-amber-400",
+  alive: "text-emerald-400",
+  out: "text-red-400",
+  group_out: "text-red-400",
+};
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -43,7 +56,7 @@ const fmtDate = (iso: string) => {
   return `${day} · ${time}`;
 };
 
-export function TeamModal({ team, standing, matches, groupName, position, onClose, onOpenGroup }: Props) {
+export function TeamModal({ team, standing, matches, groupName, position, progress, onClose, onOpenGroup }: Props) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -90,13 +103,18 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
             <Flag team={team} className="h-9 w-14 shrink-0" />
             <div>
               <h2 className="text-xl font-bold">{teamEs}</h2>
+              {progress && (
+                <p className={`text-sm font-semibold ${PROGRESS_COLOR[progress.kind]}`}>
+                  {progress.label}
+                </p>
+              )}
               {groupLabel && (
-                <p className="text-sm text-neutral-400">
+                <p className="text-xs text-neutral-500">
                   {onOpenGroup ? (
                     <button
                       type="button"
                       onClick={onOpenGroup}
-                      className="font-medium text-neutral-300 underline-offset-2 transition-colors hover:text-neutral-100 hover:underline"
+                      className="underline-offset-2 transition-colors hover:text-neutral-300 hover:underline"
                     >
                       {groupLabel}
                     </button>
@@ -106,9 +124,7 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
                   {position !== null && (
                     <>
                       {" · "}
-                      <span className="font-semibold text-neutral-200">
-                        {position}° puesto
-                      </span>
+                      <span className="text-neutral-400">{position}° puesto</span>
                     </>
                   )}
                 </p>
@@ -166,6 +182,11 @@ export function TeamModal({ team, standing, matches, groupName, position, onClos
                     <div className="mb-2.5 flex items-start justify-between gap-2 text-xs">
                       {/* Izquierda: fecha + estado (EN VIVO). */}
                       <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-neutral-500">
+                        {match.round && match.round !== "group_stage" && (
+                          <span className="rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] font-medium text-neutral-400">
+                            {ROUND_LABELS[match.round as Round]}
+                          </span>
+                        )}
                         <span className="truncate">{fmtDate(match.kickoff_at)}</span>
                         {live ? (
                           <span className="inline-flex items-center gap-1.5">

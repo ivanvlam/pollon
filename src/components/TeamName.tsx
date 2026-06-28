@@ -6,6 +6,7 @@ import type { GroupMatchRow } from "@/components/GroupCard";
 import { GroupModal } from "@/components/GroupModal";
 import { TeamModal } from "@/components/TeamModal";
 import type { GroupClinch, StandingRow } from "@/lib/standings";
+import type { TeamProgress } from "@/lib/teamProgress";
 import { toSpanish } from "@/lib/teamNames";
 
 interface TeamData {
@@ -21,6 +22,7 @@ interface TeamData {
     is_active: boolean;
     live_minute: string | null;
     group_name: string | null;
+    round?: string | null;
     pred: {
       predicted_home: number | null;
       predicted_away: number | null;
@@ -29,6 +31,7 @@ interface TeamData {
   }>;
   groupName: string | null;
   position: number | null;
+  progress?: TeamProgress | null;
   // Tabla completa del grupo (para abrir su modal desde el del equipo).
   group: {
     name: string;
@@ -87,6 +90,7 @@ export function TeamName({
           matches={dataRef.current.matches}
           groupName={dataRef.current.groupName}
           position={dataRef.current.position}
+          progress={dataRef.current.progress}
           onOpenGroup={
             group
               ? () => {
