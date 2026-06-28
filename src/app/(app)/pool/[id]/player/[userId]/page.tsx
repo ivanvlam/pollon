@@ -260,11 +260,19 @@ export default async function PlayerProfilePage({
         {sections.length === 0 ? (
           <p className="text-neutral-400">Aún no hay partidos habilitados.</p>
         ) : (
-          sections.map((section) => (
-            <div key={section.label} className="flex flex-col gap-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-                {section.label}
-              </h3>
+          sections.map((section, idx) => (
+            <details
+              key={section.label}
+              open={idx === sections.length - 1}
+              className="group flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/30 p-3"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold uppercase tracking-wide text-neutral-400 [&::-webkit-details-marker]:hidden">
+                <span>
+                  {section.label}
+                  <span className="ml-2 normal-case text-neutral-600">({section.matches.length})</span>
+                </span>
+                <span className="text-neutral-500 transition-transform group-open:rotate-90">›</span>
+              </summary>
               <div className="flex flex-col gap-2">
                 {section.matches.map((m) => {
                   const pred = predByMatch.get(m.id);
@@ -363,7 +371,7 @@ export default async function PlayerProfilePage({
                   );
                 })}
               </div>
-            </div>
+            </details>
           ))
         )}
       </section>
