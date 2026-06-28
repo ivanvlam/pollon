@@ -257,7 +257,7 @@ export function TeamModal({ team, standing, matches, groupName, position, progre
                     </div>
 
                     {match.myPoints !== undefined && (
-                      <div className="mt-2 flex justify-end">
+                      <div className="mt-2 flex justify-center">
                         <span
                           className={`rounded px-2 py-0.5 text-xs font-medium ${
                             match.myPoints > 0
