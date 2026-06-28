@@ -285,13 +285,39 @@ export default async function BracketPage({ params }: { params: { id: string } }
         </Link>
       </header>
 
-      {/* ── Bracket (swipe horizontal + vertical, headers sticky) ──────── */}
-      <p className="text-xs text-neutral-600">
-        Deslizá para ver todas las rondas y las llaves; los encabezados quedan fijos arriba.
+      {/* ── Mobile: carrusel por ronda (swipe lateral con snap) ────────── */}
+      <div
+        className="flex snap-x snap-mandatory overflow-auto md:hidden"
+        style={{ maxHeight: "75vh", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}
+      >
+        {ALL_ROUNDS.map((round, si) => (
+          <section key={round} className="flex w-full shrink-0 snap-start flex-col px-0.5">
+            <h2 className="sticky top-0 z-10 mb-3 flex items-center justify-between border-b border-neutral-800 bg-neutral-950 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-300">
+              <span>{ALL_LABELS[si]}</span>
+              <span className="text-[10px] normal-case text-neutral-600">
+                {si + 1}/{ALL_ROUNDS.length} · deslizá →
+              </span>
+            </h2>
+            <div className="flex flex-col gap-2 pb-4">
+              {BRACKET_ORDER[round].map((num) =>
+                si === 0 ? (
+                  <R32Card key={num} {...r32CardProps(num)} />
+                ) : (
+                  <React.Fragment key={num}>{renderLater(num)}</React.Fragment>
+                ),
+              )}
+            </div>
+          </section>
+        ))}
+      </div>
+
+      {/* ── Desktop: cuadro completo (swipe horizontal + vertical) ──────── */}
+      <p className="hidden text-xs text-neutral-600 md:block">
+        Deslizá para ver todas las rondas; los encabezados quedan fijos arriba.
       </p>
 
       <div
-        className="overflow-auto rounded-lg border border-neutral-900"
+        className="hidden overflow-auto rounded-lg border border-neutral-900 md:block"
         style={{ maxHeight: "80vh", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}
       >
         <div style={{ position: "relative", width: totalW }}>
