@@ -43,7 +43,8 @@ const ALL_ROUNDS: Round[] = ["round_of_32", "round_of_16", "quarterfinal", "semi
 
 const colX       = (si: number) => si * (CARD_W + CONN_W);
 const stageSlotH = (si: number) => TOTAL_H / ALL_N[si]!;
-const midY       = (si: number, i: number) => HEADER_H + (i + 0.5) * stageSlotH(si);
+// midY es relativo al cuerpo del bracket (la fila de headers va aparte, sticky).
+const midY       = (si: number, i: number) => (i + 0.5) * stageSlotH(si);
 const totalW     = colX(ALL_N.length - 1) + CARD_W;
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -284,66 +285,44 @@ export default async function BracketPage({ params }: { params: { id: string } }
         </Link>
       </header>
 
-      {/* ── Mobile view ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-8 md:hidden">
-        <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400 border-b border-neutral-800 pb-2">
-            Dieciseisavos
-          </h2>
-          <div className="flex flex-col gap-3">
-            {r32Order.map((num) => (
-              <R32Card key={num} {...r32CardProps(num)} />
-            ))}
-          </div>
-        </section>
-
-        {ALL_ROUNDS.slice(1).map((round, si) => {
-          const stageIdx = si + 1;
-          return (
-            <section key={round}>
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400 border-b border-neutral-800 pb-2">
-                {ALL_LABELS[stageIdx]}
-              </h2>
-              <div className="flex flex-col gap-2">
-                {BRACKET_ORDER[round].map((num) => (
-                  <React.Fragment key={num}>{renderLater(num)}</React.Fragment>
-                ))}
-              </div>
-            </section>
-          );
-        })}
-      </div>
-
-      {/* ── Desktop bracket ─────────────────────────────────────────────── */}
-      <p className="hidden text-center text-xs text-neutral-600 md:block">
-        Desliza horizontalmente para ver todas las rondas.
+      {/* ── Bracket (swipe horizontal + vertical, headers sticky) ──────── */}
+      <p className="text-xs text-neutral-600">
+        Deslizá para ver todas las rondas y las llaves; los encabezados quedan fijos arriba.
       </p>
 
-      <div className="hidden overflow-x-auto pb-6 md:block">
-        <div style={{ position: "relative", width: totalW, height: TOTAL_H + HEADER_H }}>
+      <div
+        className="overflow-auto rounded-lg border border-neutral-900"
+        style={{ maxHeight: "80vh", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}
+      >
+        <div style={{ position: "relative", width: totalW }}>
 
-          {ALL_LABELS.map((label, si) => (
-            <div
-              key={si}
-              style={{
-                position: "absolute", left: colX(si), top: 0,
-                width: CARD_W, height: HEADER_H,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                borderBottom: "1px solid #262626",
-                background: "#0d0d0d",
-              }}
-              className="text-xs font-semibold uppercase tracking-wide text-neutral-300"
-            >
-              {label}
-            </div>
-          ))}
+          {/* Encabezados de columna: fijos al hacer scroll vertical */}
+          <div style={{ position: "sticky", top: 0, zIndex: 20, width: totalW, height: HEADER_H, background: "#0d0d0d" }}>
+            {ALL_LABELS.map((label, si) => (
+              <div
+                key={si}
+                style={{
+                  position: "absolute", left: colX(si), top: 0,
+                  width: CARD_W, height: HEADER_H,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  borderBottom: "1px solid #262626",
+                }}
+                className="text-xs font-semibold uppercase tracking-wide text-neutral-300"
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+
+          {/* Cuerpo del bracket */}
+          <div style={{ position: "relative", width: totalW, height: TOTAL_H }}>
 
           {/* R32 slots */}
           {r32Order.map((num, i) => (
             <div
               key={num}
               style={{
-                position: "absolute", left: colX(0), top: HEADER_H + i * sh0,
+                position: "absolute", left: colX(0), top: i * sh0,
                 width: CARD_W, height: sh0,
                 display: "flex", alignItems: "center", padding: "4px 0",
               }}
@@ -358,7 +337,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
               style={{
                 position: "absolute",
                 left: colX(0),
-                top: HEADER_H + slotIdx * sh0,
+                top: slotIdx * sh0,
                 width: CARD_W,
                 height: 0,
                 borderTop: "1px dashed #2a2a2a",
@@ -376,7 +355,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
                   <div
                     key={num}
                     style={{
-                      position: "absolute", left: colX(stageIdx), top: HEADER_H + i * sh,
+                      position: "absolute", left: colX(stageIdx), top: i * sh,
                       width: CARD_W, height: sh,
                       display: "flex", alignItems: "center", padding: "4px 0",
                     }}
@@ -416,6 +395,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
             );
           })}
 
+          </div>
         </div>
       </div>
     </div>
