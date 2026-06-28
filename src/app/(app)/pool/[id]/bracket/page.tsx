@@ -427,23 +427,29 @@ export default async function BracketPage({ params }: { params: { id: string } }
                     style={{
                       position: "absolute", left: colXc(stageIdx), top: i * sh,
                       width: cardWc, height: sh,
-                      display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, padding: "4px 0",
+                      display: "flex", alignItems: "center", padding: "4px 0",
                     }}
                   >
                     {renderLater(num)}
-                    {round === "final" && (
-                      <div>
-                        <p className="mb-1 text-center text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
-                          Tercer puesto
-                        </p>
-                        {renderLater(103)}
-                      </div>
-                    )}
                   </div>
                 ))}
               </React.Fragment>
             );
           })}
+
+          {/* Tercer puesto: en la columna de la final, más abajo y sin conector */}
+          <div
+            style={{
+              position: "absolute", left: colXc(ALL_ROUNDS.length - 1),
+              top: TOTAL_H / 2 + 96, width: cardWc,
+              display: "flex", flexDirection: "column", padding: "4px 0",
+            }}
+          >
+            <p className="mb-1 text-center text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+              Tercer puesto
+            </p>
+            {renderLater(103)}
+          </div>
 
           {/* Connectors */}
           {ALL_N.slice(0, -1).map((n, si) => (
