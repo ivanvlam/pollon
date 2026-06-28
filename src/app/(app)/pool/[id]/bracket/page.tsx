@@ -31,8 +31,8 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
 // ─── Geometry ─────────────────────────────────────────────────────────────────
 const SLOT_H   = 96;
 const TOTAL_H  = 16 * SLOT_H;
-const STUB_W   = 20;
-const CONN_W   = 48;
+const STUB_W   = 8;
+const CONN_W   = 20; // separación entre tarjetas = largo del conector (corto → tarjetas más anchas)
 const LINE     = "#606060";
 const HEADER_H = 40;
 
@@ -322,6 +322,14 @@ export default async function BracketPage({ params }: { params: { id: string } }
                   <React.Fragment key={num}>{renderLater(num)}</React.Fragment>
                 ),
               )}
+              {round === "final" && (
+                <div className="mt-2">
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+                    Tercer puesto
+                  </p>
+                  {renderLater(103)}
+                </div>
+              )}
             </div>
           </section>
         ))}
@@ -332,11 +340,11 @@ export default async function BracketPage({ params }: { params: { id: string } }
         Deslizá para ver todas las rondas; los encabezados quedan fijos arriba.
       </p>
 
+      <div className="hidden md:block" style={{ containerType: "inline-size" }}>
       <div
-        className="hidden overflow-auto rounded-lg border border-neutral-900 md:block"
+        className="overflow-auto rounded-lg border border-neutral-900"
         style={{
           maxHeight: "80vh",
-          containerType: "inline-size",
           scrollSnapType: "x mandatory",
           overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch",
@@ -344,12 +352,17 @@ export default async function BracketPage({ params }: { params: { id: string } }
       >
         <div style={{ position: "relative", width: totalWc }}>
 
-          {/* Anclas de snap: solo hasta que queden 3 columnas a la derecha, así
-              cada parada muestra exactamente 3 rondas. */}
+          {/* Anclas de snap: alto completo (si fueran 1px se salen del viewport al
+              hacer scroll vertical y el navegador deja de snappear). Solo hasta
+              que queden 3 columnas a la derecha → cada parada muestra 3 rondas. */}
           {Array.from({ length: Math.max(1, ALL_ROUNDS.length - 2) }, (_, si) => (
             <div
               key={`snap-${si}`}
-              style={{ position: "absolute", left: colXc(si), top: 0, width: 1, height: 1, scrollSnapAlign: "start" }}
+              style={{
+                position: "absolute", left: colXc(si), top: 0,
+                width: 1, height: TOTAL_H + HEADER_H,
+                pointerEvents: "none", scrollSnapAlign: "start",
+              }}
             />
           ))}
 
@@ -414,10 +427,18 @@ export default async function BracketPage({ params }: { params: { id: string } }
                     style={{
                       position: "absolute", left: colXc(stageIdx), top: i * sh,
                       width: cardWc, height: sh,
-                      display: "flex", alignItems: "center", padding: "4px 0",
+                      display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, padding: "4px 0",
                     }}
                   >
                     {renderLater(num)}
+                    {round === "final" && (
+                      <div>
+                        <p className="mb-1 text-center text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+                          Tercer puesto
+                        </p>
+                        {renderLater(103)}
+                      </div>
+                    )}
                   </div>
                 ))}
               </React.Fragment>
@@ -452,14 +473,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
           </div>
         </div>
       </div>
-
-      {/* ── Partido por el tercer puesto ───────────────────────────────── */}
-      <section className="flex flex-col gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-          Partido por el tercer puesto
-        </h2>
-        <div className="max-w-sm">{renderLater(103)}</div>
-      </section>
+      </div>
     </div>
   );
 }
