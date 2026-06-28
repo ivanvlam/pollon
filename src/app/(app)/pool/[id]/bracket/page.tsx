@@ -232,7 +232,11 @@ export default async function BracketPage({ params }: { params: { id: string } }
       label: s.label,
       groupData: s.groupData,
       score: scoreOf(slot.match, s.team),
-      win: slot.winnerTeam !== null && slot.winnerTeam === s.team,
+      lost:
+        slot.match?.status === "finished" &&
+        slot.winnerTeam !== null &&
+        s.team !== null &&
+        slot.winnerTeam !== s.team,
     });
     return {
       matchNum: num,
@@ -424,7 +428,7 @@ interface CardSide {
   label: string;
   groupData: GroupModalData | null;
   score: number | null;
-  win: boolean;
+  lost: boolean; // perdió un partido KO terminado → atenuado (eliminado)
 }
 
 function R32Card({ matchNum, date, home, away }: { matchNum: number; date: string | null; home: CardSide; away: CardSide }) {
@@ -442,12 +446,11 @@ function R32Card({ matchNum, date, home, away }: { matchNum: number; date: strin
   );
 }
 
-function SlotRow({ team, label, groupData, score, win }: CardSide) {
+function SlotRow({ team, label, groupData, score, lost }: CardSide) {
   const labelEl = groupData ? <BracketGroupLabel label={label} {...groupData} /> : label;
-  // Verde solo para el equipo que GANÓ su partido de eliminatoria (avanzó).
-  const color = win ? "text-emerald-400 font-semibold" : "text-neutral-100";
+  // Eliminado (perdió su partido KO) → atenuado, como en la pestaña de grupos.
   return team ? (
-    <div className={`flex min-h-[20px] items-center gap-1 ${color}`}>
+    <div className={`flex min-h-[20px] items-center gap-1 text-neutral-100 ${lost ? "opacity-50" : ""}`}>
       <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
       <TeamName team={team} className="min-w-0 flex-1 truncate font-medium" />
       <span className="shrink-0 text-[10px] text-neutral-500">{labelEl}</span>
@@ -475,9 +478,8 @@ function RealCard({
   const finished = match.status === "finished";
   const homeVal  = finished ? match.home_score : (pred?.predicted_home ?? null);
   const awayVal  = finished ? match.away_score : (pred?.predicted_away ?? null);
-  const winner: MatchWinner | null = finished
-    ? (match.winner as MatchWinner | null)
-    : ((pred?.predicted_winner as MatchWinner | null) ?? null);
+  // Solo se atenúa al perdedor de un partido ya terminado (eliminado).
+  const actualWinner: MatchWinner | null = finished ? (match.winner as MatchWinner | null) : null;
 
   return (
     <Link
@@ -488,9 +490,9 @@ function RealCard({
         <span className="font-medium">Partido {matchNum}</span>
         <span className="text-neutral-500">{dateFmt.format(new Date(match.kickoff_at))}</span>
       </div>
-      <TeamRow team={match.home_team} value={homeVal} win={winner === "home"} />
+      <TeamRow team={match.home_team} value={homeVal} lost={actualWinner === "away"} />
       <div className="my-1 border-t border-neutral-800" />
-      <TeamRow team={match.away_team} value={awayVal} win={winner === "away"} />
+      <TeamRow team={match.away_team} value={awayVal} lost={actualWinner === "home"} />
       <p className="mt-1 text-[10px] text-neutral-500">
         {finished ? "Resultado" : pred ? "Tu pronóstico" : "Sin pronóstico"}
       </p>
@@ -498,9 +500,9 @@ function RealCard({
   );
 }
 
-function TeamRow({ team, value, win }: { team: string; value: number | null; win: boolean }) {
+function TeamRow({ team, value, lost }: { team: string; value: number | null; lost: boolean }) {
   return (
-    <div className={`flex items-center justify-between gap-1 ${win ? "font-semibold text-emerald-400" : "text-neutral-200"}`}>
+    <div className={`flex items-center justify-between gap-1 text-neutral-200 ${lost ? "opacity-50" : ""}`}>
       <span className="flex min-w-0 items-center gap-1">
         <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
         <span className="truncate">{toSpanish(team)}</span>
