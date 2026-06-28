@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { z } from "zod";
 
+import { reconcileKnockoutFixtures } from "@/lib/matches/reconcile";
 import { recalculateMatchScores } from "@/lib/scoring-service";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { PLAYERS_DATA } from "@/lib/players-data";
@@ -121,6 +122,84 @@ export async function saveMatchResult(
   return { ok: true };
 }
 
+/** Número de ronda de TheSportsDB por ronda KO (para sdb_round de partidos manuales). */
+const KO_SDB_ROUND: Record<string, number> = {
+  round_of_32: 32,
+  round_of_16: 16,
+  quarterfinal: 125,
+  semifinal: 150,
+  final: 200,
+};
+
+const manualMatchSchema = z
+  .object({
+    matchId: z.string().uuid().optional(),
+    round: z.enum(["round_of_32", "round_of_16", "quarterfinal", "semifinal", "final"]),
+    homeTeam: z.string().trim().min(1, "Falta el equipo local"),
+    awayTeam: z.string().trim().min(1, "Falta el equipo visitante"),
+    kickoffAt: z.string().datetime({ message: "Horario inválido" }),
+  })
+  .refine((d) => d.homeTeam !== d.awayTeam, {
+    message: "Los equipos deben ser distintos",
+    path: ["awayTeam"],
+  });
+
+export type ManualMatchInput = z.infer<typeof manualMatchSchema>;
+
+/**
+ * Crea o edita un partido de eliminatoria a mano (fallback cuando TheSportsDB
+ * todavía no publicó el cruce). Insert con external_id sintético "manual-<uuid>";
+ * cuando el proveedor publique el mismo partido, reconcileKnockoutFixtures
+ * re-keya esta fila en su lugar (no duplica). Queda inactivo: el admin lo activa
+ * aparte. kickoffAt en ISO UTC.
+ */
+export async function upsertManualMatch(input: ManualMatchInput): Promise<AdminResult> {
+  const auth = await assertAdmin();
+  if (!auth.ok) return auth;
+
+  const parsed = manualMatchSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.errors[0]?.message ?? "Datos inválidos" };
+  }
+  const { matchId, round, homeTeam, awayTeam, kickoffAt } = parsed.data;
+
+  const svc = createServiceRoleClient();
+
+  if (matchId) {
+    const { error } = await svc
+      .from("matches")
+      .update({
+        round,
+        home_team: homeTeam,
+        away_team: awayTeam,
+        kickoff_at: kickoffAt,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", matchId);
+    if (error) return { ok: false, error: "No se pudo actualizar el partido" };
+  } else {
+    const { error } = await svc.from("matches").insert({
+      external_id: `manual-${crypto.randomUUID()}`,
+      round,
+      group_name: null,
+      home_team: homeTeam,
+      away_team: awayTeam,
+      kickoff_at: kickoffAt,
+      status: "scheduled",
+      home_score: null,
+      away_score: null,
+      winner: null,
+      sdb_round: KO_SDB_ROUND[round] ?? null,
+      is_active: false,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) return { ok: false, error: `No se pudo crear el partido: ${error.message}` };
+  }
+
+  revalidateTournament();
+  return { ok: true };
+}
+
 const adminPredictionSchema = z.object({
   predictedHome: z.number().int().min(0).max(99),
   predictedAway: z.number().int().min(0).max(99),
@@ -230,6 +309,14 @@ export async function syncMatches(): Promise<AdminResult & { count?: number }> {
   if (fixtures.length === 0) return { ok: false, error: "TheSportsDB no devolvió partidos" };
 
   const svc = createServiceRoleClient();
+
+  // Re-keyear filas KO manuales con su par del proveedor antes de upsertear,
+  // para no crear duplicados (preserva matches.id y las predicciones).
+  try {
+    await reconcileKnockoutFixtures(svc, fixtures);
+  } catch {
+    // best-effort
+  }
 
   // Los partidos ya 'finished' los gobierna el admin (la API gratuita no da
   // el ganador por penales). No los re-escribimos para no borrar un winner

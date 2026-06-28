@@ -4,12 +4,14 @@ import { notFound } from "next/navigation";
 import { AdminChampion } from "@/components/AdminChampion";
 import { AdminDeleteButton } from "@/components/AdminDeleteButton";
 import { AdminGoalTest } from "@/components/AdminGoalTest";
+import { AdminKnockoutEditor } from "@/components/AdminKnockoutEditor";
 import { AdminMatchRow } from "@/components/AdminMatchRow";
 import { AdminRoundActivator } from "@/components/AdminRoundActivator";
 import { AdminTopScorer } from "@/components/AdminTopScorer";
 import { adminDeletePool, adminDeleteUser } from "@/lib/admin/actions";
 import { isKnockoutRound, ROUNDS } from "@/lib/constants";
 import { ROUND_LABELS } from "@/lib/labels";
+import { computeGroupStandings, type GroupMatch } from "@/lib/standings";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { toSpanish } from "@/lib/teamNames";
@@ -81,7 +83,7 @@ export default async function GlobalAdminPage() {
     ),
     svc
       .from("matches")
-      .select("id, round, home_team, away_team, kickoff_at, is_active, home_score, away_score, winner, status")
+      .select("id, round, group_name, home_team, away_team, kickoff_at, is_active, home_score, away_score, winner, status")
       .order("kickoff_at", { ascending: true }),
     svc.from("players").select("name, team").order("name"),
     svc.from("champion_predictions").select("user_id, team"),
@@ -116,6 +118,26 @@ export default async function GlobalAdminPage() {
   const allPools = pools ?? [];
   const allMembers = members ?? [];
   const allMatches = matches ?? [];
+
+  // Equipos clasificados a eliminatorias (1° y 2° de cada grupo + 8 mejores
+  // terceros), para poblar el dropdown del editor manual con nombres exactos.
+  const groupsForQualify = new Map<string, GroupMatch[]>();
+  for (const m of allMatches) {
+    if (m.round !== "group_stage" || !m.group_name) continue;
+    const arr = groupsForQualify.get(m.group_name) ?? [];
+    arr.push(m as GroupMatch);
+    groupsForQualify.set(m.group_name, arr);
+  }
+  const qualifiedTeams: string[] = [];
+  const thirdsForQualify: { team: string; points: number; gd: number }[] = [];
+  for (const ms of groupsForQualify.values()) {
+    const s = computeGroupStandings(ms);
+    if (s[0]) qualifiedTeams.push(s[0].team);
+    if (s[1]) qualifiedTeams.push(s[1].team);
+    if (s[2]) thirdsForQualify.push({ team: s[2].team, points: s[2].points, gd: s[2].gd });
+  }
+  thirdsForQualify.sort((a, b) => b.points - a.points || b.gd - a.gd || a.team.localeCompare(b.team));
+  qualifiedTeams.push(...thirdsForQualify.slice(0, 8).map((t) => t.team));
 
   const userCount = allProfiles.length;
   const poolCount = allPools.length;
@@ -384,6 +406,8 @@ export default async function GlobalAdminPage() {
           Activa los partidos para habilitar las predicciones e ingresa
           resultados manualmente si la API no los provee.
         </p>
+
+        {qualifiedTeams.length > 0 && <AdminKnockoutEditor teams={qualifiedTeams} />}
 
         {allMatches.length === 0 ? (
           <p className="text-neutral-400">
