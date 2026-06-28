@@ -5,6 +5,7 @@ import { AdminChampion } from "@/components/AdminChampion";
 import { AdminDeleteButton } from "@/components/AdminDeleteButton";
 import { AdminGoalTest } from "@/components/AdminGoalTest";
 import { AdminKnockoutEditor } from "@/components/AdminKnockoutEditor";
+import { AdminKnockoutImport } from "@/components/AdminKnockoutImport";
 import { AdminMatchRow } from "@/components/AdminMatchRow";
 import { AdminRoundActivator } from "@/components/AdminRoundActivator";
 import { AdminTopScorer } from "@/components/AdminTopScorer";
@@ -407,7 +408,12 @@ export default async function GlobalAdminPage() {
           resultados manualmente si la API no los provee.
         </p>
 
-        {qualifiedTeams.length > 0 && <AdminKnockoutEditor teams={qualifiedTeams} />}
+        {qualifiedTeams.length > 0 && (
+          <div className="flex flex-col gap-4">
+            <AdminKnockoutImport />
+            <AdminKnockoutEditor teams={qualifiedTeams} />
+          </div>
+        )}
 
         {allMatches.length === 0 ? (
           <p className="text-neutral-400">

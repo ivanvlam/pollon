@@ -4,8 +4,14 @@ import { revalidatePath } from "next/cache";
 
 import { z } from "zod";
 
-import { reconcileKnockoutFixtures } from "@/lib/matches/reconcile";
+import {
+  KNOCKOUT_MATCHES,
+  R32_MATCH_NUMS,
+  type KnockoutSlot,
+} from "@/lib/knockoutSchedule";
+import { reconcileKnockoutFixtures, teamPairKey } from "@/lib/matches/reconcile";
 import { recalculateMatchScores } from "@/lib/scoring-service";
+import { computeGroupStandings, type GroupMatch } from "@/lib/standings";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { PLAYERS_DATA } from "@/lib/players-data";
 
@@ -198,6 +204,101 @@ export async function upsertManualMatch(input: ManualMatchInput): Promise<AdminR
 
   revalidateTournament();
   return { ok: true };
+}
+
+/**
+ * Carga los 16 dieciseisavos del fixture oficial (KNOCKOUT_MATCHES), derivando
+ * los equipos de la tabla de grupos REAL (winner/runnerUp/3° del grupo). Los
+ * horarios salen del schedule oficial. Idempotente: reconcilia por par de
+ * equipos (no duplica los que ya trajo el proveedor). No activa la ronda — eso
+ * se hace aparte con "Activar Dieciseisavos".
+ */
+export async function importKnockoutFixture(): Promise<
+  AdminResult & { inserted?: number; updated?: number }
+> {
+  const auth = await assertAdmin();
+  if (!auth.ok) return auth;
+
+  const svc = createServiceRoleClient();
+
+  const { data: groupMatches } = await svc
+    .from("matches")
+    .select("group_name, home_team, away_team, home_score, away_score, status")
+    .eq("round", "group_stage");
+
+  const byGroup = new Map<string, GroupMatch[]>();
+  for (const m of groupMatches ?? []) {
+    const g = (m.group_name ?? "").replace(/^Group\s+/i, "");
+    if (!g) continue;
+    const arr = byGroup.get(g) ?? [];
+    arr.push(m as GroupMatch);
+    byGroup.set(g, arr);
+  }
+  const standingsByGroup = new Map(
+    [...byGroup].map(([g, ms]) => [g, computeGroupStandings(ms)] as const),
+  );
+
+  const resolve = (slot: KnockoutSlot): string | null => {
+    if (slot.type === "feeder") return null;
+    const s = standingsByGroup.get(slot.group);
+    if (!s) return null;
+    if (slot.type === "winner") return s[0]?.team ?? null;
+    if (slot.type === "runnerUp") return s[1]?.team ?? null;
+    return s[2]?.team ?? null; // third
+  };
+
+  const { data: existing } = await svc
+    .from("matches")
+    .select("id, home_team, away_team")
+    .eq("round", "round_of_32");
+  const byPair = new Map(
+    (existing ?? []).map((m) => [teamPairKey(m.home_team, m.away_team), m] as const),
+  );
+
+  let inserted = 0;
+  let updated = 0;
+  for (const num of R32_MATCH_NUMS) {
+    const def = KNOCKOUT_MATCHES[num]!;
+    const home = resolve(def.home);
+    const away = resolve(def.away);
+    if (!home || !away) continue; // grupos no terminados → no se resuelve
+
+    const ex = byPair.get(teamPairKey(home, away));
+    if (ex) {
+      const { error } = await svc
+        .from("matches")
+        .update({
+          home_team: home,
+          away_team: away,
+          kickoff_at: def.kickoff,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", ex.id);
+      if (error) return { ok: false, error: `No se pudo actualizar el partido ${num}: ${error.message}` };
+      updated += 1;
+    } else {
+      const { error } = await svc.from("matches").insert({
+        external_id: `manual-r32-${num}`,
+        round: "round_of_32",
+        group_name: null,
+        home_team: home,
+        away_team: away,
+        kickoff_at: def.kickoff,
+        status: "scheduled",
+        home_score: null,
+        away_score: null,
+        winner: null,
+        sdb_round: 32,
+        is_active: false,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) return { ok: false, error: `No se pudo crear el partido ${num}: ${error.message}` };
+      inserted += 1;
+    }
+  }
+
+  revalidateTournament();
+  return { ok: true, inserted, updated };
 }
 
 const adminPredictionSchema = z.object({
