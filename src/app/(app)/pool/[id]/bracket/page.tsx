@@ -12,6 +12,7 @@ import {
   computeGroupClinch,
   computeGroupPositionLock,
   computeGroupStandings,
+  resolveFinalClinch,
   type GroupClinch,
   type GroupMatch,
   type StandingRow,
@@ -170,7 +171,15 @@ export default async function BracketPage({ params }: { params: { id: string } }
   // para colorear en amarillo al 3° que va clasificando dentro del modal.
   groupThirds.sort((a, b) => b.points - a.points || b.gd - a.gd || a.team.localeCompare(b.team));
   const qualifyingThirds = new Set(groupThirds.slice(0, 8).map((r) => r.team));
-  for (const data of groupModalDataMap.values()) data.qualifyingThirds = qualifyingThirds;
+  // Fase de grupos terminada → el 3° se resuelve a verde/rojo definitivo.
+  const groupStageComplete =
+    (groupMatches ?? []).length > 0 && (groupMatches ?? []).every((m) => m.status === "finished");
+  for (const data of groupModalDataMap.values()) {
+    data.qualifyingThirds = qualifyingThirds;
+    if (data.clinch) {
+      data.clinch = resolveFinalClinch(data.clinch, data.standings, qualifyingThirds, groupStageComplete);
+    }
+  }
 
   const resolveTeam = (s: SlotDef): string | null => {
     if (s.type === "best_third") return null;
@@ -218,6 +227,102 @@ export default async function BracketPage({ params }: { params: { id: string } }
     : { data: [] };
   const predBy = new Map((preds ?? []).map(p => [p.match_id, p]));
 
+  // ── Asignación de partidos reales a las llaves del cuadro ──────────────────
+  // En vez de mapear por índice (que descoloca fechas/resultados), matcheamos
+  // cada partido de la DB a su llave por CONJUNTO DE EQUIPOS, en cascada:
+  //  R32: cada def tiene ≥1 slot de posición de grupo (resolvable desde la
+  //       tabla); el partido se identifica por ese equipo. El "mejor 3°" se
+  //       deduce como el otro equipo del partido encontrado.
+  //  Rondas siguientes: el ganador real de cada llave alimenta a la siguiente;
+  //       cada llave espera a los ganadores de sus dos feeders y se matchea por
+  //       equipos. Best-effort: si el partido aún no existe → placeholder.
+  type KoMatchRow = KoMatch;
+  interface BracketSlot {
+    team1: string | null;
+    team2: string | null;
+    match: KoMatchRow | null;
+    winnerTeam: string | null;
+  }
+  const winnerTeamOf = (m: KoMatchRow | null): string | null =>
+    m && m.status === "finished" && m.winner
+      ? m.winner === "home"
+        ? m.home_team
+        : m.away_team
+      : null;
+
+  const usedR32 = new Set<string>();
+  const r32Slots: BracketSlot[] = R32_DEFS.map((def) => {
+    const homeKnown = resolveTeam(def.home);
+    const awayKnown = resolveTeam(def.away);
+    const known = [homeKnown, awayKnown].filter((t): t is string => t !== null);
+    let match: KoMatchRow | null = null;
+    if (known.length > 0) {
+      match =
+        r32Matches.find(
+          (m) => !usedR32.has(m.id) && known.some((t) => m.home_team === t || m.away_team === t),
+        ) ?? null;
+      if (match) usedR32.add(match.id);
+    }
+    let team1 = homeKnown;
+    let team2 = awayKnown;
+    // El slot "mejor 3°" (siempre en posición away) se resuelve desde el partido.
+    if (match && team2 === null && team1 !== null) {
+      team2 = match.home_team === team1 ? match.away_team : match.home_team;
+    }
+    return { team1, team2, match, winnerTeam: winnerTeamOf(match) };
+  });
+
+  const laterSlots: BracketSlot[][] = [];
+  let prevSlots = r32Slots;
+  for (const stage of LATER_ROUNDS) {
+    const dbMatches = byRound.get(stage.round) ?? [];
+    const used = new Set<string>();
+    const slots: BracketSlot[] = [];
+    for (let i = 0; i < stage.n; i++) {
+      const t1 = prevSlots[2 * i]?.winnerTeam ?? null;
+      const t2 = prevSlots[2 * i + 1]?.winnerTeam ?? null;
+      const known = [t1, t2].filter((t): t is string => t !== null);
+      let match: KoMatchRow | null = null;
+      if (known.length > 0) {
+        match =
+          dbMatches.find(
+            (m) => !used.has(m.id) && known.some((t) => m.home_team === t || m.away_team === t),
+          ) ?? null;
+        if (match) used.add(match.id);
+      }
+      slots.push({ team1: t1, team2: t2, match, winnerTeam: winnerTeamOf(match) });
+    }
+    laterSlots.push(slots);
+    prevSlots = slots;
+  }
+
+  // Score de un equipo dentro de un partido (para mostrar en la tarjeta R32).
+  const scoreOf = (m: KoMatchRow | null, team: string | null): number | null => {
+    if (!m || !team || m.status !== "finished") return null;
+    return m.home_team === team ? m.home_score : m.away_team === team ? m.away_score : null;
+  };
+
+  // Props de la tarjeta R32 para una llave (compartido mobile/desktop).
+  const r32CardProps = (def: R32Def, i: number) => {
+    const slot = r32Slots[i]!;
+    return {
+      matchNum: def.matchNum,
+      date: slot.match ? dateFmt.format(new Date(slot.match.kickoff_at)) : null,
+      homeTeam: slot.team1,
+      homeLabel: slotLabel(def.home),
+      homeGroupData: getGroupData(def.home),
+      homeQualified: isSlotQualified(def.home),
+      homeScore: scoreOf(slot.match, slot.team1),
+      homeWin: slot.winnerTeam !== null && slot.winnerTeam === slot.team1,
+      awayTeam: slot.team2,
+      awayLabel: slotLabel(def.away),
+      awayGroupData: getGroupData(def.away),
+      awayQualified: isSlotQualified(def.away),
+      awayScore: scoreOf(slot.match, slot.team2),
+      awayWin: slot.winnerTeam !== null && slot.winnerTeam === slot.team2,
+    };
+  };
+
   const sh0 = stageSlotH(0);
 
   return (
@@ -242,32 +347,15 @@ export default async function BracketPage({ params }: { params: { id: string } }
             Dieciseisavos
           </h2>
           <div className="flex flex-col gap-3">
-            {R32_DEFS.map((def, i) => {
-              const dbM = r32Matches[i] ?? null;
-              const date = dbM ? dateFmt.format(new Date(dbM.kickoff_at)) : null;
-              return (
-                <R32Card
-                  key={i}
-                  matchNum={def.matchNum}
-                  date={date}
-                  homeTeam={resolveTeam(def.home)}
-                  homeLabel={slotLabel(def.home)}
-                  homeGroupData={getGroupData(def.home)}
-                  homeQualified={isSlotQualified(def.home)}
-                  awayTeam={resolveTeam(def.away)}
-                  awayLabel={slotLabel(def.away)}
-                  awayGroupData={getGroupData(def.away)}
-                  awayQualified={isSlotQualified(def.away)}
-                />
-              );
-            })}
+            {R32_DEFS.map((def, i) => (
+              <R32Card key={i} {...r32CardProps(def, i)} />
+            ))}
           </div>
         </section>
 
         {/* Later rounds */}
         {LATER_ROUNDS.map((stage, si) => {
           const stageIdx = si + 1;
-          const matches  = byRound.get(stage.round) ?? [];
           return (
             <section key={stage.round}>
               <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400 border-b border-neutral-800 pb-2">
@@ -275,7 +363,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
               </h2>
               <div className="flex flex-col gap-2">
                 {Array.from({ length: stage.n }, (_, i) => {
-                  const match    = matches[i] ?? null;
+                  const match    = laterSlots[si]?.[i]?.match ?? null;
                   const matchNum = stage.firstMatchNum + i;
                   if (match) {
                     return (
@@ -326,33 +414,18 @@ export default async function BracketPage({ params }: { params: { id: string } }
           ))}
 
           {/* ── R32 slots ───────────────────────────────────────────────── */}
-          {R32_DEFS.map((def, i) => {
-            const dbM  = r32Matches[i] ?? null;
-            const date = dbM ? dateFmt.format(new Date(dbM.kickoff_at)) : null;
-            return (
-              <div
-                key={i}
-                style={{
-                  position: "absolute", left: colX(0), top: HEADER_H + i * sh0,
-                  width: CARD_W, height: sh0,
-                  display: "flex", alignItems: "center", padding: "4px 0",
-                }}
-              >
-                <R32Card
-                  matchNum={def.matchNum}
-                  date={date}
-                  homeTeam={resolveTeam(def.home)}
-                  homeLabel={slotLabel(def.home)}
-                  homeGroupData={getGroupData(def.home)}
-                  homeQualified={isSlotQualified(def.home)}
-                  awayTeam={resolveTeam(def.away)}
-                  awayLabel={slotLabel(def.away)}
-                  awayGroupData={getGroupData(def.away)}
-                  awayQualified={isSlotQualified(def.away)}
-                />
-              </div>
-            );
-          })}
+          {R32_DEFS.map((def, i) => (
+            <div
+              key={i}
+              style={{
+                position: "absolute", left: colX(0), top: HEADER_H + i * sh0,
+                width: CARD_W, height: sh0,
+                display: "flex", alignItems: "center", padding: "4px 0",
+              }}
+            >
+              <R32Card {...r32CardProps(def, i)} />
+            </div>
+          ))}
 
           {/* ── Section separators (between QF groups in R32) ───────────── */}
           {[4, 8, 12].map((slotIdx) => (
@@ -373,11 +446,10 @@ export default async function BracketPage({ params }: { params: { id: string } }
           {LATER_ROUNDS.map((stage, si) => {
             const stageIdx = si + 1;
             const sh       = stageSlotH(stageIdx);
-            const matches  = byRound.get(stage.round) ?? [];
             return (
               <React.Fragment key={stage.round}>
                 {Array.from({ length: stage.n }, (_, i) => {
-                  const match    = matches[i] ?? null;
+                  const match    = laterSlots[si]?.[i]?.match ?? null;
                   const matchNum = stage.firstMatchNum + i;
                   const [hf, af] = getFeeder(si, i);
                   return (
@@ -444,44 +516,50 @@ export default async function BracketPage({ params }: { params: { id: string } }
 // ─── R32 card ─────────────────────────────────────────────────────────────────
 function R32Card({
   matchNum, date,
-  homeTeam, homeLabel, homeGroupData, homeQualified,
-  awayTeam, awayLabel, awayGroupData, awayQualified,
+  homeTeam, homeLabel, homeGroupData, homeQualified, homeScore, homeWin,
+  awayTeam, awayLabel, awayGroupData, awayQualified, awayScore, awayWin,
 }: {
   matchNum: number; date: string | null;
-  homeTeam: string | null; homeLabel: string; homeGroupData: GroupModalData | null; homeQualified: boolean;
-  awayTeam: string | null; awayLabel: string; awayGroupData: GroupModalData | null; awayQualified: boolean;
+  homeTeam: string | null; homeLabel: string; homeGroupData: GroupModalData | null; homeQualified: boolean; homeScore: number | null; homeWin: boolean;
+  awayTeam: string | null; awayLabel: string; awayGroupData: GroupModalData | null; awayQualified: boolean; awayScore: number | null; awayWin: boolean;
 }) {
+  const played = homeScore !== null || awayScore !== null;
   return (
     <div className="w-full rounded-lg border border-neutral-800 bg-neutral-900/80 px-2.5 py-2 text-xs">
       <div className="mb-1.5 flex items-center justify-between text-xs text-neutral-400">
         <span className="font-medium">Partido {matchNum}</span>
         {date && <span className="text-neutral-500">{date}</span>}
       </div>
-      <SlotRow team={homeTeam} label={homeLabel} groupData={homeGroupData} qualified={homeQualified} />
+      <SlotRow team={homeTeam} label={homeLabel} groupData={homeGroupData} qualified={homeQualified} score={played ? homeScore : null} win={homeWin} />
       <div className="my-1 border-t border-neutral-800" />
-      <SlotRow team={awayTeam} label={awayLabel} groupData={awayGroupData} qualified={awayQualified} />
+      <SlotRow team={awayTeam} label={awayLabel} groupData={awayGroupData} qualified={awayQualified} score={played ? awayScore : null} win={awayWin} />
     </div>
   );
 }
 
 function SlotRow({
-  team, label, groupData, qualified,
+  team, label, groupData, qualified, score, win,
 }: {
   team: string | null;
   label: string;
   groupData: GroupModalData | null;
   qualified: boolean;
+  score: number | null;
+  win: boolean;
 }) {
   const labelEl = groupData ? (
     <BracketGroupLabel label={label} {...groupData} />
   ) : label;
 
-  // Clasificado a la siguiente ronda (top-2 asegurado) → verde.
+  // Ganador del cruce (verde + negrita); si no, clasificado de grupo (top-2
+  // asegurado) → verde. score se muestra cuando el partido se jugó.
+  const color = win ? "text-emerald-400 font-semibold" : qualified ? "text-emerald-400" : "text-neutral-100";
   return team ? (
-    <div className={`flex min-h-[20px] items-center gap-1 ${qualified ? "text-emerald-400" : "text-neutral-100"}`}>
+    <div className={`flex min-h-[20px] items-center gap-1 ${color}`}>
       <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
       <TeamName team={team} className="min-w-0 flex-1 truncate font-medium" />
       <span className="shrink-0 text-[10px] text-neutral-500">{labelEl}</span>
+      {score !== null && <span className="ml-1 shrink-0 tabular-nums font-semibold">{score}</span>}
     </div>
   ) : (
     <div className="flex min-h-[20px] items-center text-xs text-neutral-500">{labelEl}</div>
