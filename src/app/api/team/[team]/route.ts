@@ -81,10 +81,35 @@ export async function GET(
     ]),
   );
 
-  const matchesWithPreds = teamMatches.map((m) => ({
-    ...m,
-    pred: predMap[m.id] ?? null,
-  }));
+  // Puntos del usuario en un partido (mismos en cualquier polla) → calculados con
+  // la función pura, igual que en la pestaña de grupos. Solo si está finalizado.
+  const pointsFor = (
+    round: Round,
+    m: { status: string; home_score: number | null; away_score: number | null; winner: string | null },
+    pred: { predicted_home: number | null; predicted_away: number | null; predicted_winner: string | null } | null,
+  ): number | undefined => {
+    if (m.status !== "finished" || !pred || pred.predicted_home === null || pred.predicted_away === null) {
+      return undefined;
+    }
+    const sc = calculateMatchScore(
+      { round, home_score: m.home_score, away_score: m.away_score, winner: m.winner as MatchWinner | null },
+      {
+        predicted_home: pred.predicted_home,
+        predicted_away: pred.predicted_away,
+        predicted_winner: pred.predicted_winner as MatchWinner | null,
+      },
+    );
+    return sc?.points ?? 0;
+  };
+
+  const matchesWithPreds = teamMatches.map((m) => {
+    const pred = predMap[m.id] ?? null;
+    return {
+      ...m,
+      pred,
+      myPoints: pointsFor("group_stage", { ...m, winner: null }, pred),
+    };
+  });
 
   // ── Partidos de eliminatoria del equipo (perfil del torneo) ────────────────
   // Pocos partidos KO en total: traemos todos y filtramos en memoria (evita un
@@ -111,26 +136,31 @@ export async function GET(
       : { data: [] };
   const koPredMap = new Map((koPreds ?? []).map((p) => [p.match_id, p]));
 
-  const koWithPreds = koList.map((m) => ({
-    id: m.id,
-    round: m.round as Round,
-    home_team: m.home_team,
-    away_team: m.away_team,
-    kickoff_at: m.kickoff_at,
-    status: m.status,
-    home_score: m.home_score,
-    away_score: m.away_score,
-    is_active: m.is_active,
-    live_minute: m.live_minute,
-    group_name: null as string | null,
-    pred: koPredMap.get(m.id)
+  const koWithPreds = koList.map((m) => {
+    const p = koPredMap.get(m.id);
+    const pred = p
       ? {
-          predicted_home: koPredMap.get(m.id)!.predicted_home,
-          predicted_away: koPredMap.get(m.id)!.predicted_away,
-          predicted_winner: koPredMap.get(m.id)!.predicted_winner,
+          predicted_home: p.predicted_home,
+          predicted_away: p.predicted_away,
+          predicted_winner: p.predicted_winner,
         }
-      : null,
-  }));
+      : null;
+    return {
+      id: m.id,
+      round: m.round as Round,
+      home_team: m.home_team,
+      away_team: m.away_team,
+      kickoff_at: m.kickoff_at,
+      status: m.status,
+      home_score: m.home_score,
+      away_score: m.away_score,
+      is_active: m.is_active,
+      live_minute: m.live_minute,
+      group_name: null as string | null,
+      pred,
+      myPoints: pointsFor(m.round as Round, m, pred),
+    };
+  });
 
   // Datos de la tabla del grupo (para abrir su modal desde el modal del equipo).
   let group: {

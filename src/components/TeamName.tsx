@@ -23,6 +23,7 @@ interface TeamData {
     live_minute: string | null;
     group_name: string | null;
     round?: string | null;
+    myPoints?: number;
     pred: {
       predicted_home: number | null;
       predicted_away: number | null;

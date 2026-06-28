@@ -23,6 +23,7 @@ interface TeamMatch {
   live_minute: string | null;
   group_name: string | null;
   round?: string | null;
+  myPoints?: number;
   pred: {
     predicted_home: number | null;
     predicted_away: number | null;
@@ -74,6 +75,11 @@ export function TeamModal({ team, standing, matches, groupName, position, progre
 
   const teamEs = toSpanish(team);
   const groupLabel = groupName ? groupName.replace(/^Group\s+/i, "Grupo ") : null;
+
+  // Puntos que el usuario ganó con partidos de este equipo (mismos en cualquier
+  // polla; se muestran como en la pestaña de grupos).
+  const scoredMatches = matches.filter((m) => m.myPoints !== undefined);
+  const totalPoints = scoredMatches.reduce((sum, m) => sum + (m.myPoints ?? 0), 0);
 
   const stats = standing
     ? [
@@ -168,9 +174,22 @@ export function TeamModal({ team, standing, matches, groupName, position, progre
           {/* Partidos */}
           {matches.length > 0 && (
             <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                Partidos
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                  Partidos
+                </p>
+                {scoredMatches.length > 0 && (
+                  <span
+                    className={`rounded px-2 py-0.5 text-xs font-medium ${
+                      totalPoints > 0
+                        ? "bg-emerald-500/15 text-emerald-400"
+                        : "bg-neutral-500/15 text-neutral-500"
+                    }`}
+                  >
+                    {totalPoints} {totalPoints === 1 ? "punto" : "puntos"} con {teamEs}
+                  </span>
+                )}
+              </div>
               {matches.map((match) => {
                 const finished = match.status === "finished";
                 const live = match.status === "live";
@@ -236,6 +255,21 @@ export function TeamModal({ team, standing, matches, groupName, position, progre
                         <span className="min-w-0 break-words font-medium leading-tight">{awayEs}</span>
                       </div>
                     </div>
+
+                    {match.myPoints !== undefined && (
+                      <div className="mt-2 flex justify-end">
+                        <span
+                          className={`rounded px-2 py-0.5 text-xs font-medium ${
+                            match.myPoints > 0
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : "bg-neutral-500/15 text-neutral-500"
+                          }`}
+                        >
+                          {match.myPoints > 0 ? `+${match.myPoints}` : "0"}{" "}
+                          {match.myPoints === 1 ? "punto" : "puntos"}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
