@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   computeGroupClinch,
   computeGroupStandings,
+  resolveFinalClinch,
   type GroupMatch,
 } from "@/lib/standings";
 
@@ -78,6 +79,10 @@ export default async function GroupsPage({
   thirds.sort((a, b) => b.points - a.points || b.gd - a.gd || a.team.localeCompare(b.team));
   const qualifyingThirds = new Set(thirds.slice(0, 8).map((r) => r.team));
 
+  // Cuando toda la fase de grupos terminó, la carrera de mejores terceros está
+  // decidida: los 3° pasan a verde (clasificado) o rojo (eliminado), no amarillo.
+  const groupStageComplete = all.length > 0 && all.every((m) => m.status === "finished");
+
   return (
     <div className="flex flex-col gap-6">
       <MatchLiveRefresh matches={all} />
@@ -113,7 +118,12 @@ export default async function GroupsPage({
         {groupNames.map((name) => {
           const groupMatches = groups.get(name)!;
           const standings = allStandings.get(name)!;
-          const clinch = computeGroupClinch(groupMatches as GroupMatch[]);
+          const clinch = resolveFinalClinch(
+            computeGroupClinch(groupMatches as GroupMatch[]),
+            standings,
+            qualifyingThirds,
+            groupStageComplete,
+          );
           const yourPoints = groupMatches.reduce(
             (sum, m) => sum + (pointsByMatch.get(m.id) ?? 0),
             0,

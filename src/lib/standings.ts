@@ -287,6 +287,27 @@ export function computeGroupClinch(matches: GroupMatch[]): Map<string, GroupClin
 }
 
 /**
+ * Resuelve el clinch DEFINITIVO del 3° de un grupo una vez que TODA la fase de
+ * grupos terminó. `computeGroupClinch` deja al 3° como "open" porque su suerte
+ * depende de la carrera cross-grupo de los mejores terceros; cuando ya están
+ * jugados todos los partidos esa carrera está decidida, así que el 3° pasa a
+ * "qualified" (si está entre los 8 mejores) o "eliminated" (si no). El resto de
+ * las posiciones no se tocan. Si la fase no terminó, devuelve el clinch igual.
+ */
+export function resolveFinalClinch(
+  clinch: Map<string, GroupClinch>,
+  standings: StandingRow[],
+  qualifyingThirds: Set<string>,
+  groupStageComplete: boolean,
+): Map<string, GroupClinch> {
+  const third = standings[2];
+  if (!groupStageComplete || !third) return clinch;
+  const next = new Map(clinch);
+  next.set(third.team, qualifyingThirds.has(third.team) ? "qualified" : "eliminated");
+  return next;
+}
+
+/**
  * Equipos cuya POSICIÓN EXACTA dentro del grupo (1°, 2°, …) ya está fijada en
  * TODOS los escenarios posibles de los partidos que faltan.
  *

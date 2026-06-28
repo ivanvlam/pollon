@@ -5,6 +5,7 @@ import {
   computeGroupPositionLock,
   computeGroupStandings,
   projectLivePositions,
+  resolveFinalClinch,
   type GroupMatch,
 } from "@/lib/standings";
 
@@ -222,5 +223,36 @@ describe("computeGroupPositionLock", () => {
       m("C", "D", 1, 0),
     ]);
     expect([...locked].sort()).toEqual(["A", "B", "C", "D"]);
+  });
+});
+
+describe("resolveFinalClinch", () => {
+  // Grupo terminado: A 1°, B 2°, C 3°, D 4°.
+  const finishedGroup = [
+    m("A", "B", 1, 0),
+    m("A", "C", 2, 0),
+    m("A", "D", 3, 0),
+    m("B", "C", 1, 0),
+    m("B", "D", 1, 0),
+    m("C", "D", 1, 0),
+  ];
+  const standings = computeGroupStandings(finishedGroup);
+  const clinch = computeGroupClinch(finishedGroup);
+
+  it("no toca nada si la fase no terminó", () => {
+    const out = resolveFinalClinch(clinch, standings, new Set(["C"]), false);
+    expect(out.get("C")).toBe("open");
+  });
+
+  it("3° entre los mejores terceros → qualified", () => {
+    const out = resolveFinalClinch(clinch, standings, new Set(["C"]), true);
+    expect(out.get("C")).toBe("qualified");
+    expect(out.get("A")).toBe("qualified"); // 1°/2° intactos
+    expect(out.get("D")).toBe("eliminated"); // último intacto
+  });
+
+  it("3° fuera de los mejores terceros → eliminated", () => {
+    const out = resolveFinalClinch(clinch, standings, new Set(), true);
+    expect(out.get("C")).toBe("eliminated");
   });
 });
