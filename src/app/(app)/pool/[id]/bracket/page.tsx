@@ -31,7 +31,6 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
 // ─── Geometry ─────────────────────────────────────────────────────────────────
 const SLOT_H   = 96;
 const TOTAL_H  = 16 * SLOT_H;
-const CARD_W   = 264;
 const STUB_W   = 20;
 const CONN_W   = 48;
 const LINE     = "#606060";
@@ -43,11 +42,9 @@ const ALL_ROUNDS: Round[] = ["round_of_32", "round_of_16", "quarterfinal", "semi
 // Rondas que se traen de la DB (incluye el 3er puesto, que va fuera del árbol).
 const ALL_KO_ROUNDS: Round[] = [...ALL_ROUNDS, "third_place"];
 
-const colX       = (si: number) => si * (CARD_W + CONN_W);
 const stageSlotH = (si: number) => TOTAL_H / ALL_N[si]!;
 // midY es relativo al cuerpo del bracket (la fila de headers va aparte, sticky).
 const midY       = (si: number, i: number) => (i + 0.5) * stageSlotH(si);
-const totalW     = colX(ALL_N.length - 1) + CARD_W;
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default async function BracketPage({ params }: { params: { id: string } }) {
@@ -261,6 +258,16 @@ export default async function BracketPage({ params }: { params: { id: string } }
   const sh0 = stageSlotH(0);
   const r32Order = BRACKET_ORDER.round_of_32;
 
+  // Geometría horizontal responsive (desktop): cada columna ocupa 1/3 del ancho
+  // VISIBLE del contenedor (unidades de container-query), así entran siempre
+  // exactamente 3 rondas y el scroll-snap es magnético. La separación entre
+  // tarjetas queda fija en CONN_W px (para los conectores). Lo vertical sigue px.
+  const PITCH    = "(100cqw / 3)";                         // ancho de una columna
+  const colXc    = (si: number) => `calc(${si} * ${PITCH})`;
+  const cardWc   = `calc(${PITCH} - ${CONN_W}px)`;
+  const totalWc  = `calc(${ALL_ROUNDS.length} * ${PITCH})`;
+  const connXc   = (si: number) => `calc(${si + 1} * ${PITCH} - ${CONN_W}px)`; // borde derecho de la tarjeta
+
   // Render de una llave de ronda siguiente (octavos+): tarjeta real con link si
   // el partido ya existe en la DB; si no, tarjeta con equipos resueltos (o
   // "Ganador Partido N") y el horario del fixture.
@@ -327,18 +334,33 @@ export default async function BracketPage({ params }: { params: { id: string } }
 
       <div
         className="hidden overflow-auto rounded-lg border border-neutral-900 md:block"
-        style={{ maxHeight: "80vh", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}
+        style={{
+          maxHeight: "80vh",
+          containerType: "inline-size",
+          scrollSnapType: "x mandatory",
+          overscrollBehavior: "contain",
+          WebkitOverflowScrolling: "touch",
+        }}
       >
-        <div style={{ position: "relative", width: totalW }}>
+        <div style={{ position: "relative", width: totalWc }}>
+
+          {/* Anclas de snap: solo hasta que queden 3 columnas a la derecha, así
+              cada parada muestra exactamente 3 rondas. */}
+          {Array.from({ length: Math.max(1, ALL_ROUNDS.length - 2) }, (_, si) => (
+            <div
+              key={`snap-${si}`}
+              style={{ position: "absolute", left: colXc(si), top: 0, width: 1, height: 1, scrollSnapAlign: "start" }}
+            />
+          ))}
 
           {/* Encabezados de columna: fijos al hacer scroll vertical */}
-          <div style={{ position: "sticky", top: 0, zIndex: 20, width: totalW, height: HEADER_H, background: "#0d0d0d" }}>
+          <div style={{ position: "sticky", top: 0, zIndex: 20, width: totalWc, height: HEADER_H, background: "#0d0d0d" }}>
             {ALL_LABELS.map((label, si) => (
               <div
                 key={si}
                 style={{
-                  position: "absolute", left: colX(si), top: 0,
-                  width: CARD_W, height: HEADER_H,
+                  position: "absolute", left: colXc(si), top: 0,
+                  width: cardWc, height: HEADER_H,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   borderBottom: "1px solid #262626",
                 }}
@@ -350,15 +372,15 @@ export default async function BracketPage({ params }: { params: { id: string } }
           </div>
 
           {/* Cuerpo del bracket */}
-          <div style={{ position: "relative", width: totalW, height: TOTAL_H }}>
+          <div style={{ position: "relative", width: totalWc, height: TOTAL_H }}>
 
           {/* R32 slots */}
           {r32Order.map((num, i) => (
             <div
               key={num}
               style={{
-                position: "absolute", left: colX(0), top: i * sh0,
-                width: CARD_W, height: sh0,
+                position: "absolute", left: colXc(0), top: i * sh0,
+                width: cardWc, height: sh0,
                 display: "flex", alignItems: "center", padding: "4px 0",
               }}
             >
@@ -371,9 +393,9 @@ export default async function BracketPage({ params }: { params: { id: string } }
               key={`sep-${slotIdx}`}
               style={{
                 position: "absolute",
-                left: colX(0),
+                left: colXc(0),
                 top: slotIdx * sh0,
-                width: CARD_W,
+                width: cardWc,
                 height: 0,
                 borderTop: "1px dashed #2a2a2a",
               }}
@@ -390,8 +412,8 @@ export default async function BracketPage({ params }: { params: { id: string } }
                   <div
                     key={num}
                     style={{
-                      position: "absolute", left: colX(stageIdx), top: i * sh,
-                      width: CARD_W, height: sh,
+                      position: "absolute", left: colXc(stageIdx), top: i * sh,
+                      width: cardWc, height: sh,
                       display: "flex", alignItems: "center", padding: "4px 0",
                     }}
                   >
@@ -403,32 +425,29 @@ export default async function BracketPage({ params }: { params: { id: string } }
           })}
 
           {/* Connectors */}
-          {ALL_N.slice(0, -1).map((n, si) => {
-            const x = colX(si) + CARD_W;
-            return (
-              <React.Fragment key={`conn-${si}`}>
-                {Array.from({ length: n }, (_, i) => (
-                  <div
-                    key={`st-${i}`}
-                    style={{ position: "absolute", left: x, top: midY(si, i) - 0.5,
-                             width: STUB_W, height: 1, background: LINE }}
-                  />
-                ))}
-                {Array.from({ length: n / 2 }, (_, i) => {
-                  const tY = midY(si, 2 * i);
-                  const bY = midY(si, 2 * i + 1);
-                  return (
-                    <React.Fragment key={`pr-${i}`}>
-                      <div style={{ position: "absolute", left: x + STUB_W, top: tY,
-                                   width: 1, height: bY - tY, background: LINE }} />
-                      <div style={{ position: "absolute", left: x + STUB_W, top: (tY + bY) / 2 - 0.5,
-                                   width: CONN_W - STUB_W, height: 1, background: LINE }} />
-                    </React.Fragment>
-                  );
-                })}
-              </React.Fragment>
-            );
-          })}
+          {ALL_N.slice(0, -1).map((n, si) => (
+            <React.Fragment key={`conn-${si}`}>
+              {Array.from({ length: n }, (_, i) => (
+                <div
+                  key={`st-${i}`}
+                  style={{ position: "absolute", left: connXc(si), top: midY(si, i) - 0.5,
+                           width: STUB_W, height: 1, background: LINE }}
+                />
+              ))}
+              {Array.from({ length: n / 2 }, (_, i) => {
+                const tY = midY(si, 2 * i);
+                const bY = midY(si, 2 * i + 1);
+                return (
+                  <React.Fragment key={`pr-${i}`}>
+                    <div style={{ position: "absolute", left: `calc(${connXc(si)} + ${STUB_W}px)`, top: tY,
+                                 width: 1, height: bY - tY, background: LINE }} />
+                    <div style={{ position: "absolute", left: `calc(${connXc(si)} + ${STUB_W}px)`, top: (tY + bY) / 2 - 0.5,
+                                 width: CONN_W - STUB_W, height: 1, background: LINE }} />
+                  </React.Fragment>
+                );
+              })}
+            </React.Fragment>
+          ))}
 
           </div>
         </div>
