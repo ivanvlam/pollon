@@ -50,6 +50,7 @@ export const ROUNDS = [
   "round_of_16",
   "quarterfinal",
   "semifinal",
+  "third_place",
   "final",
 ] as const;
 

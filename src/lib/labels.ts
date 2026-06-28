@@ -14,6 +14,7 @@ export const ROUND_LABELS: Record<Round, string> = {
   round_of_16: "Octavos de final",
   quarterfinal: "Cuartos de final",
   semifinal: "Semifinales",
+  third_place: "Tercer puesto",
   final: "Final",
 };
 

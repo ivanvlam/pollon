@@ -40,6 +40,8 @@ const HEADER_H = 40;
 const ALL_N      = [16, 8, 4, 2, 1];
 const ALL_LABELS = ["Dieciseisavos", "Octavos", "Cuartos", "Semis", "Final"];
 const ALL_ROUNDS: Round[] = ["round_of_32", "round_of_16", "quarterfinal", "semifinal", "final"];
+// Rondas que se traen de la DB (incluye el 3er puesto, que va fuera del árbol).
+const ALL_KO_ROUNDS: Round[] = [...ALL_ROUNDS, "third_place"];
 
 const colX       = (si: number) => si * (CARD_W + CONN_W);
 const stageSlotH = (si: number) => TOTAL_H / ALL_N[si]!;
@@ -61,7 +63,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
         .eq("round", "group_stage"),
       supabase.from("matches")
         .select("id, round, home_team, away_team, kickoff_at, status, home_score, away_score, winner")
-        .in("round", ALL_ROUNDS)
+        .in("round", ALL_KO_ROUNDS)
         .order("kickoff_at", { ascending: true }),
       supabase.from("profiles").select("timezone").eq("id", uid).maybeSingle(),
     ]);
@@ -159,6 +161,10 @@ export default async function BracketPage({ params }: { params: { id: string } }
     m && m.status === "finished" && m.winner
       ? (m.winner === "home" ? m.home_team : m.away_team)
       : null;
+  const loserTeamOf = (m: KoMatch | null): string | null =>
+    m && m.status === "finished" && m.winner
+      ? (m.winner === "home" ? m.away_team : m.home_team)
+      : null;
 
   const resolveGroupSide = (slot: Extract<KnockoutSlot, { group: string }>): SideInfo => {
     const s = standingsByGroup.get(slot.group);
@@ -176,7 +182,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
   // DB knockout por ronda (para matchear por equipos).
   const dbByRound = new Map<Round, KoMatch[]>();
   const usedByRound = new Map<Round, Set<string>>();
-  for (const round of ALL_ROUNDS) { dbByRound.set(round, []); usedByRound.set(round, new Set()); }
+  for (const round of ALL_KO_ROUNDS) { dbByRound.set(round, []); usedByRound.set(round, new Set()); }
   for (const m of allKnockout ?? []) dbByRound.get(m.round as Round)?.push(m);
 
   const slotByNum = new Map<number, SlotInfo>();
@@ -188,6 +194,11 @@ export default async function BracketPage({ params }: { params: { id: string } }
         const fed = slotByNum.get(slot.matchNum);
         const team = fed?.winnerTeam ?? null;
         return { team, label: `Ganador Partido ${slot.matchNum}`, groupData: null, feeder: slot.matchNum };
+      }
+      if (slot.type === "loser") {
+        const fed = slotByNum.get(slot.matchNum);
+        const team = fed ? loserTeamOf(fed.match) : null;
+        return { team, label: `Perdedor Partido ${slot.matchNum}`, groupData: null, feeder: slot.matchNum };
       }
       return resolveGroupSide(slot);
     };
@@ -294,9 +305,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
           <section key={round} className="flex w-full shrink-0 snap-start flex-col px-0.5">
             <h2 className="sticky top-0 z-10 mb-3 flex items-center justify-between border-b border-neutral-800 bg-neutral-950 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-300">
               <span>{ALL_LABELS[si]}</span>
-              <span className="text-[10px] normal-case text-neutral-600">
-                {si + 1}/{ALL_ROUNDS.length} · deslizá →
-              </span>
+              {si < ALL_ROUNDS.length - 1 && <span className="text-neutral-500">→</span>}
             </h2>
             <div className="flex flex-col gap-2 pb-4">
               {BRACKET_ORDER[round].map((num) =>
@@ -424,6 +433,14 @@ export default async function BracketPage({ params }: { params: { id: string } }
           </div>
         </div>
       </div>
+
+      {/* ── Partido por el tercer puesto ───────────────────────────────── */}
+      <section className="flex flex-col gap-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+          Partido por el tercer puesto
+        </h2>
+        <div className="max-w-sm">{renderLater(103)}</div>
+      </section>
     </div>
   );
 }

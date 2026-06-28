@@ -140,7 +140,7 @@ const KO_SDB_ROUND: Record<string, number> = {
 const manualMatchSchema = z
   .object({
     matchId: z.string().uuid().optional(),
-    round: z.enum(["round_of_32", "round_of_16", "quarterfinal", "semifinal", "final"]),
+    round: z.enum(["round_of_32", "round_of_16", "quarterfinal", "semifinal", "third_place", "final"]),
     homeTeam: z.string().trim().min(1, "Falta el equipo local"),
     awayTeam: z.string().trim().min(1, "Falta el equipo visitante"),
     kickoffAt: z.string().datetime({ message: "Horario inválido" }),
@@ -239,7 +239,7 @@ export async function importKnockoutFixture(): Promise<
   );
 
   const resolve = (slot: KnockoutSlot): string | null => {
-    if (slot.type === "feeder") return null;
+    if (slot.type === "feeder" || slot.type === "loser") return null;
     const s = standingsByGroup.get(slot.group);
     if (!s) return null;
     if (slot.type === "winner") return s[0]?.team ?? null;

@@ -20,7 +20,8 @@ export type KnockoutSlot =
   | { type: "winner"; group: string }    // 1° del grupo
   | { type: "runnerUp"; group: string }  // 2° del grupo
   | { type: "third"; group: string }     // 3° de un grupo específico (ya asignado)
-  | { type: "feeder"; matchNum: number }; // ganador de un partido previo
+  | { type: "feeder"; matchNum: number } // ganador de un partido previo
+  | { type: "loser"; matchNum: number }; // perdedor de un partido previo (3er puesto)
 
 export interface KnockoutMatchDef {
   matchNum: number;
@@ -34,6 +35,7 @@ const w = (group: string): KnockoutSlot => ({ type: "winner", group });
 const r = (group: string): KnockoutSlot => ({ type: "runnerUp", group });
 const t = (group: string): KnockoutSlot => ({ type: "third", group });
 const f = (matchNum: number): KnockoutSlot => ({ type: "feeder", matchNum });
+const l = (matchNum: number): KnockoutSlot => ({ type: "loser", matchNum });
 
 /** Todos los partidos de eliminatoria por número de partido (sin el 3er puesto, #103). */
 export const KNOCKOUT_MATCHES: Record<number, KnockoutMatchDef> = {
@@ -71,6 +73,8 @@ export const KNOCKOUT_MATCHES: Record<number, KnockoutMatchDef> = {
   // ── Semifinales (semifinal) ──────────────────────────────────────────────
   101: { matchNum: 101, round: "semifinal", kickoff: "2026-07-14T19:00:00Z", home: f(97), away: f(98) },
   102: { matchNum: 102, round: "semifinal", kickoff: "2026-07-15T19:00:00Z", home: f(99), away: f(100) },
+  // ── Tercer puesto (third_place) ──────────────────────────────────────────
+  103: { matchNum: 103, round: "third_place", kickoff: "2026-07-18T21:00:00Z", home: l(101), away: l(102) },
   // ── Final ────────────────────────────────────────────────────────────────
   104: { matchNum: 104, round: "final", kickoff: "2026-07-19T19:00:00Z", home: f(101), away: f(102) },
 };
@@ -86,6 +90,7 @@ export const BRACKET_ORDER: Record<Round, number[]> = {
   round_of_16: [90, 89, 94, 93, 91, 92, 96, 95],
   quarterfinal: [97, 98, 99, 100],
   semifinal: [101, 102],
+  third_place: [103],
   final: [104],
 };
 
