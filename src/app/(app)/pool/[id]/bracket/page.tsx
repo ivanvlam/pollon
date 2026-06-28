@@ -15,7 +15,6 @@ import { toSpanish } from "@/lib/teamNames";
 import { createClient } from "@/lib/supabase/server";
 import {
   computeGroupClinch,
-  computeGroupPositionLock,
   computeGroupStandings,
   resolveFinalClinch,
   type GroupMatch,
@@ -99,13 +98,11 @@ export default async function BracketPage({ params }: { params: { id: string } }
   );
 
   const standingsByGroup = new Map<string, StandingRow[]>();
-  const positionLockMap = new Map<string, Set<string>>();
   const groupModalDataMap = new Map<string, GroupModalData>();
   const groupThirds: StandingRow[] = [];
   for (const [g, ms] of groupsMap) {
     const standings = computeGroupStandings(ms);
     standingsByGroup.set(g, standings);
-    positionLockMap.set(g, computeGroupPositionLock(ms as GroupMatch[]));
     if (standings[2]) groupThirds.push(standings[2]);
     const modalMatches: GroupMatchRow[] = ms.map((m) => ({
       id: m.id,
@@ -145,7 +142,6 @@ export default async function BracketPage({ params }: { params: { id: string } }
     team: string | null;
     label: string;                 // "1° Grupo X" / "3° Grupo X" / "Ganador Partido N"
     groupData: GroupModalData | null;
-    qualified: boolean;            // posición/clasificación asegurada → verde
     feeder: number | null;
   }
   interface SlotInfo {
@@ -168,16 +164,10 @@ export default async function BracketPage({ params }: { params: { id: string } }
     const idx = slot.type === "winner" ? 0 : slot.type === "runnerUp" ? 1 : 2;
     const team = s?.[idx]?.team ?? null;
     const pos = slot.type === "winner" ? "1°" : slot.type === "runnerUp" ? "2°" : "3°";
-    const qualified =
-      team !== null &&
-      (slot.type === "third"
-        ? groupStageComplete
-        : (positionLockMap.get(slot.group)?.has(team) ?? false));
     return {
       team,
       label: `${pos} Grupo ${slot.group}`,
       groupData: groupModalDataMap.get(slot.group) ?? null,
-      qualified,
       feeder: null,
     };
   };
@@ -196,7 +186,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
       if (slot.type === "feeder") {
         const fed = slotByNum.get(slot.matchNum);
         const team = fed?.winnerTeam ?? null;
-        return { team, label: `Ganador Partido ${slot.matchNum}`, groupData: null, qualified: team !== null, feeder: slot.matchNum };
+        return { team, label: `Ganador Partido ${slot.matchNum}`, groupData: null, feeder: slot.matchNum };
       }
       return resolveGroupSide(slot);
     };
@@ -241,7 +231,6 @@ export default async function BracketPage({ params }: { params: { id: string } }
       team: s.team,
       label: s.label,
       groupData: s.groupData,
-      qualified: s.qualified,
       score: scoreOf(slot.match, s.team),
       win: slot.winnerTeam !== null && slot.winnerTeam === s.team,
     });
@@ -290,11 +279,6 @@ export default async function BracketPage({ params }: { params: { id: string } }
           ← Volver al ranking
         </Link>
       </header>
-
-      <p className="text-xs text-neutral-500">
-        <span className="font-semibold text-emerald-400">Verde</span> = clasificado a
-        la siguiente ronda.
-      </p>
 
       {/* ── Mobile view ─────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-8 md:hidden">
@@ -439,7 +423,6 @@ interface CardSide {
   team: string | null;
   label: string;
   groupData: GroupModalData | null;
-  qualified: boolean;
   score: number | null;
   win: boolean;
 }
@@ -459,9 +442,10 @@ function R32Card({ matchNum, date, home, away }: { matchNum: number; date: strin
   );
 }
 
-function SlotRow({ team, label, groupData, qualified, score, win }: CardSide) {
+function SlotRow({ team, label, groupData, score, win }: CardSide) {
   const labelEl = groupData ? <BracketGroupLabel label={label} {...groupData} /> : label;
-  const color = win ? "text-emerald-400 font-semibold" : qualified ? "text-emerald-400" : "text-neutral-100";
+  // Verde solo para el equipo que GANÓ su partido de eliminatoria (avanzó).
+  const color = win ? "text-emerald-400 font-semibold" : "text-neutral-100";
   return team ? (
     <div className={`flex min-h-[20px] items-center gap-1 ${color}`}>
       <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
