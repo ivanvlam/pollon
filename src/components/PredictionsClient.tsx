@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/Card";
 import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
 import { REASON_LABELS, ROUND_LABELS } from "@/lib/labels";
 import { liveProgressLabel } from "@/lib/liveMinute";
-import { calculateMatchScore, type MatchScore } from "@/lib/scoring";
+import { calculateMatchScore, liveKnockoutWinner, type MatchScore } from "@/lib/scoring";
 import { toSpanish } from "@/lib/teamNames";
 import { hasMatchStarted, isPredictionLocked } from "@/lib/timing";
 import type { MatchWinner } from "@/types";
@@ -291,10 +291,16 @@ export function PredictionsClient({
               const myPoints = pointsByMatch[match.id];
               const hasResult = match.home_score !== null;
               const scored = finished || (match.status === "live" && hasResult);
+              // En vivo, el clasificado provisional es el que va ganando (en KO),
+              // para proyectar los puntos. Terminado: el winner real.
+              const effectiveWinner: MatchWinner | null =
+                match.status === "live"
+                  ? liveKnockoutWinner(match.round, match.home_score ?? 0, match.away_score ?? 0)
+                  : (match.winner as MatchWinner | null);
               const calcScore = (pred: PredData | null | undefined): MatchScore | null =>
                 scored && pred
                   ? calculateMatchScore(
-                      { round: match.round, home_score: match.home_score, away_score: match.away_score, winner: match.winner as MatchWinner | null },
+                      { round: match.round, home_score: match.home_score, away_score: match.away_score, winner: effectiveWinner },
                       { predicted_home: pred.predicted_home, predicted_away: pred.predicted_away, predicted_winner: pred.predicted_winner as MatchWinner | null },
                     )
                   : null;

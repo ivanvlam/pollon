@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { CopyInviteButton } from "@/components/CopyInviteButton";
 import { LeavePoolButton } from "@/components/LeavePoolButton";
 import { buttonClasses } from "@/components/ui/Button";
-import { calculateMatchScore } from "@/lib/scoring";
+import { calculateMatchScore, liveKnockoutWinner } from "@/lib/scoring";
 import { createClient } from "@/lib/supabase/server";
 import type { MatchWinner, Round } from "@/types";
 
@@ -88,7 +88,7 @@ export default async function PoolRankingPage({
           round: match.round as Round,
           home_score: match.home_score,
           away_score: match.away_score,
-          winner: match.winner as MatchWinner | null,
+          winner: liveKnockoutWinner(match.round as Round, match.home_score ?? 0, match.away_score ?? 0),
         },
         {
           predicted_home: pred.predicted_home,

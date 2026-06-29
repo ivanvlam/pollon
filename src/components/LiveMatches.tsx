@@ -11,7 +11,7 @@ import { GroupModal } from "@/components/GroupModal";
 import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
 import { TeamName } from "@/components/TeamName";
 import { liveProgressLabel } from "@/lib/liveMinute";
-import { calculateMatchScore } from "@/lib/scoring";
+import { calculateMatchScore, liveKnockoutWinner } from "@/lib/scoring";
 import type { GroupClinch, LivePosition, StandingRow } from "@/lib/standings";
 import type { MatchWinner, Round } from "@/types";
 
@@ -244,7 +244,8 @@ export function LiveMatches({
             m.pred.predicted_away !== null;
 
           // Puntos provisionales: lo que ganaría si el partido terminara ahora.
-          // Para eliminatorias, winner es null en vivo → calculateMatchScore devuelve null.
+          // En eliminatorias el clasificado provisional es el que va ganando
+          // (empate → null; el empate a 90' puntúa por sí solo).
           const liveScore =
             hasPred && m.home_score !== null && m.away_score !== null
               ? calculateMatchScore(
@@ -252,7 +253,7 @@ export function LiveMatches({
                     round: m.round,
                     home_score: m.home_score,
                     away_score: m.away_score,
-                    winner: null,
+                    winner: liveKnockoutWinner(m.round, m.home_score, m.away_score),
                   },
                   {
                     predicted_home: m.pred!.predicted_home,

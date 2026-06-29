@@ -36,6 +36,23 @@ export interface MatchScore {
   reason: ScoreReason;
 }
 
+/**
+ * Clasificado PROVISIONAL de un partido de eliminatoria EN VIVO, para proyectar
+ * los puntos mientras se juega: el equipo que va ganando sería el que clasifica
+ * si terminara ahora. Si va empatado, devuelve null (el empate a 90' puntúa por
+ * sí solo, sin asumir un clasificado). En fase de grupos no aplica.
+ */
+export function liveKnockoutWinner(
+  round: Round,
+  homeScore: number,
+  awayScore: number,
+): MatchWinner | null {
+  if (round === "group_stage") return null;
+  if (homeScore > awayScore) return "home";
+  if (awayScore > homeScore) return "away";
+  return null;
+}
+
 type Outcome = "home" | "away" | "draw";
 
 function outcomeOf(home: number, away: number): Outcome {
