@@ -337,7 +337,12 @@ export function PredictionsClient({
                             {displayGroup(match.group_name)}
                           </button>
                         ) : (
-                          ROUND_LABELS[match.round]
+                          <Link
+                            href={`/pool/${poolId}/bracket`}
+                            className="rounded hover:text-emerald-400 hover:underline"
+                          >
+                            {ROUND_LABELS[match.round]}
+                          </Link>
                         )}
                       </div>
                       <div className="text-neutral-600">
@@ -384,8 +389,8 @@ export function PredictionsClient({
                         setSavedMatchIds((prev) => new Set([...prev, id]));
                         setLocalPreds((prev) => new Map(prev).set(id, { home, away, winner }));
                       }}
-                      homeTeamEl={<TeamName team={match.home_team} className="truncate text-sm font-medium sm:text-base" />}
-                      awayTeamEl={<TeamName team={match.away_team} className="truncate text-sm font-medium sm:text-base" />}
+                      homeTeamEl={<TeamName team={match.home_team} className="text-sm font-medium sm:truncate sm:text-base" />}
+                      awayTeamEl={<TeamName team={match.away_team} className="text-sm font-medium sm:truncate sm:text-base" />}
                     />
                   ) : (
                     <div className="flex flex-col gap-4">
@@ -473,11 +478,11 @@ export function PredictionsClient({
                               )}
                               {scored && pred && (
                                 score ? (
-                                  <span className="inline-flex justify-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
+                                  <span className="inline-flex min-w-[4.75rem] justify-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
                                     +{isMe ? (myPoints ?? score.points) : score.points} puntos
                                   </span>
                                 ) : (
-                                  <span className="inline-flex justify-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
+                                  <span className="inline-flex min-w-[4.75rem] justify-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
                                     0 puntos
                                   </span>
                                 )

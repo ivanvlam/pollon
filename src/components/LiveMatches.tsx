@@ -10,6 +10,7 @@ import type { GroupMatchRow } from "@/components/GroupCard";
 import { GroupModal } from "@/components/GroupModal";
 import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
 import { TeamName } from "@/components/TeamName";
+import { ROUND_LABELS } from "@/lib/labels";
 import { liveProgressLabel } from "@/lib/liveMinute";
 import { calculateMatchScore, liveKnockoutWinner } from "@/lib/scoring";
 import type { GroupClinch, LivePosition, StandingRow } from "@/lib/standings";
@@ -290,6 +291,22 @@ export function LiveMatches({
                 ) : groupLabel ? (
                   <span className="hidden text-xs font-medium text-neutral-500 sm:inline">
                     {groupLabel}
+                  </span>
+                ) : m.round !== "group_stage" && poolId ? (
+                  // Eliminatorias: la ronda lleva al bracket.
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/pool/${poolId}/bracket`);
+                    }}
+                    className="-ml-1.5 rounded px-1.5 py-0.5 text-xs font-medium text-neutral-400 transition hover:bg-neutral-800 hover:text-neutral-100"
+                  >
+                    {ROUND_LABELS[m.round]}
+                  </button>
+                ) : m.round !== "group_stage" ? (
+                  <span className="text-xs font-medium text-neutral-500">
+                    {ROUND_LABELS[m.round]}
                   </span>
                 ) : (
                   <span />

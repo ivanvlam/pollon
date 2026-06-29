@@ -113,15 +113,17 @@ export function PredictionForm({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Nombres en mobile (fila separada): los steppers no dejan espacio inline */}
-      <div className="flex items-center justify-between gap-2 text-sm font-medium sm:hidden">
-        <span className="flex min-w-0 items-center gap-1.5">
-          <Flag team={homeTeam} className="shrink-0" />
-          {homeTeamEl ?? <span className="truncate">{homeTeam}</span>}
+      {/* Nombres en mobile (fila separada): los steppers no dejan espacio inline.
+          Los nombres largos (ej. "Bosnia y Herzegovina") envuelven en vez de
+          cortarse. */}
+      <div className="flex items-start justify-between gap-3 text-sm font-medium sm:hidden">
+        <span className="flex min-w-0 flex-1 items-start gap-1.5">
+          <Flag team={homeTeam} className="mt-0.5 shrink-0" />
+          {homeTeamEl ?? <span>{homeTeam}</span>}
         </span>
-        <span className="flex min-w-0 items-center gap-1.5">
-          {awayTeamEl ?? <span className="truncate">{awayTeam}</span>}
-          <Flag team={awayTeam} className="shrink-0" />
+        <span className="flex min-w-0 flex-1 items-start justify-end gap-1.5 text-right">
+          {awayTeamEl ?? <span>{awayTeam}</span>}
+          <Flag team={awayTeam} className="mt-0.5 shrink-0" />
         </span>
       </div>
 
