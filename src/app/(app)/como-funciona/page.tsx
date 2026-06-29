@@ -84,11 +84,14 @@ export default function ComoFuncionaPage() {
           </li>
           <li>
             <span className="font-semibold text-emerald-400">3 puntos</span>:
-            tipo de resultado + diferencia de goles correcta + quién clasifica.
+            tipo de resultado + diferencia de goles correcta + quién clasifica;
+            o un empate <span className="font-medium">exacto</span> a 90 minutos
+            aunque no aciertes quién clasifica.
           </li>
           <li>
             <span className="font-semibold text-emerald-400">2 puntos</span>:
-            solo aciertas quién clasifica o el empate a 90 minutos.
+            solo aciertas quién clasifica; o aciertas el empate a 90 minutos
+            (aunque falle quién clasifica).
           </li>
           <li className="text-neutral-500">
             El marcador es siempre a 90 minutos. Puedes predecir empate y elegir quién clasifica
