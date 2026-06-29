@@ -9,7 +9,9 @@
 //  - El promedio y el % de acierto usan SOLO puntos de partido (excluyen los
 //    15/10 de campeón/goleador, que no son por partido).
 //  - Racha = partidos terminados seguidos (en orden de kickoff) sumando >0 pts.
-//    Cualquier 0 (fallado o no predicho) corta la racha.
+//    Cualquier 0 (fallado o no predicho) corta la racha. Los partidos
+//    simultáneos (mismo kickoff) se agrupan: un fallo no rompe la racha que un
+//    acierto del mismo horario mantiene viva (ver `streaks`).
 
 /** Mínimo de partidos predichos para entrar en los récords de promedio/acierto.
  *  Evita que gane alguien con 1 sola predicción acertada. Se acota a la cantidad
@@ -31,6 +33,10 @@ export interface StatsInput {
   members: StatsMember[];
   /** IDs de partidos terminados, en orden cronológico (kickoff asc). */
   finishedMatchIds: string[];
+  /** Kickoff (ISO) por matchId. Solo lo usa la racha para detectar partidos
+   *  simultáneos (mismo horario). Opcional: sin él cada partido es su propio
+   *  grupo y la racha cuenta partido a partido (orden de `finishedMatchIds`). */
+  finishedKickoffs?: Record<string, string>;
   /** Puntos por (userId, matchId) — solo partidos que sumaron >0. */
   scores: { userId: string; matchId: string; points: number }[];
   /** Pares (userId, matchId) de partidos terminados que el jugador predijo. */
@@ -102,21 +108,43 @@ function pointsMap(scores: StatsInput["scores"]): Map<string, Map<string, number
 }
 
 /** Recorre los partidos terminados en orden y calcula racha máxima y actual.
- *  Un partido suma a la racha solo si el jugador anotó >0 puntos ahí. */
+ *  Un partido suma a la racha solo si el jugador anotó >0 puntos ahí.
+ *
+ *  Partidos simultáneos (mismo `kickoff`) se procesan como un solo grupo: como
+ *  no hay un orden cronológico real entre ellos, un fallo simultáneo a un
+ *  acierto NO debe romper la racha que el acierto mantiene viva. Por eso, dentro
+ *  de un grupo los fallos cuentan "antes" que los aciertos: si el grupo tiene
+ *  algún fallo, la racha previa se corta y se reinicia con los aciertos del
+ *  grupo; si son todos aciertos, se acumulan. Sin `kickoffById`, cada partido es
+ *  su propio grupo y se cuenta partido a partido (comportamiento clásico). */
 function streaks(
   finishedMatchIds: string[],
+  kickoffById: Record<string, string> | undefined,
   userPoints: Map<string, number> | undefined,
 ): { longest: number; current: number } {
   let longest = 0;
   let current = 0;
-  for (const matchId of finishedMatchIds) {
-    const pts = userPoints?.get(matchId) ?? 0;
-    if (pts > 0) {
-      current += 1;
-      if (current > longest) longest = current;
-    } else {
-      current = 0;
+  let i = 0;
+  while (i < finishedMatchIds.length) {
+    // Agrupar partidos consecutivos con el mismo kickoff (la lista viene
+    // ordenada por kickoff asc, así que los simultáneos son adyacentes).
+    const k = kickoffById?.[finishedMatchIds[i]!];
+    let j = i + 1;
+    if (k !== undefined) {
+      while (j < finishedMatchIds.length && kickoffById?.[finishedMatchIds[j]!] === k) j += 1;
     }
+
+    let hits = 0;
+    let hasMiss = false;
+    for (let g = i; g < j; g += 1) {
+      const pts = userPoints?.get(finishedMatchIds[g]!) ?? 0;
+      if (pts > 0) hits += 1;
+      else hasMiss = true;
+    }
+
+    current = hasMiss ? hits : current + hits;
+    if (current > longest) longest = current;
+    i = j;
   }
   return { longest, current };
 }
@@ -143,7 +171,7 @@ export function computePoolStats(input: StatsInput): PoolStats {
       }
     }
 
-    const { longest, current } = streaks(input.finishedMatchIds, userPoints);
+    const { longest, current } = streaks(input.finishedMatchIds, input.finishedKickoffs, userPoints);
 
     return {
       userId: m.userId,

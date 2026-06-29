@@ -4,6 +4,23 @@ import { notFound } from "next/navigation";
 import { computePoolStats, type Leader, type StatsMember } from "@/lib/pool-stats";
 import { createClient } from "@/lib/supabase/server";
 
+// PostgREST corta en 1000 filas por defecto. Trae todas las páginas de una
+// query usando un rango incremental; el callback debe aplicar un orden total
+// estable para que la paginación sea consistente.
+const PAGE_SIZE = 1000;
+async function fetchAllPages<T>(
+  query: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
+): Promise<T[]> {
+  const all: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await query(from, from + PAGE_SIZE - 1);
+    if (error || !data || data.length === 0) break;
+    all.push(...data);
+    if (data.length < PAGE_SIZE) break;
+  }
+  return all;
+}
+
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const supabase = createClient();
   const { data: pool } = await supabase.from("pools").select("name").eq("id", params.id).maybeSingle();
@@ -74,24 +91,43 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
   const rankingRows = ranking ?? [];
   const memberIds = rankingRows.map((r) => r.user_id as string);
   const finishedIds = (finishedMatches ?? []).map((m) => m.id);
+  // Kickoff por partido: la racha lo usa para agrupar partidos simultáneos.
+  const finishedKickoffs = Object.fromEntries(
+    (finishedMatches ?? []).map((m) => [m.id, m.kickoff_at as string]),
+  );
 
   // Scores de partido de la polla y predicciones de los miembros en partidos
   // terminados (RLS: ya están cerrados, así que se ven todas).
-  const [{ data: scoreRows }, { data: predRows }] = await Promise.all([
+  //
+  // PostgREST corta en 1000 filas por defecto: con muchos miembros y partidos
+  // terminados, `scores` (miembros × partidos) y `predictions` superan ese tope
+  // y se truncarían en orden físico, dejando fuera filas recientes y rompiendo
+  // la racha/estadísticas. Paginamos con un orden total estable.
+  const [scoreRows, predRows] = await Promise.all([
     finishedIds.length > 0
-      ? supabase
-          .from("scores")
-          .select("user_id, match_id, points")
-          .eq("pool_id", pool.id)
-          .not("match_id", "is", null)
-      : Promise.resolve({ data: [] as { user_id: string; match_id: string | null; points: number }[] }),
+      ? fetchAllPages<{ user_id: string; match_id: string | null; points: number }>((from, to) =>
+          supabase
+            .from("scores")
+            .select("user_id, match_id, points")
+            .eq("pool_id", pool.id)
+            .not("match_id", "is", null)
+            .order("match_id", { ascending: true })
+            .order("user_id", { ascending: true })
+            .range(from, to),
+        )
+      : Promise.resolve([] as { user_id: string; match_id: string | null; points: number }[]),
     finishedIds.length > 0 && memberIds.length > 0
-      ? supabase
-          .from("predictions")
-          .select("user_id, match_id")
-          .in("match_id", finishedIds)
-          .in("user_id", memberIds)
-      : Promise.resolve({ data: [] as { user_id: string; match_id: string }[] }),
+      ? fetchAllPages<{ user_id: string; match_id: string }>((from, to) =>
+          supabase
+            .from("predictions")
+            .select("user_id, match_id")
+            .in("match_id", finishedIds)
+            .in("user_id", memberIds)
+            .order("match_id", { ascending: true })
+            .order("user_id", { ascending: true })
+            .range(from, to),
+        )
+      : Promise.resolve([] as { user_id: string; match_id: string }[]),
   ]);
 
   const members: StatsMember[] = rankingRows.map((r) => ({
@@ -107,6 +143,7 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
   const stats = computePoolStats({
     members,
     finishedMatchIds: finishedIds,
+    finishedKickoffs,
     scores: (scoreRows ?? [])
       .filter((s) => s.match_id !== null)
       .map((s) => ({ userId: s.user_id, matchId: s.match_id as string, points: s.points })),

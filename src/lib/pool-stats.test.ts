@@ -57,6 +57,28 @@ describe("computePoolStats", () => {
     expect(a.currentStreak).toBe(1);
   });
 
+  it("racha: un fallo simultáneo a un acierto no rompe la racha", () => {
+    // c y b son simultáneos (mismo kickoff t1). El array los trae con el acierto
+    // (c) listado antes que el fallo (b). Sin agrupar por horario, el 0 de b
+    // cortaría la racha justo antes de d, dejándola en 1. Agrupando, el fallo
+    // simultáneo no rompe lo que el acierto mantiene: a→1, grupo t1 (c acierto,
+    // b fallo)→1, d→2.
+    const input: StatsInput = {
+      members: [member("a", "Ana")],
+      finishedMatchIds: ["a", "c", "b", "d"],
+      finishedKickoffs: { a: "t0", c: "t1", b: "t1", d: "t2" },
+      predictions: ["a", "c", "b", "d"].map((matchId) => ({ userId: "a", matchId })),
+      scores: [
+        { userId: "a", matchId: "a", points: 2 },
+        { userId: "a", matchId: "c", points: 5 },
+        { userId: "a", matchId: "d", points: 3 },
+      ],
+    };
+    const a = computePoolStats(input).members[0]!;
+    expect(a.currentStreak).toBe(2);
+    expect(a.longestStreak).toBe(2);
+  });
+
   it("excluye puntos no-partido (campeón/goleador) del total de partido", () => {
     const input: StatsInput = {
       members: [member("a", "Ana", { total: 25 })],
