@@ -432,10 +432,9 @@ export function PredictionsClient({
                         {playerRows.map(({ userId, isMe, pred, score }) => (
                           <li
                             key={userId}
-                            className={`-mx-2 flex items-center gap-3 rounded px-2 py-0.5 transition-colors hover:bg-neutral-800/50 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
+                            className={`-mx-2 flex items-center justify-between gap-3 rounded px-2 py-0.5 transition-colors hover:bg-neutral-800/50 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
                           >
-                            {/* Nombre con ancho fijo: el marcador arranca siempre en el mismo punto y los "–" quedan en columna. */}
-                            <div className="flex w-28 shrink-0 items-center">
+                            <div className="flex min-w-0 items-center">
                               <Link
                                 href={`/pool/${poolId}/player/${userId}`}
                                 className="truncate hover:text-emerald-400 hover:underline"
@@ -447,8 +446,8 @@ export function PredictionsClient({
                               )}
                             </div>
 
-                            {/* Marcador · país y badge, pegados. */}
-                            <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
+                            {/* Marcador · país y badge, pegados, todo el bloque a la derecha. */}
+                            <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
                               {pred ? (
                                 <span className="tabular-nums">
                                   {pred.predicted_home ?? "–"}
