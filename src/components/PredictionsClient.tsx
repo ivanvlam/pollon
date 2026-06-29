@@ -432,7 +432,7 @@ export function PredictionsClient({
                         {playerRows.map(({ userId, isMe, pred, score }) => (
                           <li
                             key={userId}
-                            className={`-mx-2 flex items-center justify-between gap-2 rounded px-2 py-0.5 transition-colors hover:bg-neutral-800/50 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
+                            className={`-mx-2 grid grid-cols-[1fr_auto_5rem] items-center gap-2 rounded px-2 py-0.5 transition-colors hover:bg-neutral-800/50 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
                           >
                             <div className="flex min-w-0 items-center">
                               <Link
@@ -445,37 +445,40 @@ export function PredictionsClient({
                                 <span className="ml-2 shrink-0 text-xs text-emerald-400">(tú)</span>
                               )}
                             </div>
-                            <div className="grid grid-cols-[2.75rem_5.5rem_5rem] items-center gap-1.5">
+
+                            <span className="justify-self-end whitespace-nowrap tabular-nums">
                               {pred ? (
                                 <>
-                                  <span className="tabular-nums text-center">
-                                    {pred.predicted_home ?? "–"}
-                                    <span className="px-0.5 text-neutral-500">–</span>
-                                    {pred.predicted_away ?? "–"}
-                                  </span>
-                                  <span className="truncate text-xs text-neutral-400">
-                                    {pred.predicted_winner
-                                      ? `· ${pred.predicted_winner === "home" ? toSpanish(match.home_team) : toSpanish(match.away_team)}`
-                                      : ""}
-                                  </span>
+                                  {pred.predicted_home ?? "–"}
+                                  <span className="px-1 text-neutral-500">–</span>
+                                  {pred.predicted_away ?? "–"}
+                                  {pred.predicted_winner && (
+                                    <span className="text-neutral-400">
+                                      {" · "}
+                                      {pred.predicted_winner === "home"
+                                        ? toSpanish(match.home_team)
+                                        : toSpanish(match.away_team)}
+                                    </span>
+                                  )}
                                 </>
                               ) : (
-                                <span className="col-span-2 text-neutral-500">sin predicción</span>
+                                <span className="text-neutral-500">sin predicción</span>
                               )}
-                              {scored && pred ? (
-                                score ? (
-                                  <span className="inline-flex w-full justify-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
-                                    +{isMe ? (myPoints ?? score.points) : score.points} puntos
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex w-full justify-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
-                                    0 puntos
-                                  </span>
-                                )
+                            </span>
+
+                            {scored && pred ? (
+                              score ? (
+                                <span className="inline-flex w-full justify-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
+                                  +{isMe ? (myPoints ?? score.points) : score.points} puntos
+                                </span>
                               ) : (
-                                <span />
-                              )}
-                            </div>
+                                <span className="inline-flex w-full justify-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
+                                  0 puntos
+                                </span>
+                              )
+                            ) : (
+                              <span />
+                            )}
                           </li>
                         ))}
                       </ul>
