@@ -167,15 +167,21 @@ export function PredictionsClient({
   }, [matches, search, groupFilter, sort, predFilter, statusFilter, savedMatchIds]);
 
   // Sin filtros: agrupar por ronda. Con filtros: lista plana.
+  // En "Terminados" se invierte el orden de rondas (la más avanzada primero) para
+  // que los partidos eliminatorios ya jugados queden arriba y no enterrados tras
+  // decenas de partidos de fase de grupos.
   const sections = useMemo(() => {
     if (anyFilter) {
       return [{ label: null as string | null, matches: filtered }];
     }
-    return ROUNDS.map((round) => ({
-      label: ROUND_LABELS[round],
-      matches: filtered.filter((m) => m.round === round),
-    })).filter((s) => s.matches.length > 0);
-  }, [filtered, anyFilter]);
+    const order = statusFilter === "finished" ? [...ROUNDS].reverse() : ROUNDS;
+    return order
+      .map((round) => ({
+        label: ROUND_LABELS[round],
+        matches: filtered.filter((m) => m.round === round),
+      }))
+      .filter((s) => s.matches.length > 0);
+  }, [filtered, anyFilter, statusFilter]);
 
   return (
     <div className="flex flex-col gap-6">
