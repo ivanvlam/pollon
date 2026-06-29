@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BracketMobileCarousel } from "@/components/BracketMobileCarousel";
 import { Flag } from "@/components/Flag";
 import type { GroupMatchRow } from "@/components/GroupCard";
 import { BracketGroupLabel, type GroupModalData } from "@/components/BracketGroupLabel";
@@ -38,6 +39,8 @@ const HEADER_H = 40;
 
 const ALL_N      = [16, 8, 4, 2, 1];
 const ALL_LABELS = ["Dieciseisavos", "Octavos", "Cuartos", "Semis", "Final"];
+// Etiquetas cortas para las pestañas del carrusel mobile (caben en pantalla).
+const MOBILE_TAB_LABELS = ["16avos", "Octavos", "Cuartos", "Semis", "Final"];
 const ALL_ROUNDS: Round[] = ["round_of_32", "round_of_16", "quarterfinal", "semifinal", "final"];
 // Rondas que se traen de la DB (incluye el 3er puesto, que va fuera del árbol).
 const ALL_KO_ROUNDS: Round[] = [...ALL_ROUNDS, "third_place"];
@@ -303,17 +306,11 @@ export default async function BracketPage({ params }: { params: { id: string } }
         </Link>
       </header>
 
-      {/* ── Mobile: carrusel por ronda (swipe lateral con snap) ────────── */}
-      <div
-        className="flex snap-x snap-mandatory overflow-auto md:hidden"
-        style={{ maxHeight: "75vh", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}
-      >
-        {ALL_ROUNDS.map((round, si) => (
-          <section key={round} className="flex w-full shrink-0 snap-start flex-col px-0.5">
-            <h2 className="sticky top-0 z-10 mb-3 flex items-center justify-between border-b border-neutral-800 bg-neutral-950 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-300">
-              <span>{ALL_LABELS[si]}</span>
-              {si < ALL_ROUNDS.length - 1 && <span className="text-neutral-500">→</span>}
-            </h2>
+      {/* ── Mobile: carrusel por ronda (pestañas + swipe lateral con snap) ── */}
+      <BracketMobileCarousel
+        rounds={ALL_ROUNDS.map((round, si) => ({
+          tab: MOBILE_TAB_LABELS[si]!,
+          content: (
             <div className="flex flex-col gap-2 pb-4">
               {BRACKET_ORDER[round].map((num) =>
                 si === 0 ? (
@@ -331,9 +328,9 @@ export default async function BracketPage({ params }: { params: { id: string } }
                 </div>
               )}
             </div>
-          </section>
-        ))}
-      </div>
+          ),
+        }))}
+      />
 
       {/* ── Desktop: cuadro completo (swipe horizontal + vertical) ──────── */}
       <p className="hidden text-xs text-neutral-600 md:block">
