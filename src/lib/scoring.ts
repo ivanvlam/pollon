@@ -8,10 +8,12 @@
 //   3 pts — tipo correcto + misma diferencia de goles → correct_diff
 //   2 pts — solo tipo correcto (ganador/empate)       → correct_winner / correct_draw
 //
-// Eliminatorias:
-//   5 pts — marcador exacto a 90 min + clasificado   → exact_qualifier_score
-//   3 pts — tipo + diferencia correcta + clasificado  → correct_diff_qualifier
+// Eliminatorias (marcador a 90'):
+//   5 pts — exacto a 90' + clasificado                → exact_qualifier_score
+//   3 pts — tipo + diferencia + clasificado (decisivo) → correct_diff_qualifier
+//          — empate EXACTO a 90' sin clasificado       → correct_diff_qualifier
 //   2 pts — solo clasificado correcto                 → correct_qualifier
+//          — empate a 90' acertado (no exacto), aunque falle el clasificado → correct_draw
 
 import { POINTS } from "@/lib/constants";
 import type { MatchWinner, Round, ScoreReason } from "@/types";
@@ -80,14 +82,31 @@ export function calculateMatchScore(
     return null;
   }
 
-  // Eliminatorias: sin clasificado correcto no hay puntos
+  // Eliminatorias. El marcador es a 90'. Un empate a 90' acertado puntúa aunque
+  // NO se acierte el clasificado; los resultados decisivos sí necesitan el
+  // clasificado correcto.
   const qualifierCorrect =
     prediction.predicted_winner !== null &&
     match.winner !== null &&
     prediction.predicted_winner === match.winner;
 
-  if (!qualifierCorrect) return null;
+  const bothDraw = actualOutcome === "draw" && predictedOutcome === "draw";
 
+  if (bothDraw) {
+    // Empate a 90' acertado:
+    //   exacto + clasificado → 5 · exacto sin clasificado → 3 · no exacto → 2
+    if (exactScore && qualifierCorrect) {
+      return { points: POINTS.EXACT, reason: "exact_qualifier_score" };
+    }
+    if (exactScore) return { points: POINTS.DIFF, reason: "correct_diff_qualifier" };
+    return {
+      points: POINTS.WINNER,
+      reason: qualifierCorrect ? "correct_qualifier" : "correct_draw",
+    };
+  }
+
+  // Resultado decisivo a 90': sin acertar el clasificado no hay puntos.
+  if (!qualifierCorrect) return null;
   if (exactScore) return { points: POINTS.EXACT, reason: "exact_qualifier_score" };
   if (sameDiff) return { points: POINTS.DIFF, reason: "correct_diff_qualifier" };
   return { points: POINTS.WINNER, reason: "correct_qualifier" };

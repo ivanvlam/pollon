@@ -79,8 +79,25 @@ describe("eliminatorias", () => {
     });
   });
 
-  it("null si clasificado incorrecto aunque el marcador sea exacto", () => {
-    expect(calculateMatchScore(knockout(1, 1, "away"), pred(1, 1, "home"))).toBeNull();
+  it("empate EXACTO a 90' sin clasificado → 3 pts", () => {
+    expect(calculateMatchScore(knockout(1, 1, "away"), pred(1, 1, "home"))).toEqual({
+      points: 3,
+      reason: "correct_diff_qualifier",
+    });
+  });
+
+  it("empate a 90' acertado (no exacto) sin clasificado → 2 pts", () => {
+    expect(calculateMatchScore(knockout(0, 0, "away"), pred(1, 1, "home"))).toEqual({
+      points: 2,
+      reason: "correct_draw",
+    });
+  });
+
+  it("empate a 90' (no exacto) con clasificado → 2 pts", () => {
+    expect(calculateMatchScore(knockout(0, 0, "home"), pred(1, 1, "home"))).toEqual({
+      points: 2,
+      reason: "correct_qualifier",
+    });
   });
 
   it("null si falla clasificado y marcador", () => {
