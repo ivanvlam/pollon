@@ -323,17 +323,31 @@ export function PredictionsClient({
                 });
               }
 
-              // Filas de jugadores en columnas alineadas: nombre | resultado |
-              // país (solo KO, ancho = nombre más largo) | puntos (solo si ya
-              // puntúa). Mismo template para todas las filas de la tarjeta.
-              const paisCh = Math.max(
-                toSpanish(match.home_team).length,
-                toSpanish(match.away_team).length,
-              );
+              // Filas de jugadores en columnas alineadas: nombre | resultado | ·
+              // | país | · | puntos. Las columnas "·" son separadores. El ancho
+              // del país lo fija el nombre más largo REALMENTE elegido por los
+              // jugadores (no el del equipo más largo si nadie lo eligió).
+              const chosenWinnerNames = knockout
+                ? playerRows
+                    .map((r) =>
+                      r.pred?.predicted_winner === "home"
+                        ? toSpanish(match.home_team)
+                        : r.pred?.predicted_winner === "away"
+                          ? toSpanish(match.away_team)
+                          : "",
+                    )
+                    .filter(Boolean)
+                : [];
+              const hasCountry = chosenWinnerNames.length > 0;
+              const paisCh = hasCountry
+                ? Math.max(...chosenWinnerNames.map((n) => n.length))
+                : 0;
               const rowCols = [
                 "minmax(0,1fr)",
                 "3.25rem",
-                knockout ? `${paisCh}ch` : null,
+                hasCountry ? "auto" : null,
+                hasCountry ? `${paisCh}ch` : null,
+                scored ? "auto" : null,
                 scored ? "4.75rem" : null,
               ]
                 .filter(Boolean)
@@ -460,7 +474,7 @@ export function PredictionsClient({
                           <li
                             key={userId}
                             style={{ gridTemplateColumns: rowCols }}
-                            className={`-mx-2 grid items-center gap-x-3 rounded px-2 py-0.5 transition-colors hover:bg-neutral-800/50 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
+                            className={`-mx-2 grid items-center gap-x-2 rounded px-2 py-0.5 transition-colors hover:bg-neutral-800/50 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
                           >
                             <div className="flex min-w-0 items-center">
                               <Link
@@ -482,39 +496,46 @@ export function PredictionsClient({
                                   <span className="px-1 text-neutral-500">–</span>
                                   {pred.predicted_away ?? "–"}
                                 </span>
-                                {/* País clasificado: izquierda, ancho fijo (solo KO) */}
-                                {knockout && (
-                                  <span className="truncate text-left text-neutral-400">
-                                    {pred.predicted_winner === "home"
-                                      ? toSpanish(match.home_team)
-                                      : pred.predicted_winner === "away"
-                                        ? toSpanish(match.away_team)
-                                        : ""}
-                                  </span>
+                                {/* País clasificado: separador · + nombre (solo KO) */}
+                                {hasCountry && (
+                                  <>
+                                    <span className="text-center text-neutral-600">·</span>
+                                    <span className="truncate text-left text-neutral-400">
+                                      {pred.predicted_winner === "home"
+                                        ? toSpanish(match.home_team)
+                                        : pred.predicted_winner === "away"
+                                          ? toSpanish(match.away_team)
+                                          : ""}
+                                    </span>
+                                  </>
+                                )}
+                                {/* Puntos: separador · + badge */}
+                                {scored && (
+                                  <>
+                                    <span className="text-center text-neutral-600">·</span>
+                                    {score ? (
+                                      <span className="inline-flex min-w-[4.75rem] justify-center justify-self-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
+                                        +{isMe ? (myPoints ?? score.points) : score.points} puntos
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex min-w-[4.75rem] justify-center justify-self-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
+                                        0 puntos
+                                      </span>
+                                    )}
+                                  </>
                                 )}
                               </>
                             ) : (
-                              <span
-                                className="text-neutral-500"
-                                style={{ gridColumn: knockout ? "2 / span 2" : "2" }}
-                              >
-                                sin predicción
-                              </span>
+                              <>
+                                <span
+                                  className="text-neutral-500"
+                                  style={{ gridColumn: scored ? "2 / -2" : "2 / -1" }}
+                                >
+                                  sin predicción
+                                </span>
+                                {scored && <span />}
+                              </>
                             )}
-
-                            {/* Puntos: centrado, ancho fijo */}
-                            {scored &&
-                              (pred && score ? (
-                                <span className="inline-flex min-w-[4.75rem] justify-center justify-self-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
-                                  +{isMe ? (myPoints ?? score.points) : score.points} puntos
-                                </span>
-                              ) : pred ? (
-                                <span className="inline-flex min-w-[4.75rem] justify-center justify-self-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
-                                  0 puntos
-                                </span>
-                              ) : (
-                                <span />
-                              ))}
                           </li>
                         ))}
                       </ul>

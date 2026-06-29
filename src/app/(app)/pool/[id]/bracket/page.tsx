@@ -311,7 +311,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
         rounds={ALL_ROUNDS.map((round, si) => ({
           tab: MOBILE_TAB_LABELS[si]!,
           content: (
-            <div className="flex flex-col gap-2 pb-4">
+            <div className="flex flex-col gap-2 pb-8">
               {BRACKET_ORDER[round].map((num) =>
                 si === 0 ? (
                   <R32Card key={num} {...r32CardProps(num)} />
@@ -381,8 +381,9 @@ export default async function BracketPage({ params }: { params: { id: string } }
             ))}
           </div>
 
-          {/* Cuerpo del bracket */}
-          <div style={{ position: "relative", width: totalWc, height: TOTAL_H }}>
+          {/* Cuerpo del bracket (+ espacio al final para que la última fila no
+              quede pegada al borde inferior) */}
+          <div style={{ position: "relative", width: totalWc, height: TOTAL_H + 24 }}>
 
           {/* R32 slots */}
           {r32Order.map((num, i) => (
