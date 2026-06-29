@@ -432,9 +432,10 @@ export function PredictionsClient({
                         {playerRows.map(({ userId, isMe, pred, score }) => (
                           <li
                             key={userId}
-                            className={`-mx-2 grid grid-cols-[1fr_auto_5rem] items-center gap-2 rounded px-2 py-0.5 transition-colors hover:bg-neutral-800/50 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
+                            className={`-mx-2 flex items-center gap-3 rounded px-2 py-0.5 transition-colors hover:bg-neutral-800/50 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
                           >
-                            <div className="flex min-w-0 items-center">
+                            {/* Nombre con ancho fijo: el marcador arranca siempre en el mismo punto y los "–" quedan en columna. */}
+                            <div className="flex w-28 shrink-0 items-center">
                               <Link
                                 href={`/pool/${poolId}/player/${userId}`}
                                 className="truncate hover:text-emerald-400 hover:underline"
@@ -442,13 +443,14 @@ export function PredictionsClient({
                                 {nameById[userId] ?? "?"}
                               </Link>
                               {isMe && (
-                                <span className="ml-2 shrink-0 text-xs text-emerald-400">(tú)</span>
+                                <span className="ml-1.5 shrink-0 text-xs text-emerald-400">(tú)</span>
                               )}
                             </div>
 
-                            <span className="justify-self-end whitespace-nowrap tabular-nums">
+                            {/* Marcador · país y badge, pegados. */}
+                            <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
                               {pred ? (
-                                <>
+                                <span className="tabular-nums">
                                   {pred.predicted_home ?? "–"}
                                   <span className="px-1 text-neutral-500">–</span>
                                   {pred.predicted_away ?? "–"}
@@ -460,25 +462,22 @@ export function PredictionsClient({
                                         : toSpanish(match.away_team)}
                                     </span>
                                   )}
-                                </>
+                                </span>
                               ) : (
                                 <span className="text-neutral-500">sin predicción</span>
                               )}
-                            </span>
-
-                            {scored && pred ? (
-                              score ? (
-                                <span className="inline-flex w-full justify-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
-                                  +{isMe ? (myPoints ?? score.points) : score.points} puntos
-                                </span>
-                              ) : (
-                                <span className="inline-flex w-full justify-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
-                                  0 puntos
-                                </span>
-                              )
-                            ) : (
-                              <span />
-                            )}
+                              {scored && pred && (
+                                score ? (
+                                  <span className="inline-flex justify-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
+                                    +{isMe ? (myPoints ?? score.points) : score.points} puntos
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex justify-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
+                                    0 puntos
+                                  </span>
+                                )
+                              )}
+                            </div>
                           </li>
                         ))}
                       </ul>
