@@ -445,31 +445,35 @@ export function PredictionsClient({
                                 <span className="ml-2 shrink-0 text-xs text-emerald-400">(tú)</span>
                               )}
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="grid grid-cols-[2.75rem_5.5rem_5rem] items-center gap-1.5">
                               {pred ? (
-                                <span className="flex items-center gap-0.5 tabular-nums">
-                                  <span className="inline-block w-5 text-right">{pred.predicted_home ?? "–"}</span>
-                                  <span className="px-0.5">–</span>
-                                  <span className="inline-block w-5">{pred.predicted_away ?? "–"}</span>
-                                  {pred.predicted_winner && (
-                                    <span className="ml-1">
-                                      · {pred.predicted_winner === "home" ? toSpanish(match.home_team) : toSpanish(match.away_team)}
-                                    </span>
-                                  )}
-                                </span>
+                                <>
+                                  <span className="tabular-nums text-center">
+                                    {pred.predicted_home ?? "–"}
+                                    <span className="px-0.5 text-neutral-500">–</span>
+                                    {pred.predicted_away ?? "–"}
+                                  </span>
+                                  <span className="truncate text-xs text-neutral-400">
+                                    {pred.predicted_winner
+                                      ? `· ${pred.predicted_winner === "home" ? toSpanish(match.home_team) : toSpanish(match.away_team)}`
+                                      : ""}
+                                  </span>
+                                </>
                               ) : (
-                                <span>sin predicción</span>
+                                <span className="col-span-2 text-neutral-500">sin predicción</span>
                               )}
-                              {scored && pred && (
+                              {scored && pred ? (
                                 score ? (
-                                  <span className="inline-flex justify-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400 min-w-[5rem]">
+                                  <span className="inline-flex w-full justify-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
                                     +{isMe ? (myPoints ?? score.points) : score.points} puntos
                                   </span>
                                 ) : (
-                                  <span className="inline-flex justify-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500 min-w-[5rem]">
+                                  <span className="inline-flex w-full justify-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
                                     0 puntos
                                   </span>
                                 )
+                              ) : (
+                                <span />
                               )}
                             </div>
                           </li>
