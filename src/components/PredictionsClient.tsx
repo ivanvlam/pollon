@@ -323,6 +323,22 @@ export function PredictionsClient({
                 });
               }
 
+              // Filas de jugadores en columnas alineadas: nombre | resultado |
+              // país (solo KO, ancho = nombre más largo) | puntos (solo si ya
+              // puntúa). Mismo template para todas las filas de la tarjeta.
+              const paisCh = Math.max(
+                toSpanish(match.home_team).length,
+                toSpanish(match.away_team).length,
+              );
+              const rowCols = [
+                "minmax(0,1fr)",
+                "3.25rem",
+                knockout ? `${paisCh}ch` : null,
+                scored ? "4.75rem" : null,
+              ]
+                .filter(Boolean)
+                .join(" ");
+
               return (
                 <Card key={match.id} id={`m-${match.id}`} className="scroll-mt-20 p-4">
                   <div className="mb-3 flex items-start justify-between gap-2 text-xs text-neutral-500">
@@ -443,7 +459,8 @@ export function PredictionsClient({
                         {playerRows.map(({ userId, isMe, pred, score }) => (
                           <li
                             key={userId}
-                            className={`-mx-2 flex items-center justify-between gap-3 rounded px-2 py-0.5 transition-colors hover:bg-neutral-800/50 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
+                            style={{ gridTemplateColumns: rowCols }}
+                            className={`-mx-2 grid items-center gap-x-3 rounded px-2 py-0.5 transition-colors hover:bg-neutral-800/50 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
                           >
                             <div className="flex min-w-0 items-center">
                               <Link
@@ -457,37 +474,47 @@ export function PredictionsClient({
                               )}
                             </div>
 
-                            {/* Marcador · país y badge, pegados, todo el bloque a la derecha. */}
-                            <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
-                              {pred ? (
-                                <span className="tabular-nums">
+                            {pred ? (
+                              <>
+                                {/* Resultado: centrado */}
+                                <span className="text-center tabular-nums">
                                   {pred.predicted_home ?? "–"}
                                   <span className="px-1 text-neutral-500">–</span>
                                   {pred.predicted_away ?? "–"}
-                                  {pred.predicted_winner && (
-                                    <span className="text-neutral-400">
-                                      {" · "}
-                                      {pred.predicted_winner === "home"
-                                        ? toSpanish(match.home_team)
-                                        : toSpanish(match.away_team)}
-                                    </span>
-                                  )}
+                                </span>
+                                {/* País clasificado: izquierda, ancho fijo (solo KO) */}
+                                {knockout && (
+                                  <span className="truncate text-left text-neutral-400">
+                                    {pred.predicted_winner === "home"
+                                      ? toSpanish(match.home_team)
+                                      : pred.predicted_winner === "away"
+                                        ? toSpanish(match.away_team)
+                                        : ""}
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <span
+                                className="text-neutral-500"
+                                style={{ gridColumn: knockout ? "2 / span 2" : "2" }}
+                              >
+                                sin predicción
+                              </span>
+                            )}
+
+                            {/* Puntos: centrado, ancho fijo */}
+                            {scored &&
+                              (pred && score ? (
+                                <span className="inline-flex min-w-[4.75rem] justify-center justify-self-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
+                                  +{isMe ? (myPoints ?? score.points) : score.points} puntos
+                                </span>
+                              ) : pred ? (
+                                <span className="inline-flex min-w-[4.75rem] justify-center justify-self-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
+                                  0 puntos
                                 </span>
                               ) : (
-                                <span className="text-neutral-500">sin predicción</span>
-                              )}
-                              {scored && pred && (
-                                score ? (
-                                  <span className="inline-flex min-w-[4.75rem] justify-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
-                                    +{isMe ? (myPoints ?? score.points) : score.points} puntos
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex min-w-[4.75rem] justify-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
-                                    0 puntos
-                                  </span>
-                                )
-                              )}
-                            </div>
+                                <span />
+                              ))}
                           </li>
                         ))}
                       </ul>
