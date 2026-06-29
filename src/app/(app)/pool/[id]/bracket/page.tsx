@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BracketMobileCarousel } from "@/components/BracketMobileCarousel";
+import { BracketRealCard } from "@/components/BracketRealCard";
 import { Flag } from "@/components/Flag";
 import type { GroupMatchRow } from "@/components/GroupCard";
 import { BracketGroupLabel, type GroupModalData } from "@/components/BracketGroupLabel";
@@ -12,7 +13,6 @@ import {
   KNOCKOUT_MATCHES,
   type KnockoutSlot,
 } from "@/lib/knockoutSchedule";
-import { toSpanish } from "@/lib/teamNames";
 import { createClient } from "@/lib/supabase/server";
 import {
   computeGroupClinch,
@@ -21,7 +21,7 @@ import {
   type GroupMatch,
   type StandingRow,
 } from "@/lib/standings";
-import type { MatchWinner, Round } from "@/types";
+import type { Round } from "@/types";
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -278,12 +278,12 @@ export default async function BracketPage({ params }: { params: { id: string } }
     const slot = slotByNum.get(num)!;
     if (slot.match) {
       return (
-        <RealCard
+        <BracketRealCard
           match={slot.match}
           matchNum={num}
           pred={predBy.get(slot.match.id) ?? null}
           poolId={params.id}
-          dateFmt={dateFmt}
+          date={dateFmt.format(new Date(slot.match.kickoff_at))}
         />
       );
     }
@@ -520,57 +520,6 @@ function SlotRow({ team, label, groupData, score, lost }: CardSide) {
   );
 }
 
-// Real match card (R16+ ya cargado en la DB).
-function RealCard({
-  match, matchNum, pred, poolId, dateFmt,
-}: {
-  match: {
-    id: string; home_team: string; away_team: string;
-    status: string; kickoff_at: string;
-    home_score: number | null; away_score: number | null; winner: string | null;
-  };
-  matchNum: number;
-  pred: { predicted_home: number | null; predicted_away: number | null; predicted_winner: string | null } | null;
-  poolId: string;
-  dateFmt: Intl.DateTimeFormat;
-}) {
-  const finished = match.status === "finished";
-  const homeVal  = finished ? match.home_score : (pred?.predicted_home ?? null);
-  const awayVal  = finished ? match.away_score : (pred?.predicted_away ?? null);
-  // Solo se atenúa al perdedor de un partido ya terminado (eliminado).
-  const actualWinner: MatchWinner | null = finished ? (match.winner as MatchWinner | null) : null;
-
-  return (
-    <Link
-      href={`/pool/${poolId}/predictions#m-${match.id}`}
-      className="block w-full rounded-lg border border-neutral-800 bg-neutral-900/80 px-2.5 py-2 text-xs transition hover:border-neutral-700 hover:bg-neutral-800/60"
-    >
-      <div className="mb-1.5 flex items-center justify-between text-xs text-neutral-400">
-        <span className="font-medium">Partido {matchNum}</span>
-        <span className="text-neutral-500">{dateFmt.format(new Date(match.kickoff_at))}</span>
-      </div>
-      <TeamRow team={match.home_team} value={homeVal} lost={actualWinner === "away"} />
-      <div className="my-1 border-t border-neutral-800" />
-      <TeamRow team={match.away_team} value={awayVal} lost={actualWinner === "home"} />
-      <p className="mt-1 text-[10px] text-neutral-500">
-        {finished ? "Resultado" : pred ? "Tu pronóstico" : "Sin pronóstico"}
-      </p>
-    </Link>
-  );
-}
-
-function TeamRow({ team, value, lost }: { team: string; value: number | null; lost: boolean }) {
-  return (
-    <div className={`flex items-center justify-between gap-1 text-neutral-200 ${lost ? "opacity-50" : ""}`}>
-      <span className="flex min-w-0 items-center gap-1">
-        <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
-        <span className="truncate">{toSpanish(team)}</span>
-      </span>
-      <span className="tabular-nums">{value ?? "–"}</span>
-    </div>
-  );
-}
-
 // Scheduled card (R16+ sin partido en DB todavía): muestra el horario oficial y
 // los equipos ya resueltos (ganadores que avanzaron) o "Ganador Partido N".
 function ScheduledCard({
@@ -598,7 +547,7 @@ function ScheduledRow({ team, label }: { team: string | null; label: string }) {
   return team ? (
     <div className="flex min-h-[20px] items-center gap-1 text-neutral-200">
       <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
-      <span className="min-w-0 flex-1 truncate font-medium">{toSpanish(team)}</span>
+      <TeamName team={team} className="min-w-0 flex-1 truncate font-medium" />
     </div>
   ) : (
     <div className="flex min-h-[20px] items-center text-neutral-500">{label}</div>
