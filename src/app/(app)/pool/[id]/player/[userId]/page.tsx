@@ -305,7 +305,7 @@ export default async function PlayerProfilePage({
                             {DATE_FMT.format(new Date(m.kickoff_at))}
                           </div>
                         </div>
-                        <div className="shrink-0 text-right">
+                        <div className="flex shrink-0 flex-col items-end gap-1 text-right">
                           {m.status === "live" ? (
                             <span className="inline-flex items-center gap-1 font-medium text-red-400">
                               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
@@ -319,38 +319,37 @@ export default async function PlayerProfilePage({
                                 : ""}
                             </span>
                           ) : null}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-                        {/* Nombres completos (sin truncar): si no entran con el
-                            badge, el badge baja a la línea siguiente (flex-wrap). */}
-                        <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-medium">
-                          <Flag team={m.home_team} className="shrink-0" />
-                          <TeamName team={m.home_team} className="whitespace-nowrap" />
-                          <span className="shrink-0 text-neutral-500">vs</span>
-                          <TeamName team={m.away_team} className="whitespace-nowrap" />
-                          <Flag team={m.away_team} className="shrink-0" />
-                        </span>
-                        {score ? (
-                          <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                            {REASON_LABELS[score.reason as ScoreReason]} · +{score.points} puntos
-                          </span>
-                        ) : (finished && pred) ? (
-                          <span className="rounded bg-neutral-500/15 px-2 py-0.5 text-xs font-medium text-neutral-500">
-                            0 puntos
-                          </span>
-                        ) : (isLiveScored && pred) ? (
-                          liveScore ? (
+                          {/* Puntos: bajo "Final", arriba a la derecha (balance). */}
+                          {score ? (
                             <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                              {REASON_LABELS[liveScore.reason]} · +{liveScore.points} pts
+                              {REASON_LABELS[score.reason as ScoreReason]} · +{score.points} puntos
                             </span>
-                          ) : (
+                          ) : finished && pred ? (
                             <span className="rounded bg-neutral-500/15 px-2 py-0.5 text-xs font-medium text-neutral-500">
                               0 puntos
                             </span>
-                          )
-                        ) : null}
+                          ) : isLiveScored && pred ? (
+                            liveScore ? (
+                              <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                                {REASON_LABELS[liveScore.reason]} · +{liveScore.points} pts
+                              </span>
+                            ) : (
+                              <span className="rounded bg-neutral-500/15 px-2 py-0.5 text-xs font-medium text-neutral-500">
+                                0 puntos
+                              </span>
+                            )
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {/* Nombres completos a todo el ancho (el badge de puntos va
+                          arriba a la derecha, bajo "Final"). */}
+                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-medium">
+                        <Flag team={m.home_team} className="shrink-0" />
+                        <TeamName team={m.home_team} className="whitespace-nowrap" />
+                        <span className="shrink-0 text-neutral-500">vs</span>
+                        <TeamName team={m.away_team} className="whitespace-nowrap" />
+                        <Flag team={m.away_team} className="shrink-0" />
                       </div>
 
                       <p className="text-neutral-300">
