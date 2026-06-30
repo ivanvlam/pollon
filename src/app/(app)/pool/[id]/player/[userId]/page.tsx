@@ -322,12 +322,14 @@ export default async function PlayerProfilePage({
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="flex min-w-0 flex-1 items-center gap-1.5 font-medium">
+                      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                        {/* Nombres completos (sin truncar): si no entran con el
+                            badge, el badge baja a la línea siguiente (flex-wrap). */}
+                        <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-medium">
                           <Flag team={m.home_team} className="shrink-0" />
-                          <TeamName team={m.home_team} className="min-w-0 truncate" />
+                          <TeamName team={m.home_team} className="whitespace-nowrap" />
                           <span className="shrink-0 text-neutral-500">vs</span>
-                          <TeamName team={m.away_team} className="min-w-0 truncate" />
+                          <TeamName team={m.away_team} className="whitespace-nowrap" />
                           <Flag team={m.away_team} className="shrink-0" />
                         </span>
                         {score ? (
