@@ -123,6 +123,10 @@ export interface Database {
           updated_at: string;
           sdb_round: number | null;
           live_minute: string | null;
+          home_score_90: number | null;
+          away_score_90: number | null;
+          home_pen: number | null;
+          away_pen: number | null;
         };
         Insert: {
           id?: string;
@@ -140,6 +144,10 @@ export interface Database {
           updated_at?: string;
           sdb_round?: number | null;
           live_minute?: string | null;
+          home_score_90?: number | null;
+          away_score_90?: number | null;
+          home_pen?: number | null;
+          away_pen?: number | null;
         };
         Update: {
           id?: string;
@@ -157,6 +165,10 @@ export interface Database {
           updated_at?: string;
           sdb_round?: number | null;
           live_minute?: string | null;
+          home_score_90?: number | null;
+          away_score_90?: number | null;
+          home_pen?: number | null;
+          away_pen?: number | null;
         };
         Relationships: [];
       };

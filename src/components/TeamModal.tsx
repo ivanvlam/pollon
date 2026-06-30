@@ -19,6 +19,8 @@ interface TeamMatch {
   status: string;
   home_score: number | null;
   away_score: number | null;
+  home_pen?: number | null;
+  away_pen?: number | null;
   is_active: boolean;
   live_minute: string | null;
   group_name: string | null;
@@ -241,13 +243,18 @@ export function TeamModal({ team, standing, matches, groupName, position, progre
                         <span className="min-w-0 break-words text-right font-medium leading-tight">{homeEs}</span>
                         <Flag team={match.home_team} className="shrink-0" />
                       </div>
-                      <div className="px-3 text-center">
+                      <div className="flex flex-col items-center px-3 text-center">
                         {live || match.home_score !== null ? (
                           <span className="text-xl font-bold tabular-nums text-neutral-200">
                             {match.home_score ?? 0} – {match.away_score ?? 0}
                           </span>
                         ) : (
                           <span className="text-neutral-600">vs</span>
+                        )}
+                        {match.home_pen != null && match.away_pen != null && (
+                          <span className="whitespace-nowrap text-[10px] font-medium text-neutral-400">
+                            ({match.home_pen}-{match.away_pen} pen.)
+                          </span>
                         )}
                       </div>
                       <div className="flex min-w-0 items-center gap-1.5">

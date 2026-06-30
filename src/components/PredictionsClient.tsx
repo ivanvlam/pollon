@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/Card";
 import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
 import { REASON_LABELS, ROUND_LABELS } from "@/lib/labels";
 import { liveProgressLabel } from "@/lib/liveMinute";
-import { calculateMatchScore, liveKnockoutWinner, type MatchScore } from "@/lib/scoring";
+import { calculateMatchScore, liveKnockoutWinner, regulationScore, type MatchScore } from "@/lib/scoring";
 import { toSpanish } from "@/lib/teamNames";
 import { hasMatchStarted, isPredictionLocked } from "@/lib/timing";
 import type { MatchWinner } from "@/types";
@@ -27,6 +27,10 @@ interface MatchData {
   status: string;
   home_score: number | null;
   away_score: number | null;
+  home_score_90: number | null;
+  away_score_90: number | null;
+  home_pen: number | null;
+  away_pen: number | null;
   winner: string | null;
   is_active: boolean;
   live_minute: string | null;
@@ -303,10 +307,13 @@ export function PredictionsClient({
                 match.status === "live"
                   ? liveKnockoutWinner(match.round, match.home_score ?? 0, match.away_score ?? 0)
                   : (match.winner as MatchWinner | null);
+              // El scoring de KO usa el marcador a 90' (sin alargue). reg cae al
+              // de cancha en grupos o si no se capturó a 90'.
+              const reg = regulationScore(match);
               const calcScore = (pred: PredData | null | undefined): MatchScore | null =>
                 scored && pred
                   ? calculateMatchScore(
-                      { round: match.round, home_score: match.home_score, away_score: match.away_score, winner: effectiveWinner },
+                      { round: match.round, home_score: reg.home, away_score: reg.away, winner: effectiveWinner },
                       { predicted_home: pred.predicted_home, predicted_away: pred.predicted_away, predicted_winner: pred.predicted_winner as MatchWinner | null },
                     )
                   : null;
@@ -457,6 +464,11 @@ export function PredictionsClient({
                               </span>
                             ) : (
                               <span className="text-base font-medium text-neutral-600">vs</span>
+                            )}
+                            {match.home_pen !== null && match.away_pen !== null && (
+                              <span className="whitespace-nowrap text-[11px] font-medium text-neutral-400">
+                                ({match.home_pen}-{match.away_pen} pen.)
+                              </span>
                             )}
                           </div>
                           <div className="hidden min-w-0 items-center gap-2 sm:flex">

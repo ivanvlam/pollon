@@ -6,7 +6,7 @@
 // service role (cron / admin).
 
 import { CHAMPION_POINTS } from "@/lib/constants";
-import { calculateMatchScore } from "@/lib/scoring";
+import { calculateMatchScore, regulationScore } from "@/lib/scoring";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { toSpanish } from "@/lib/teamNames";
 import type { MatchWinner, Round } from "@/types";
@@ -28,7 +28,9 @@ export async function recalculateMatchScores(
 
   const { data: match } = await supabase
     .from("matches")
-    .select("id, round, status, home_team, away_team, home_score, away_score, winner")
+    .select(
+      "id, round, status, home_team, away_team, home_score, away_score, home_score_90, away_score_90, winner",
+    )
     .eq("id", matchId)
     .maybeSingle();
 
@@ -36,6 +38,10 @@ export async function recalculateMatchScores(
   if (match.status !== "finished" || match.home_score === null) {
     return { matchId, inserted: 0, skipped: "match not finished" };
   }
+
+  // Marcador a 90' (KO) o de cancha (grupos). El scoring de eliminatorias se
+  // calcula sobre los 90', sin contar goles del alargue.
+  const reg = regulationScore(match);
 
   const { data: predictions } = await supabase
     .from("predictions")
@@ -69,8 +75,8 @@ export async function recalculateMatchScores(
     const score = calculateMatchScore(
       {
         round: match.round as Round,
-        home_score: match.home_score,
-        away_score: match.away_score,
+        home_score: reg.home,
+        away_score: reg.away,
         winner: match.winner as MatchWinner | null,
       },
       {
@@ -174,7 +180,7 @@ export async function backfillUserPoolScores(
   const [{ data: matches }, { data: preds }] = await Promise.all([
     supabase
       .from("matches")
-      .select("id, round, home_score, away_score, winner")
+      .select("id, round, home_score, away_score, home_score_90, away_score_90, winner")
       .eq("status", "finished"),
     supabase
       .from("predictions")
@@ -195,11 +201,12 @@ export async function backfillUserPoolScores(
   for (const m of matches ?? []) {
     const pred = predByMatch.get(m.id);
     if (!pred) continue;
+    const reg = regulationScore(m);
     const score = calculateMatchScore(
       {
         round: m.round as Round,
-        home_score: m.home_score,
-        away_score: m.away_score,
+        home_score: reg.home,
+        away_score: reg.away,
         winner: m.winner as MatchWinner | null,
       },
       {

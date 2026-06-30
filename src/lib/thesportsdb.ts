@@ -39,11 +39,21 @@ export interface ExternalMatch {
   away_team: string;
   kickoff_at: string; // ISO UTC
   status: MatchStatus;
-  home_score: number | null;
+  home_score: number | null; // resultado en cancha (incluye alargue)
   away_score: number | null;
   winner: MatchWinner | null;
   sdb_round: number; // número de ronda de TheSportsDB (1,2,3,16,32,125,150,200)
   live_minute: string | null; // minuto de juego (strProgress), solo si está live
+  // Marcador a 90' que reporta la API EN ESE MOMENTO (= home_score salvo cuando
+  // el partido ya pasó del reglamentario). null si ya está en alargue/penales:
+  // ahí el cron preserva el valor capturado en vivo durante 1H/HT/2H.
+  home_score_90: number | null;
+  away_score_90: number | null;
+  // Tanda de penales (intHomeScoreExtra/intAwayScoreExtra; status "AP").
+  home_pen: number | null;
+  away_pen: number | null;
+  // El partido pasó del tiempo reglamentario (alargue/penales) → no pisar *_90.
+  past_regulation: boolean;
 }
 
 interface SdbEvent {
@@ -52,6 +62,9 @@ interface SdbEvent {
   strAwayTeam: string;
   intHomeScore: string | null;
   intAwayScore: string | null;
+  intHomeScoreExtra: string | null; // tanda de penales (status "AP")
+  intAwayScoreExtra: string | null;
+  strResult: string | null;         // texto: "X win 4-3 on penalties"
   strTimestamp: string | null;
   dateEvent: string | null;
   strTime: string | null;
@@ -68,8 +81,14 @@ const SDB_ROUND_TO_ROUND: Record<number, Round> = {
   150: "semifinal", 200: "final",
 };
 
-const FINISHED = new Set(["FT", "AET", "PEN", "Match Finished"]);
+// "AP" = After Penalties (lo que de verdad usa la API en partidos a penales),
+// "AET" = After Extra Time. Sin "AP" en esta lista, los partidos a penales NO
+// se auto-finalizaban (había que marcarlos a mano en /admin).
+const FINISHED = new Set(["FT", "AET", "AP", "PEN", "Match Finished"]);
 const LIVE = new Set(["1H", "2H", "HT", "ET", "BT", "P", "LIVE"]);
+// Estados que indican que el partido pasó del tiempo reglamentario (alargue o
+// penales). En estos NO se debe pisar el marcador a 90' (*_90).
+const PAST_REGULATION = new Set(["ET", "BT", "P", "AET", "AP", "PEN"]);
 
 function mapStatus(status: string | null): MatchStatus {
   if (!status) return "scheduled";
@@ -99,18 +118,32 @@ function deriveWinner(
   status: MatchStatus,
   home: number | null,
   away: number | null,
+  homePen: number | null,
+  awayPen: number | null,
 ): MatchWinner | null {
   if (status !== "finished" || home === null || away === null) return null;
   if (home > away) return "home";
   if (away > home) return "away";
-  return null; // empate a 90': el clasificado (penales) no lo da esta API
+  // Empate en cancha → lo decide la tanda de penales si la API la trae (status
+  // "AP" trae intHomeScoreExtra/intAwayScoreExtra). Antes esto quedaba null y el
+  // clasificado había que marcarlo a mano.
+  if (homePen !== null && awayPen !== null && homePen !== awayPen) {
+    return homePen > awayPen ? "home" : "away";
+  }
+  return null; // empate sin datos de penales → lo marca el admin
 }
 
 function toExternal(ev: SdbEvent, round: Round, sdbRound: number): ExternalMatch {
+  const rawStatus = ev.strStatus?.trim() ?? "";
   const status = mapStatus(ev.strStatus);
   const home = parseScore(ev.intHomeScore);
   const away = parseScore(ev.intAwayScore);
+  const homePen = parseScore(ev.intHomeScoreExtra);
+  const awayPen = parseScore(ev.intAwayScoreExtra);
   const progress = ev.strProgress?.trim();
+  // ¿El partido ya pasó del tiempo reglamentario? Por estado (ET/penales) o
+  // porque ya hay marcador de la tanda de penales.
+  const pastReg = PAST_REGULATION.has(rawStatus) || homePen !== null || awayPen !== null;
   return {
     external_id: ev.idEvent,
     round,
@@ -124,7 +157,7 @@ function toExternal(ev: SdbEvent, round: Round, sdbRound: number): ExternalMatch
     status,
     home_score: home,
     away_score: away,
-    winner: deriveWinner(status, home, away),
+    winner: deriveWinner(status, home, away, homePen, awayPen),
     sdb_round: sdbRound,
     // En vivo: guardamos el minuto si la API lo da (strProgress); la clave
     // gratuita no lo entrega, así que caemos al código de fase (strStatus,
@@ -133,6 +166,14 @@ function toExternal(ev: SdbEvent, round: Round, sdbRound: number): ExternalMatch
       status === "live"
         ? progress || ev.strStatus?.trim() || null
         : null,
+    // En reglamentario el marcador actual ES el de 90'. Pasado el reglamentario
+    // no lo sabemos desde la API (el actual incluye alargue) → null, y el cron
+    // conserva el *_90 que ya capturó en vivo durante 1H/HT/2H.
+    home_score_90: pastReg ? null : home,
+    away_score_90: pastReg ? null : away,
+    home_pen: homePen,
+    away_pen: awayPen,
+    past_regulation: pastReg,
   };
 }
 

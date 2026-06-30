@@ -6,7 +6,7 @@ import { Flag } from "@/components/Flag";
 import { TeamName } from "@/components/TeamName";
 import { isKnockoutRound, ROUNDS, type Round } from "@/lib/constants";
 import { REASON_LABELS, ROUND_LABELS } from "@/lib/labels";
-import { calculateMatchScore, liveKnockoutWinner, type MatchScore } from "@/lib/scoring";
+import { calculateMatchScore, liveKnockoutWinner, regulationScore, type MatchScore } from "@/lib/scoring";
 import { createClient } from "@/lib/supabase/server";
 import { toSpanish } from "@/lib/teamNames";
 import { isChampionLocked, isPredictionLocked } from "@/lib/timing";
@@ -83,7 +83,7 @@ export default async function PlayerProfilePage({
     supabase
       .from("matches")
       .select(
-        "id, round, group_name, home_team, away_team, kickoff_at, status, home_score, away_score, winner",
+        "id, round, group_name, home_team, away_team, kickoff_at, status, home_score, away_score, home_score_90, away_score_90, winner",
       )
       .eq("is_active", true)
       .order("kickoff_at", { ascending: true }),
@@ -283,7 +283,7 @@ export default async function PlayerProfilePage({
                   const isLiveScored = m.status === "live" && m.home_score !== null;
                   const liveScore: MatchScore | null = isLiveScored && pred
                     ? calculateMatchScore(
-                        { round: m.round as Round, home_score: m.home_score, away_score: m.away_score, winner: liveKnockoutWinner(m.round as Round, m.home_score ?? 0, m.away_score ?? 0) },
+                        { round: m.round as Round, home_score: regulationScore(m).home, away_score: regulationScore(m).away, winner: liveKnockoutWinner(m.round as Round, m.home_score ?? 0, m.away_score ?? 0) },
                         { predicted_home: pred.predicted_home, predicted_away: pred.predicted_away, predicted_winner: pred.predicted_winner as MatchWinner | null },
                       )
                     : null;

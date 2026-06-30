@@ -54,6 +54,25 @@ export function liveKnockoutWinner(
   return null;
 }
 
+/**
+ * Marcador que usa el scoring: el de los 90' (tiempo reglamentario) si existe,
+ * si no el de cancha. En eliminatorias `*_90` lo captura el cron en vivo y
+ * respeta la regla "marcador a 90 minutos" (sin contar goles del alargue). En
+ * fase de grupos `*_90` es null → cae al marcador normal. Si un partido KO no
+ * llegó a capturarse a 90' (cron caído), también cae al de cancha (best-effort).
+ */
+export function regulationScore(m: {
+  home_score: number | null;
+  away_score: number | null;
+  home_score_90?: number | null;
+  away_score_90?: number | null;
+}): { home: number | null; away: number | null } {
+  return {
+    home: m.home_score_90 ?? m.home_score,
+    away: m.away_score_90 ?? m.away_score,
+  };
+}
+
 type Outcome = "home" | "away" | "draw";
 
 function outcomeOf(home: number, away: number): Outcome {

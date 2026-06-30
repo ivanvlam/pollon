@@ -33,10 +33,13 @@ export async function syncLiveMatchesNow(): Promise<void> {
     const externalIds = fixtures.map((f) => f.external_id);
     const { data: existing } = await supabase
       .from("matches")
-      .select("id, external_id, status")
+      .select("id, external_id, status, home_score_90, away_score_90")
       .in("external_id", externalIds);
 
     const prevStatus = new Map((existing ?? []).map((m) => [m.external_id, m.status]));
+    const prev90 = new Map(
+      (existing ?? []).map((m) => [m.external_id, { h: m.home_score_90, a: m.away_score_90 }]),
+    );
     const toUpsert = fixtures.filter((f) => prevStatus.get(f.external_id) !== "finished");
 
     if (toUpsert.length > 0) {
@@ -54,6 +57,10 @@ export async function syncLiveMatchesNow(): Promise<void> {
           winner: f.winner,
           sdb_round: f.sdb_round,
           live_minute: f.live_minute,
+          home_score_90: f.home_score_90 ?? prev90.get(f.external_id)?.h ?? null,
+          away_score_90: f.away_score_90 ?? prev90.get(f.external_id)?.a ?? null,
+          home_pen: f.home_pen,
+          away_pen: f.away_pen,
           updated_at: new Date().toISOString(),
           ...(f.round === "group_stage" ? { is_active: true } : {}),
         })),

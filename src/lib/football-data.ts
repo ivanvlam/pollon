@@ -117,6 +117,15 @@ function toExternal(m: FdMatch): ExternalMatch | null {
     sdb_round: sdbRound,
     // football-data SÍ entrega el minuto real cuando está en juego.
     live_minute: status === "live" && m.minute != null ? String(m.minute) : null,
+    // Cliente inactivo: no separa el marcador a 90' ni la tanda de penales en
+    // este parser, así que *_90 = marcador final (best-effort) y pen = null.
+    // past_regulation se infiere del campo duration.
+    home_score_90: home,
+    away_score_90: away,
+    home_pen: null,
+    away_pen: null,
+    past_regulation:
+      m.score.duration === "EXTRA_TIME" || m.score.duration === "PENALTY_SHOOTOUT",
   };
 }
 

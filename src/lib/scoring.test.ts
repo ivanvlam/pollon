@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateMatchScore } from "@/lib/scoring";
+import { calculateMatchScore, regulationScore } from "@/lib/scoring";
 import type { ScoredMatch, ScoredPrediction } from "@/lib/scoring";
 
 function group(home: number, away: number): ScoredMatch {
@@ -14,6 +14,33 @@ function knockout(home: number, away: number, winner: "home" | "away" | null): S
 function pred(h: number | null, a: number | null, w: "home" | "away" | null = null): ScoredPrediction {
   return { predicted_home: h, predicted_away: a, predicted_winner: w };
 }
+
+describe("regulationScore (marcador a 90')", () => {
+  it("usa *_90 cuando existe (KO con goles en el alargue)", () => {
+    // Terminó 2-1 en cancha, pero a 90' iba 1-1.
+    expect(
+      regulationScore({ home_score: 2, away_score: 1, home_score_90: 1, away_score_90: 1 }),
+    ).toEqual({ home: 1, away: 1 });
+  });
+
+  it("cae al marcador de cancha si no hay *_90 (grupos o no capturado)", () => {
+    expect(
+      regulationScore({ home_score: 3, away_score: 0, home_score_90: null, away_score_90: null }),
+    ).toEqual({ home: 3, away: 0 });
+    expect(regulationScore({ home_score: 2, away_score: 2 })).toEqual({ home: 2, away: 2 });
+  });
+
+  it("empate a 90' + clasificado puntúa 3 aunque en cancha haya terminado decidido", () => {
+    // A 90' fue empate 1-1 (a penales); el scoring KO usa ese marcador.
+    const reg = regulationScore({ home_score: 1, away_score: 1, home_score_90: 1, away_score_90: 1 });
+    expect(
+      calculateMatchScore(
+        { round: "round_of_16", home_score: reg.home, away_score: reg.away, winner: "home" },
+        pred(2, 2, "home"),
+      ),
+    ).toEqual({ points: 3, reason: "correct_diff_qualifier" });
+  });
+});
 
 describe("fase de grupos", () => {
   it("5 pts por marcador exacto", () => {

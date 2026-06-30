@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { calculateMatchScore } from "@/lib/scoring";
+import { calculateMatchScore, regulationScore } from "@/lib/scoring";
 import { createClient } from "@/lib/supabase/server";
 import {
   computeGroupClinch,
@@ -85,14 +85,22 @@ export async function GET(
   // la función pura, igual que en la pestaña de grupos. Solo si está finalizado.
   const pointsFor = (
     round: Round,
-    m: { status: string; home_score: number | null; away_score: number | null; winner: string | null },
+    m: {
+      status: string;
+      home_score: number | null;
+      away_score: number | null;
+      home_score_90?: number | null;
+      away_score_90?: number | null;
+      winner: string | null;
+    },
     pred: { predicted_home: number | null; predicted_away: number | null; predicted_winner: string | null } | null,
   ): number | undefined => {
     if (m.status !== "finished" || !pred || pred.predicted_home === null || pred.predicted_away === null) {
       return undefined;
     }
+    const reg = regulationScore(m);
     const sc = calculateMatchScore(
-      { round, home_score: m.home_score, away_score: m.away_score, winner: m.winner as MatchWinner | null },
+      { round, home_score: reg.home, away_score: reg.away, winner: m.winner as MatchWinner | null },
       {
         predicted_home: pred.predicted_home,
         predicted_away: pred.predicted_away,
@@ -117,7 +125,7 @@ export async function GET(
   const { data: koAll } = await supabase
     .from("matches")
     .select(
-      "id, round, home_team, away_team, kickoff_at, status, home_score, away_score, winner, is_active, live_minute",
+      "id, round, home_team, away_team, kickoff_at, status, home_score, away_score, home_score_90, away_score_90, home_pen, away_pen, winner, is_active, live_minute",
     )
     .in("round", KO_ROUNDS)
     .order("kickoff_at", { ascending: true });
@@ -154,6 +162,8 @@ export async function GET(
       status: m.status,
       home_score: m.home_score,
       away_score: m.away_score,
+      home_pen: m.home_pen,
+      away_pen: m.away_pen,
       is_active: m.is_active,
       live_minute: m.live_minute,
       group_name: null as string | null,

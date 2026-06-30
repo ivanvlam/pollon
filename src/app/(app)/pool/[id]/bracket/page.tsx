@@ -62,7 +62,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
         .select("id, group_name, home_team, away_team, kickoff_at, home_score, away_score, status, is_active, live_minute")
         .eq("round", "group_stage"),
       supabase.from("matches")
-        .select("id, round, home_team, away_team, kickoff_at, status, home_score, away_score, winner")
+        .select("id, round, home_team, away_team, kickoff_at, status, home_score, away_score, home_pen, away_pen, winner")
         .in("round", ALL_KO_ROUNDS)
         .order("kickoff_at", { ascending: true }),
       supabase.from("profiles").select("timezone").eq("id", uid).maybeSingle(),
@@ -235,6 +235,10 @@ export default async function BracketPage({ params }: { params: { id: string } }
     if (!m || !team || m.status !== "finished") return null;
     return m.home_team === team ? m.home_score : m.away_team === team ? m.away_score : null;
   };
+  const penOf = (m: KoMatch | null, team: string | null): number | null => {
+    if (!m || !team || m.status !== "finished") return null;
+    return m.home_team === team ? m.home_pen : m.away_team === team ? m.away_pen : null;
+  };
 
   // Props de la tarjeta R32 para una llave.
   const r32CardProps = (num: number) => {
@@ -244,6 +248,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
       label: s.label,
       groupData: s.groupData,
       score: scoreOf(slot.match, s.team),
+      pen: penOf(slot.match, s.team),
       lost:
         slot.match?.status === "finished" &&
         slot.winnerTeam !== null &&
@@ -488,6 +493,7 @@ interface CardSide {
   label: string;
   groupData: GroupModalData | null;
   score: number | null;
+  pen: number | null; // tanda de penales (solo si el partido se definió ahí)
   lost: boolean; // perdió un partido KO terminado → atenuado (eliminado)
 }
 
@@ -506,7 +512,7 @@ function R32Card({ matchNum, date, home, away }: { matchNum: number; date: strin
   );
 }
 
-function SlotRow({ team, label, groupData, score, lost }: CardSide) {
+function SlotRow({ team, label, groupData, score, pen, lost }: CardSide) {
   const labelEl = groupData ? <BracketGroupLabel label={label} {...groupData} /> : label;
   // Eliminado (perdió su partido KO) → atenuado, como en la pestaña de grupos.
   return team ? (
@@ -514,7 +520,12 @@ function SlotRow({ team, label, groupData, score, lost }: CardSide) {
       <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
       <TeamName team={team} className="min-w-0 flex-1 truncate font-medium" />
       <span className="shrink-0 text-[10px] text-neutral-500">{labelEl}</span>
-      {score !== null && <span className="ml-1 shrink-0 tabular-nums font-semibold">{score}</span>}
+      {score !== null && (
+        <span className="ml-1 shrink-0 tabular-nums font-semibold">
+          {score}
+          {pen != null && <span className="font-normal text-neutral-400"> ({pen})</span>}
+        </span>
+      )}
     </div>
   ) : (
     <div className="flex min-h-[20px] items-center text-xs text-neutral-500">{labelEl}</div>

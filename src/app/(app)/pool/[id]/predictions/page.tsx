@@ -32,7 +32,7 @@ export default async function PredictionsPage({
   const { data: matches } = await supabase
     .from("matches")
     .select(
-      "id, round, group_name, home_team, away_team, kickoff_at, status, home_score, away_score, winner, is_active, live_minute",
+      "id, round, group_name, home_team, away_team, kickoff_at, status, home_score, away_score, home_score_90, away_score_90, home_pen, away_pen, winner, is_active, live_minute",
     )
     .eq("is_active", true)
     .order("kickoff_at", { ascending: true });

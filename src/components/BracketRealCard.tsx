@@ -15,6 +15,8 @@ interface BracketRealCardProps {
     kickoff_at: string;
     home_score: number | null;
     away_score: number | null;
+    home_pen: number | null;
+    away_pen: number | null;
     winner: string | null;
   };
   matchNum: number;
@@ -52,9 +54,9 @@ export function BracketRealCard({ match, matchNum, pred, poolId, date }: Bracket
         <span className="font-medium">Partido {matchNum}</span>
         <span className="text-neutral-500">{date}</span>
       </div>
-      <TeamRow team={match.home_team} value={homeVal} lost={actualWinner === "away"} />
+      <TeamRow team={match.home_team} value={homeVal} pen={finished ? match.home_pen : null} lost={actualWinner === "away"} />
       <div className="my-1 border-t border-neutral-800" />
-      <TeamRow team={match.away_team} value={awayVal} lost={actualWinner === "home"} />
+      <TeamRow team={match.away_team} value={awayVal} pen={finished ? match.away_pen : null} lost={actualWinner === "home"} />
       <p className="mt-1 text-[10px] text-neutral-500">
         {finished ? "Resultado" : pred ? "Tu pronóstico" : "Sin pronóstico"}
       </p>
@@ -62,14 +64,27 @@ export function BracketRealCard({ match, matchNum, pred, poolId, date }: Bracket
   );
 }
 
-function TeamRow({ team, value, lost }: { team: string; value: number | null; lost: boolean }) {
+function TeamRow({
+  team,
+  value,
+  pen,
+  lost,
+}: {
+  team: string;
+  value: number | null;
+  pen?: number | null;
+  lost: boolean;
+}) {
   return (
     <div className={`flex items-center justify-between gap-1 text-neutral-200 ${lost ? "opacity-50" : ""}`}>
       <span className="flex min-w-0 items-center gap-1">
         <Flag team={team} className="h-[13px] w-[18px] shrink-0" />
         <TeamName team={team} className="min-w-0 truncate" />
       </span>
-      <span className="tabular-nums">{value ?? "–"}</span>
+      <span className="tabular-nums">
+        {value ?? "–"}
+        {pen != null && <span className="text-neutral-400"> ({pen})</span>}
+      </span>
     </div>
   );
 }

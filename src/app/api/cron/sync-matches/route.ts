@@ -131,11 +131,19 @@ export async function GET(request: NextRequest) {
   const externalIds = fixtures.map((f) => f.external_id);
   const { data: existing } = await supabase
     .from("matches")
-    .select("id, external_id, status")
+    .select("id, external_id, status, home_score_90, away_score_90")
     .in("external_id", externalIds.length > 0 ? externalIds : ["__none__"]);
 
   const prevStatus = new Map(
     (existing ?? []).map((m) => [m.external_id, m.status]),
+  );
+  // Marcador a 90' ya capturado en vivo, para preservarlo cuando el partido
+  // entra al alargue/penales (ahí el fixture trae *_90 = null).
+  const prev90 = new Map(
+    (existing ?? []).map((m) => [
+      m.external_id,
+      { h: m.home_score_90, a: m.away_score_90 },
+    ]),
   );
 
   // Una vez que un partido está 'finished', el resultado lo gobierna el admin
@@ -164,6 +172,12 @@ export async function GET(request: NextRequest) {
         winner: f.winner,
         sdb_round: f.sdb_round,
         live_minute: f.live_minute,
+        // Marcador a 90': en reglamentario lo trae el fixture; pasado el
+        // reglamentario viene null → conservamos el ya capturado en vivo.
+        home_score_90: f.home_score_90 ?? prev90.get(f.external_id)?.h ?? null,
+        away_score_90: f.away_score_90 ?? prev90.get(f.external_id)?.a ?? null,
+        home_pen: f.home_pen,
+        away_pen: f.away_pen,
         updated_at: new Date().toISOString(),
         ...(f.round === "group_stage" ? { is_active: true } : {}),
       })),

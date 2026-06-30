@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { CopyInviteButton } from "@/components/CopyInviteButton";
 import { LeavePoolButton } from "@/components/LeavePoolButton";
 import { buttonClasses } from "@/components/ui/Button";
-import { calculateMatchScore, liveKnockoutWinner } from "@/lib/scoring";
+import { calculateMatchScore, liveKnockoutWinner, regulationScore } from "@/lib/scoring";
 import { createClient } from "@/lib/supabase/server";
 import type { MatchWinner, Round } from "@/types";
 
@@ -41,7 +41,7 @@ export default async function PoolRankingPage({
     supabase.from("profiles").select("display_name").eq("id", user!.id).maybeSingle(),
     supabase
       .from("matches")
-      .select("id, round, home_score, away_score, winner")
+      .select("id, round, home_score, away_score, home_score_90, away_score_90, winner")
       .eq("status", "live"),
   ]);
 
@@ -86,8 +86,8 @@ export default async function PoolRankingPage({
       const result = calculateMatchScore(
         {
           round: match.round as Round,
-          home_score: match.home_score,
-          away_score: match.away_score,
+          home_score: regulationScore(match).home,
+          away_score: regulationScore(match).away,
           winner: liveKnockoutWinner(match.round as Round, match.home_score ?? 0, match.away_score ?? 0),
         },
         {
