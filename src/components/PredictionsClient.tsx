@@ -525,7 +525,8 @@ export function PredictionsClient({
                                 {hasCountry && (
                                   <>
                                     <span className="text-center text-neutral-600">·</span>
-                                    <span className="relative grid text-neutral-400">
+                                    {/* mr-1.5 = gap país↔puntos (subí/bajá este valor). */}
+                                    <span className="relative mr-1.5 grid text-neutral-400">
                                       {chosenPaisSet.map((p) => (
                                         <span
                                           key={p}
