@@ -179,7 +179,12 @@ export async function GET(request: NextRequest) {
         home_pen: f.home_pen,
         away_pen: f.away_pen,
         updated_at: new Date().toISOString(),
-        ...(f.round === "group_stage" ? { is_active: true } : {}),
+        // Auto-activar: un partido se abre para predecir en cuanto tiene ambos
+        // equipos definidos. En grupos siempre; en eliminatorias, el proveedor
+        // solo publica el cruce cuando se define (ambos equipos reales), así que
+        // se activa solo (antes los KO quedaban inactivos hasta habilitarlos a
+        // mano). No se desactiva nada: solo se setea true cuando hay equipos.
+        ...(f.home_team && f.away_team ? { is_active: true } : {}),
       })),
       { onConflict: "external_id" },
     );

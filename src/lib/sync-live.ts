@@ -62,7 +62,9 @@ export async function syncLiveMatchesNow(): Promise<void> {
           home_pen: f.home_pen,
           away_pen: f.away_pen,
           updated_at: new Date().toISOString(),
-          ...(f.round === "group_stage" ? { is_active: true } : {}),
+          // Auto-activar: se abre para predecir en cuanto tiene ambos equipos
+          // (grupos siempre; KO cuando el proveedor publica el cruce definido).
+          ...(f.home_team && f.away_team ? { is_active: true } : {}),
         })),
         { onConflict: "external_id" },
       );
