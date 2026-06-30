@@ -342,12 +342,17 @@ export function PredictionsClient({
               const paisCh = hasCountry
                 ? Math.max(...chosenWinnerNames.map((n) => n.length))
                 : 0;
+              // Nombre: minmax(0,1fr) → ocupa el espacio sobrante y empuja
+              // resultado/país/puntos hacia la derecha (alineados al borde, como
+              // en desktop); en mobile el nombre se encoge/trunca para que no se
+              // salgan los demás. Un solo "·" (min-content) entre marcador y
+              // país; el país queda pegado a los puntos. El gap chico de la fila
+              // deja muy poco aire alrededor del punto.
               const rowCols = [
                 "minmax(0,1fr)",
                 "3.25rem",
-                hasCountry ? "auto" : null,
+                hasCountry ? "min-content" : null,
                 hasCountry ? `${paisCh}ch` : null,
-                scored ? "auto" : null,
                 scored ? "4.75rem" : null,
               ]
                 .filter(Boolean)
@@ -474,7 +479,7 @@ export function PredictionsClient({
                           <li
                             key={userId}
                             style={{ gridTemplateColumns: rowCols }}
-                            className={`-mx-2 grid items-center gap-x-2 rounded px-2 py-0.5 transition-colors hover:bg-neutral-800/50 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
+                            className={`-mx-2 grid items-center gap-x-0.5 rounded px-2 py-0.5 transition-colors hover:bg-neutral-800/50 ${isMe ? "text-neutral-300" : "text-neutral-400"}`}
                           >
                             <div className="flex min-w-0 items-center">
                               <Link
@@ -490,8 +495,10 @@ export function PredictionsClient({
 
                             {pred ? (
                               <>
-                                {/* Resultado: centrado */}
-                                <span className="text-center tabular-nums">
+                                {/* Resultado: alineado a la derecha para que el
+                                    marcador quede pegado al · (si va centrado, el
+                                    padding de la columna agranda el hueco izq.) */}
+                                <span className="text-right tabular-nums">
                                   {pred.predicted_home ?? "–"}
                                   <span className="px-1 text-neutral-500">–</span>
                                   {pred.predicted_away ?? "–"}
@@ -500,7 +507,7 @@ export function PredictionsClient({
                                 {hasCountry && (
                                   <>
                                     <span className="text-center text-neutral-600">·</span>
-                                    <span className="truncate text-left text-neutral-400">
+                                    <span className="truncate text-right text-neutral-400">
                                       {pred.predicted_winner === "home"
                                         ? toSpanish(match.home_team)
                                         : pred.predicted_winner === "away"
@@ -509,21 +516,17 @@ export function PredictionsClient({
                                     </span>
                                   </>
                                 )}
-                                {/* Puntos: separador · + badge */}
-                                {scored && (
-                                  <>
-                                    <span className="text-center text-neutral-600">·</span>
-                                    {score ? (
-                                      <span className="inline-flex min-w-[4.75rem] justify-center justify-self-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
-                                        +{isMe ? (myPoints ?? score.points) : score.points} puntos
-                                      </span>
-                                    ) : (
-                                      <span className="inline-flex min-w-[4.75rem] justify-center justify-self-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
-                                        0 puntos
-                                      </span>
-                                    )}
-                                  </>
-                                )}
+                                {/* Puntos: badge pegado al país (sin separador ·) */}
+                                {scored &&
+                                  (score ? (
+                                    <span className="inline-flex min-w-[4.75rem] justify-center justify-self-center rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-400">
+                                      +{isMe ? (myPoints ?? score.points) : score.points} puntos
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex min-w-[4.75rem] justify-center justify-self-center rounded bg-neutral-500/15 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
+                                      0 puntos
+                                    </span>
+                                  ))}
                               </>
                             ) : (
                               <>
