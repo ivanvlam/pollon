@@ -37,6 +37,19 @@ export async function GET(request: NextRequest) {
 
   const supabase = createServiceRoleClient();
 
+  // Auto-activar eliminatorias: cualquier partido KO inactivo que YA tenga ambos
+  // equipos definidos se abre para predecir. Corre en cada cron (no depende de
+  // re-importar el partido), así cubre los cargados a mano y los importados antes
+  // de que el sync auto-activara, aunque su ronda ya no se re-fetchee.
+  await supabase
+    .from("matches")
+    .update({ is_active: true, updated_at: new Date().toISOString() })
+    .eq("is_active", false)
+    .neq("status", "finished")
+    .neq("round", "group_stage")
+    .neq("home_team", "")
+    .neq("away_team", "");
+
   // Solo llamamos a la API si hay partidos live o en la ventana [-3h, +2.75h].
   // El lookback de 3h es CLAVE: cubre un partido en curso (90' + entretiempo +
   // alargue) aunque el cron se haya atrasado y todavía no lo hayamos marcado
