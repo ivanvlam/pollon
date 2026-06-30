@@ -339,20 +339,23 @@ export function PredictionsClient({
                     .filter(Boolean)
                 : [];
               const hasCountry = chosenWinnerNames.length > 0;
-              const paisCh = hasCountry
-                ? Math.max(...chosenWinnerNames.map((n) => n.length))
-                : 0;
+              // Distintos países elegidos. Se renderizan invisibles y APILADOS en
+              // cada celda (mismo grid-cell) para que la columna mida el ANCHO REAL
+              // en píxeles del más ancho — no el de más caracteres (ej. "Japón",
+              // 5 letras, mide más que "Brasil", 6). Igual en todas las filas → el
+              // resultado queda alineado y el país nunca se trunca.
+              const chosenPaisSet = hasCountry ? [...new Set(chosenWinnerNames)] : [];
               // Nombre: minmax(0,1fr) → ocupa el espacio sobrante y empuja
               // resultado/país/puntos hacia la derecha (alineados al borde, como
               // en desktop); en mobile el nombre se encoge/trunca para que no se
-              // salgan los demás. Un solo "·" (min-content) entre marcador y
-              // país; el país queda pegado a los puntos. El gap chico de la fila
-              // deja muy poco aire alrededor del punto.
+              // salgan los demás. Un solo "·" (min-content) entre marcador y país.
+              // La columna país es max-content (del spacer) → pegada al punto y a
+              // los puntos. El gap chico de la fila deja muy poco aire.
               const rowCols = [
                 "minmax(0,1fr)",
                 "3.25rem",
                 hasCountry ? "min-content" : null,
-                hasCountry ? `${paisCh}ch` : null,
+                hasCountry ? "max-content" : null,
                 scored ? "4.75rem" : null,
               ]
                 .filter(Boolean)
@@ -503,16 +506,30 @@ export function PredictionsClient({
                                   <span className="px-1 text-neutral-500">–</span>
                                   {pred.predicted_away ?? "–"}
                                 </span>
-                                {/* País clasificado: separador · + nombre (solo KO) */}
+                                {/* País clasificado: separador · + nombre (solo KO).
+                                    Los spacers invisibles (todos los países elegidos,
+                                    apilados en el mismo grid-cell) fijan el ancho real
+                                    de la columna; el nombre real va encima. */}
                                 {hasCountry && (
                                   <>
                                     <span className="text-center text-neutral-600">·</span>
-                                    <span className="truncate text-right text-neutral-400">
-                                      {pred.predicted_winner === "home"
-                                        ? toSpanish(match.home_team)
-                                        : pred.predicted_winner === "away"
-                                          ? toSpanish(match.away_team)
-                                          : ""}
+                                    <span className="relative grid text-neutral-400">
+                                      {chosenPaisSet.map((p) => (
+                                        <span
+                                          key={p}
+                                          aria-hidden
+                                          className="invisible col-start-1 row-start-1 whitespace-nowrap"
+                                        >
+                                          {p}
+                                        </span>
+                                      ))}
+                                      <span className="col-start-1 row-start-1 truncate text-left">
+                                        {pred.predicted_winner === "home"
+                                          ? toSpanish(match.home_team)
+                                          : pred.predicted_winner === "away"
+                                            ? toSpanish(match.away_team)
+                                            : ""}
+                                      </span>
                                     </span>
                                   </>
                                 )}
