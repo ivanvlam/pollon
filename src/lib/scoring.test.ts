@@ -93,10 +93,10 @@ describe("eliminatorias", () => {
     });
   });
 
-  it("empate a 90' (no exacto) con clasificado → 2 pts", () => {
+  it("empate a 90' (no exacto) con clasificado → 3 pts (tipo + misma diff 0)", () => {
     expect(calculateMatchScore(knockout(0, 0, "home"), pred(1, 1, "home"))).toEqual({
-      points: 2,
-      reason: "correct_qualifier",
+      points: 3,
+      reason: "correct_diff_qualifier",
     });
   });
 

@@ -11,9 +11,10 @@
 // Eliminatorias (marcador a 90'):
 //   5 pts — exacto a 90' + clasificado                → exact_qualifier_score
 //   3 pts — tipo + diferencia + clasificado (decisivo) → correct_diff_qualifier
+//          — empate a 90' + clasificado (la diff de un empate siempre coincide) → correct_diff_qualifier
 //          — empate EXACTO a 90' sin clasificado       → correct_diff_qualifier
-//   2 pts — solo clasificado correcto                 → correct_qualifier
-//          — empate a 90' acertado (no exacto), aunque falle el clasificado → correct_draw
+//   2 pts — solo clasificado correcto (resultado decisivo) → correct_qualifier
+//          — empate a 90' acertado (no exacto) sin clasificado → correct_draw
 
 import { POINTS } from "@/lib/constants";
 import type { MatchWinner, Round, ScoreReason } from "@/types";
@@ -110,16 +111,19 @@ export function calculateMatchScore(
   const bothDraw = actualOutcome === "draw" && predictedOutcome === "draw";
 
   if (bothDraw) {
-    // Empate a 90' acertado:
-    //   exacto + clasificado → 5 · exacto sin clasificado → 3 · no exacto → 2
+    // Empate a 90' acertado. La diferencia de goles de un empate SIEMPRE coincide
+    // (0 = 0); por eso, con el clasificado correcto cuenta como "tipo + misma
+    // diferencia + clasificado" (3 pts), no solo "clasificado" (2):
+    //   exacto + clasificado          → 5 (exact_qualifier_score)
+    //   no exacto + clasificado       → 3 (correct_diff_qualifier)
+    //   exacto sin clasificado        → 3 (empate exacto a 90' igual puntúa)
+    //   no exacto sin clasificado     → 2 (correct_draw: el empate a 90' acertado)
     if (exactScore && qualifierCorrect) {
       return { points: POINTS.EXACT, reason: "exact_qualifier_score" };
     }
+    if (qualifierCorrect) return { points: POINTS.DIFF, reason: "correct_diff_qualifier" };
     if (exactScore) return { points: POINTS.DIFF, reason: "correct_diff_qualifier" };
-    return {
-      points: POINTS.WINNER,
-      reason: qualifierCorrect ? "correct_qualifier" : "correct_draw",
-    };
+    return { points: POINTS.WINNER, reason: "correct_draw" };
   }
 
   // Resultado decisivo a 90': sin acertar el clasificado no hay puntos.
