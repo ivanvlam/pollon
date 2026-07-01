@@ -512,8 +512,17 @@ export function PredictionsClient({
                               <>
                                 {/* Resultado: alineado a la derecha para que el
                                     marcador quede pegado al · (si va centrado, el
-                                    padding de la columna agranda el hueco izq.) */}
-                                <span className="text-right tabular-nums">
+                                    padding de la columna agranda el hueco izq.).
+                                    En grupos (sin columna país) los puntos van
+                                    pegados al marcador, así que agregamos aire
+                                    SOLO ahí: mr-1.5 (~8px con el gap de la fila),
+                                    parejo con el país↔puntos de KO. En KO el gap
+                                    lo da la columna país, así que no aplica. */}
+                                <span
+                                  className={`text-right tabular-nums ${
+                                    !hasCountry && scored ? "mr-1.5" : ""
+                                  }`}
+                                >
                                   {pred.predicted_home ?? "–"}
                                   <span className="px-1 text-neutral-500">–</span>
                                   {pred.predicted_away ?? "–"}
