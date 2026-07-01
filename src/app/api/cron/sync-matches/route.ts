@@ -67,7 +67,15 @@ export async function GET(request: NextRequest) {
         .gte("kickoff_at", windowStart)
         .lte("kickoff_at", windowEnd)
         .neq("status", "finished"),
-      supabase.from("matches").select("round").neq("round", "group_stage"),
+      // Solo filas REALES (no manuales) cuentan para "ronda completa": una fila
+      // manual-* es un placeholder que todavía espera al fixture del proveedor.
+      // Si contara, la ronda se daría por completa (16/16) y el descubrimiento
+      // dejaría de pedirla → el cruce real nunca entraría y reconcile nunca lo
+      // adoptaría (quedaría manual para siempre). Contando solo los reales, el
+      // descubrimiento sigue pidiendo la ronda mientras quede alguna manual.
+      supabase.from("matches").select("round")
+        .neq("round", "group_stage")
+        .not("external_id", "like", "manual-%"),
     ]);
 
   const activeMatches = [...(liveMatches ?? []), ...(windowMatches ?? [])];
@@ -233,6 +241,13 @@ export async function GET(request: NextRequest) {
   // Solución: marcar directamente en la DB como 'live' todo partido cuyo
   // kickoff fue hace 5 min–2.5h y siga en estado 'scheduled'.
   // Esto también funciona cuando la API devuelve [] por límite de cuota.
+  //
+  // EXCLUIR partidos manuales (external_id 'manual-*'): la API no puede
+  // resolver su id (fetchEventsByIds no los trae), así que nunca recibirían
+  // ni marcador ni la transición a 'finished'. Si los marcáramos 'live' se
+  // quedarían pegados en un 0-0 falso "EN VIVO" para siempre. Un partido
+  // manual solo termina cuando el admin carga el resultado (saveMatchResult) o
+  // cuando el proveedor publica el cruce y reconcileKnockoutFixtures lo re-keya.
   const liveInferStart = new Date(now.getTime() - 2.5 * 60 * 60 * 1000).toISOString();
   const liveInferEnd = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
   const { data: inferredLive } = await supabase
@@ -241,6 +256,7 @@ export async function GET(request: NextRequest) {
     .eq("status", "scheduled")
     .gte("kickoff_at", liveInferStart)
     .lte("kickoff_at", liveInferEnd)
+    .not("external_id", "like", "manual-%")
     .select("id");
 
   return NextResponse.json({
