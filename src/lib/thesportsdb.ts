@@ -58,6 +58,7 @@ export interface ExternalMatch {
 
 interface SdbEvent {
   idEvent: string;
+  idLeague?: string | null; // para filtrar searchevents (no filtra por liga)
   strHomeTeam: string;
   strAwayTeam: string;
   intHomeScore: string | null;
@@ -304,6 +305,50 @@ export async function fetchEventsByIds(ids: string[]): Promise<ExternalMatch[]> 
     }),
   );
   await recordSdbRequests(ids.length);
+
+  return results.filter((m): m is ExternalMatch => m !== null);
+}
+
+/**
+ * Busca partidos por NOMBRE ("Home vs Away") vía searchevents. Es la única forma
+ * confiable de descubrir cruces KO nuevos con la clave gratuita: eventsround
+ * queda CACHEADO/congelado (los partidos que el proveedor publica después NO
+ * aparecen ahí aunque tengan el mismo idLeague/season/round), mientras que
+ * searchevents sí los devuelve frescos. Se usa para reconciliar los partidos
+ * cargados a mano (manual-*) con su fixture real en cuanto el proveedor lo
+ * publica. 1 request por par. Filtra por idLeague (searchevents no filtra por
+ * liga, así que un homónimo de otra competición no se cuela).
+ */
+export async function fetchEventsByName(
+  pairs: { home: string; away: string }[],
+): Promise<ExternalMatch[]> {
+  const key = process.env.THESPORTSDB_KEY || "3";
+  const base = `https://www.thesportsdb.com/api/v1/json/${key}`;
+
+  const results = await Promise.all(
+    pairs.map(async ({ home, away }) => {
+      // Resiliente por-item: una request que falla no debe hundir el lote.
+      try {
+        const name = encodeURIComponent(`${home} vs ${away}`);
+        const res = await fetch(
+          `${base}/searchevents.php?e=${name}&s=${WORLD_CUP_SEASON}`,
+          { cache: "no-store" },
+        );
+        if (!res.ok) return null;
+        const json = (await res.json()) as { event: SdbEvent[] | null };
+        const ev = (json.event ?? []).find(
+          (e) => e.idLeague === String(WORLD_CUP_LEAGUE_ID),
+        );
+        if (!ev) return null;
+        const sdbRound = Number(ev.intRound);
+        const round = SDB_ROUND_TO_ROUND[sdbRound];
+        return round ? toExternal(ev, round, sdbRound) : null;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  await recordSdbRequests(pairs.length);
 
   return results.filter((m): m is ExternalMatch => m !== null);
 }

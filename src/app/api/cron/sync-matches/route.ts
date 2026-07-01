@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { fetchEventsByIds, fetchWorldCupFixtures, type ExternalMatch } from "@/lib/thesportsdb";
+import { fetchEventsByIds, fetchEventsByName, fetchWorldCupFixtures, type ExternalMatch } from "@/lib/thesportsdb";
 import { verifyCronSecret } from "@/lib/cron";
 import { reconcileKnockoutFixtures } from "@/lib/matches/reconcile";
 import { recalculateMatchScores } from "@/lib/scoring-service";
@@ -88,8 +88,13 @@ export async function GET(request: NextRequest) {
   // El proveedor publica las eliminatorias de a poco (a medida que se definen
   // los cruces). El sync por ventana solo refresca external_id YA conocidos, así
   // que sin esto los partidos nuevos nunca entrarían. Throttle: solo cada 15 min
-  // y solo las rondas incompletas (deja de pedir una ronda cuando se completa),
-  // para no quemar cuota cada minuto.
+  // para no quemar cuota cada minuto. Dos vías:
+  //   1) eventsround de las rondas incompletas (barato, pero en la clave gratuita
+  //      queda CACHEADO: los cruces que el proveedor publica después NO aparecen).
+  //   2) searchevents POR NOMBRE de cada partido manual pendiente (manual-*): es
+  //      la vía fresca. eventsround puede ignorar para siempre un cruce nuevo, pero
+  //      searchevents lo devuelve en cuanto existe. reconcile lo adopta (re-keya el
+  //      manual-* al id real) → de ahí en más el sync normal lo gobierna.
   let discoveryFixtures: ExternalMatch[] = [];
   const shouldDiscover = !isBootstrap && now.getUTCMinutes() % 15 === 0;
   if (shouldDiscover) {
@@ -98,14 +103,30 @@ export async function GET(request: NextRequest) {
     const incompleteSdb = KO_ROUNDS
       .filter((k) => (koCount.get(k.round) ?? 0) < k.expected)
       .map((k) => k.sdb);
-    if (incompleteSdb.length > 0) {
-      try {
-        discoveryFixtures = await fetchWorldCupFixtures(incompleteSdb);
-      } catch {
-        // El descubrimiento es secundario; si falla, seguimos con el sync normal.
-        discoveryFixtures = [];
-      }
-    }
+
+    // Partidos cargados a mano todavía sin reconciliar → buscar por nombre.
+    const { data: manualKo } = await supabase
+      .from("matches")
+      .select("home_team, away_team")
+      .neq("round", "group_stage")
+      .like("external_id", "manual-%")
+      .neq("home_team", "")
+      .neq("away_team", "");
+    const pairs = (manualKo ?? []).map((m) => ({ home: m.home_team, away: m.away_team }));
+
+    const [roundFx, nameFx] = await Promise.all([
+      incompleteSdb.length > 0
+        ? fetchWorldCupFixtures(incompleteSdb).catch(() => [] as ExternalMatch[])
+        : Promise.resolve([] as ExternalMatch[]),
+      pairs.length > 0
+        ? fetchEventsByName(pairs).catch(() => [] as ExternalMatch[])
+        : Promise.resolve([] as ExternalMatch[]),
+    ]);
+    // searchevents es más fresco que eventsround → que pise en el merge.
+    const merged = new Map<string, ExternalMatch>();
+    for (const f of roundFx) merged.set(f.external_id, f);
+    for (const f of nameFx) merged.set(f.external_id, f);
+    discoveryFixtures = [...merged.values()];
   }
 
   // ── Sync de la ventana activa (live scores) ────────────────────────────────
