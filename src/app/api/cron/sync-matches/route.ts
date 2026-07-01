@@ -37,9 +37,48 @@ export async function GET(request: NextRequest) {
 
   const supabase = createServiceRoleClient();
 
+  // El cron pega cada minuto, pero la gran mayoría del mes no hay ningún partido
+  // en juego ni próximo. En Fluid, cada invocación factura por el tiempo que la
+  // función espera I/O, así que un minuto ocioso debe costar lo mínimo: UNA sola
+  // query y salir. Todo el trabajo pesado (auto-activar KO, descubrimiento, sync,
+  // inferencia de 'live') queda detrás de la guarda de abajo y solo corre cuando
+  // hay un partido activo o en la pasada de descubrimiento (cada 1 hora).
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
+  const windowEnd = new Date(now.getTime() + 2.75 * 60 * 60 * 1000).toISOString();
+  // Descubrimiento: una vez por hora (en el minuto 0). Antes cada 15 min.
+  const isDiscoveryMinute = now.getUTCMinutes() === 0;
+
+  // Partidos "activos": live, o con kickoff en la ventana [-3h, +2.75h]. El
+  // lookback de 3h es CLAVE: cubre un partido en curso (90' + entretiempo +
+  // alargue) aunque el cron se haya atrasado y todavía no lo hayamos marcado
+  // 'live'. Una sola query (OR) resuelve ambos casos → es el único costo de un
+  // minuto ocioso. Los timestamps van entre comillas por los caracteres
+  // reservados de PostgREST dentro de or()/and().
+  const { data: activeRows } = await supabase
+    .from("matches")
+    .select("external_id")
+    .or(
+      `status.eq.live,and(kickoff_at.gte."${windowStart}",kickoff_at.lte."${windowEnd}")`,
+    )
+    .neq("status", "finished");
+
+  const windowIds = [...new Set((activeRows ?? []).map((m) => m.external_id))];
+
+  // ── Camino ocioso barato ────────────────────────────────────────────────
+  // Sin partidos activos y fuera de la pasada de descubrimiento: no hay nada que
+  // sincronizar. Salir ya, con un solo SELECT hecho. Aquí vive el ahorro de CPU:
+  // casi todos los minutos del mes caen en esta rama.
+  if (windowIds.length === 0 && !isDiscoveryMinute) {
+    return NextResponse.json({ ok: true, synced: 0, idle: true });
+  }
+
+  // A partir de acá SÍ hay trabajo (partido activo o pasada de descubrimiento).
+
   // Auto-activar eliminatorias: cualquier partido KO inactivo que YA tenga ambos
-  // equipos definidos se abre para predecir. Corre en cada cron (no depende de
-  // re-importar el partido), así cubre los cargados a mano y los importados antes
+  // equipos definidos se abre para predecir. No necesita correr cada minuto (una
+  // predicción cierra 1h antes de su kickoff), así que basta con hacerlo cuando
+  // ya estamos haciendo trabajo: cubre los cargados a mano y los importados antes
   // de que el sync auto-activara, aunque su ronda ya no se re-fetchee.
   await supabase
     .from("matches")
@@ -50,45 +89,22 @@ export async function GET(request: NextRequest) {
     .neq("home_team", "")
     .neq("away_team", "");
 
-  // Solo llamamos a la API si hay partidos live o en la ventana [-3h, +2.75h].
-  // El lookback de 3h es CLAVE: cubre un partido en curso (90' + entretiempo +
-  // alargue) aunque el cron se haya atrasado y todavía no lo hayamos marcado
-  // 'live'. Con una ventana más corta, un partido que arrancó hace rato cae en
-  // un agujero y nunca se sincroniza. Fuera de la ventana: ok sin consumir cuota.
-  const now = new Date();
-  const windowStart = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
-  const windowEnd = new Date(now.getTime() + 2.75 * 60 * 60 * 1000).toISOString();
-
-  const [{ count: totalMatches }, { data: liveMatches }, { data: windowMatches }, { data: koRows }] =
-    await Promise.all([
-      supabase.from("matches").select("*", { count: "exact", head: true }),
-      supabase.from("matches").select("external_id").eq("status", "live"),
-      supabase.from("matches").select("external_id")
-        .gte("kickoff_at", windowStart)
-        .lte("kickoff_at", windowEnd)
-        .neq("status", "finished"),
-      // Solo filas REALES (no manuales) cuentan para "ronda completa": una fila
-      // manual-* es un placeholder que todavía espera al fixture del proveedor.
-      // Si contara, la ronda se daría por completa (16/16) y el descubrimiento
-      // dejaría de pedirla → el cruce real nunca entraría y reconcile nunca lo
-      // adoptaría (quedaría manual para siempre). Contando solo los reales, el
-      // descubrimiento sigue pidiendo la ronda mientras quede alguna manual.
-      supabase.from("matches").select("round")
-        .neq("round", "group_stage")
-        .not("external_id", "like", "manual-%"),
-    ]);
-
-  const activeMatches = [...(liveMatches ?? []), ...(windowMatches ?? [])];
-  const windowIds = [...new Set(activeMatches.map((m) => m.external_id))];
-
-  // Si no hay partidos en la DB (primera carga), fetchear todo el fixture.
-  const isBootstrap = (totalMatches ?? 0) === 0;
+  // ¿DB vacía? (primera carga) → bootstrap del fixture completo. Solo puede pasar
+  // cuando no hay ningún partido activo (windowIds vacío), así que evitamos el
+  // count en el caso común (partido en juego ⇒ la DB claramente no está vacía).
+  let isBootstrap = false;
+  if (windowIds.length === 0) {
+    const { count: totalMatches } = await supabase
+      .from("matches")
+      .select("*", { count: "exact", head: true });
+    isBootstrap = (totalMatches ?? 0) === 0;
+  }
 
   // ── Descubrimiento de fixtures KO ──────────────────────────────────────────
   // El proveedor publica las eliminatorias de a poco (a medida que se definen
   // los cruces). El sync por ventana solo refresca external_id YA conocidos, así
-  // que sin esto los partidos nuevos nunca entrarían. Throttle: solo cada 15 min
-  // para no quemar cuota cada minuto. Dos vías:
+  // que sin esto los partidos nuevos nunca entrarían. Throttle: solo cada 1 hora
+  // para no quemar cuota. Dos vías:
   //   1) eventsround de las rondas incompletas (barato, pero en la clave gratuita
   //      queda CACHEADO: los cruces que el proveedor publica después NO aparecen).
   //   2) searchevents POR NOMBRE de cada partido manual pendiente (manual-*): es
@@ -96,8 +112,19 @@ export async function GET(request: NextRequest) {
   //      searchevents lo devuelve en cuanto existe. reconcile lo adopta (re-keya el
   //      manual-* al id real) → de ahí en más el sync normal lo gobierna.
   let discoveryFixtures: ExternalMatch[] = [];
-  const shouldDiscover = !isBootstrap && now.getUTCMinutes() % 15 === 0;
+  const shouldDiscover = !isBootstrap && isDiscoveryMinute;
   if (shouldDiscover) {
+    // Solo filas REALES (no manuales) cuentan para "ronda completa": una fila
+    // manual-* es un placeholder que todavía espera al fixture del proveedor. Si
+    // contara, la ronda se daría por completa (16/16) y el descubrimiento dejaría
+    // de pedirla → el cruce real nunca entraría y reconcile nunca lo adoptaría
+    // (quedaría manual para siempre). Contando solo los reales, el descubrimiento
+    // sigue pidiendo la ronda mientras quede alguna manual.
+    const { data: koRows } = await supabase
+      .from("matches")
+      .select("round")
+      .neq("round", "group_stage")
+      .not("external_id", "like", "manual-%");
     const koCount = new Map<string, number>();
     for (const r of koRows ?? []) koCount.set(r.round, (koCount.get(r.round) ?? 0) + 1);
     const incompleteSdb = KO_ROUNDS

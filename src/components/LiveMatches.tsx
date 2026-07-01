@@ -188,7 +188,9 @@ export function LiveMatches({
   qualifyingThirds?: Set<string>;
 }) {
   const router = useRouter();
-  const now = useNow();
+  // El label "actualizado hace…" tiene granularidad de minutos, así que refrescar
+  // cada 30s es de sobra (antes cada 1s, re-renderizando la tarjeta cada segundo).
+  const now = useNow(30_000);
   const { goal, onDone } = useGoalCelebrations(matches);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const openGroupData = openGroup ? groups?.get(openGroup) : undefined;
