@@ -127,6 +127,7 @@ export interface Database {
           away_score_90: number | null;
           home_pen: number | null;
           away_pen: number | null;
+          reached_extra_time: boolean;
         };
         Insert: {
           id?: string;
@@ -148,6 +149,7 @@ export interface Database {
           away_score_90?: number | null;
           home_pen?: number | null;
           away_pen?: number | null;
+          reached_extra_time?: boolean;
         };
         Update: {
           id?: string;
@@ -169,6 +171,7 @@ export interface Database {
           away_score_90?: number | null;
           home_pen?: number | null;
           away_pen?: number | null;
+          reached_extra_time?: boolean;
         };
         Relationships: [];
       };

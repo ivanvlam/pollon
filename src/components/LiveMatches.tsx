@@ -12,7 +12,7 @@ import { MatchLiveRefresh } from "@/components/MatchLiveRefresh";
 import { TeamName } from "@/components/TeamName";
 import { ROUND_LABELS } from "@/lib/labels";
 import { liveProgressLabel } from "@/lib/liveMinute";
-import { calculateMatchScore, liveKnockoutWinner } from "@/lib/scoring";
+import { calculateMatchScore, liveKnockoutWinner, regulationScore } from "@/lib/scoring";
 import type { GroupClinch, LivePosition, StandingRow } from "@/lib/standings";
 import type { MatchWinner, Round } from "@/types";
 
@@ -32,6 +32,10 @@ export interface LiveMatchRow {
   away_team: string;
   home_score: number | null;
   away_score: number | null;
+  // Marcador a 90' congelado (KO en alargue). El scoring usa este, no el de
+  // cancha, para que la proyección en vivo no cuente los goles del alargue.
+  home_score_90: number | null;
+  away_score_90: number | null;
   live_minute: string | null;
   kickoff_at: string;
   pred: {
@@ -247,16 +251,19 @@ export function LiveMatches({
             m.pred.predicted_away !== null;
 
           // Puntos provisionales: lo que ganaría si el partido terminara ahora.
-          // En eliminatorias el clasificado provisional es el que va ganando
-          // (empate → null; el empate a 90' puntúa por sí solo).
+          // El marcador que puntúa es el de 90' (KO en alargue → congelado en
+          // home_score_90); así no se cuentan los goles del alargue, igual que
+          // en la pestaña predicciones. El clasificado provisional sí sigue el
+          // marcador de cancha (el que va ganando es el que avanzaría; empate → null).
+          const reg = regulationScore(m);
           const liveScore =
-            hasPred && m.home_score !== null && m.away_score !== null
+            hasPred && reg.home !== null && reg.away !== null
               ? calculateMatchScore(
                   {
                     round: m.round,
-                    home_score: m.home_score,
-                    away_score: m.away_score,
-                    winner: liveKnockoutWinner(m.round, m.home_score, m.away_score),
+                    home_score: reg.home,
+                    away_score: reg.away,
+                    winner: liveKnockoutWinner(m.round, m.home_score ?? 0, m.away_score ?? 0),
                   },
                   {
                     predicted_home: m.pred!.predicted_home,

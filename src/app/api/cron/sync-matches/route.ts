@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { fetchEventsByIds, fetchEventsByName, fetchWorldCupFixtures, type ExternalMatch } from "@/lib/thesportsdb";
 import { verifyCronSecret } from "@/lib/cron";
 import { reconcileKnockoutFixtures } from "@/lib/matches/reconcile";
+import { resolveScore90 } from "@/lib/matches/score90";
 import { recalculateMatchScores } from "@/lib/scoring-service";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 
@@ -200,18 +201,24 @@ export async function GET(request: NextRequest) {
   const externalIds = fixtures.map((f) => f.external_id);
   const { data: existing } = await supabase
     .from("matches")
-    .select("id, external_id, status, home_score_90, away_score_90")
+    .select("id, external_id, status, home_score_90, away_score_90, reached_extra_time")
     .in("external_id", externalIds.length > 0 ? externalIds : ["__none__"]);
 
   const prevStatus = new Map(
     (existing ?? []).map((m) => [m.external_id, m.status]),
   );
-  // Marcador a 90' ya capturado en vivo, para preservarlo cuando el partido
-  // entra al alargue/penales (ahí el fixture trae *_90 = null).
+  // Estado previo del marcador a 90' para preservarlo cuando el partido pasa al
+  // alargue/penales. reached_extra_time da MEMORIA: una vez visto un poll pasado
+  // del reglamentario, el 90' queda congelado aunque el cierre venga como 'FT'
+  // (la clave gratuita no siempre reporta 'AET'). Ver resolveScore90.
   const prev90 = new Map(
     (existing ?? []).map((m) => [
       m.external_id,
-      { h: m.home_score_90, a: m.away_score_90 },
+      {
+        home_score_90: m.home_score_90,
+        away_score_90: m.away_score_90,
+        reached_extra_time: m.reached_extra_time ?? false,
+      },
     ]),
   );
 
@@ -228,7 +235,12 @@ export async function GET(request: NextRequest) {
   // Eliminatorias quedan inactivas hasta que el admin las habilite manualmente.
   if (toUpsert.length > 0) {
     const { error: upsertErr } = await supabase.from("matches").upsert(
-      toUpsert.map((f) => ({
+      toUpsert.map((f) => {
+        // Marcador a 90': en reglamentario sigue al fixture; pasado el
+        // reglamentario (ahora o en un poll previo) queda congelado y no lo
+        // pisa el marcador de cancha aunque el cierre venga como 'FT'.
+        const s90 = resolveScore90(prev90.get(f.external_id), f);
+        return {
         external_id: f.external_id,
         round: f.round,
         group_name: f.group_name,
@@ -241,10 +253,9 @@ export async function GET(request: NextRequest) {
         winner: f.winner,
         sdb_round: f.sdb_round,
         live_minute: f.live_minute,
-        // Marcador a 90': en reglamentario lo trae el fixture; pasado el
-        // reglamentario viene null → conservamos el ya capturado en vivo.
-        home_score_90: f.home_score_90 ?? prev90.get(f.external_id)?.h ?? null,
-        away_score_90: f.away_score_90 ?? prev90.get(f.external_id)?.a ?? null,
+        home_score_90: s90.home_score_90,
+        away_score_90: s90.away_score_90,
+        reached_extra_time: s90.reached_extra_time,
         home_pen: f.home_pen,
         away_pen: f.away_pen,
         updated_at: new Date().toISOString(),
@@ -254,7 +265,8 @@ export async function GET(request: NextRequest) {
         // se activa solo (antes los KO quedaban inactivos hasta habilitarlos a
         // mano). No se desactiva nada: solo se setea true cuando hay equipos.
         ...(f.home_team && f.away_team ? { is_active: true } : {}),
-      })),
+        };
+      }),
       { onConflict: "external_id" },
     );
 
