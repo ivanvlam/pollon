@@ -22,7 +22,9 @@ export async function submitPrediction(input: {
     p_match_id: parsed.data.matchId,
     p_predicted_home: parsed.data.predictedHome,
     p_predicted_away: parsed.data.predictedAway,
-    p_predicted_winner: parsed.data.predictedWinner ?? null,
+    // Omitido (undefined) → la función usa su default NULL. Los tipos generados
+    // por la CLI tipan el arg como opcional, no nullable.
+    p_predicted_winner: parsed.data.predictedWinner ?? undefined,
   });
 
   if (error) {
