@@ -238,28 +238,41 @@ export function TeamModal({ team, standing, matches, groupName, position, progre
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 text-sm">
-                      <div className="flex min-w-0 items-center justify-end gap-1.5">
-                        <span className="min-w-0 break-words text-right font-medium leading-tight">{homeEs}</span>
-                        <Flag team={match.home_team} className="shrink-0" />
+                    <div className="text-sm">
+                      {/* Nombres en mobile (fila separada): el marcador no deja espacio inline */}
+                      <div className="mb-2 flex items-center justify-between font-medium sm:hidden">
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <Flag team={match.home_team} className="shrink-0" />
+                          <span className="truncate">{homeEs}</span>
+                        </span>
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <span className="truncate">{awayEs}</span>
+                          <Flag team={match.away_team} className="shrink-0" />
+                        </span>
                       </div>
-                      <div className="flex flex-col items-center px-3 text-center">
-                        {live || match.home_score !== null ? (
-                          <span className="text-xl font-bold tabular-nums text-neutral-200">
-                            {match.home_score ?? 0} – {match.away_score ?? 0}
-                          </span>
-                        ) : (
-                          <span className="text-neutral-600">vs</span>
-                        )}
-                        {match.home_pen != null && match.away_pen != null && (
-                          <span className="whitespace-nowrap text-[10px] font-medium text-neutral-400">
-                            ({match.home_pen}-{match.away_pen} pen.)
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex min-w-0 items-center gap-1.5">
-                        <Flag team={match.away_team} className="shrink-0" />
-                        <span className="min-w-0 break-words font-medium leading-tight">{awayEs}</span>
+                      <div className="flex justify-center sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-x-2">
+                        <div className="hidden min-w-0 items-center justify-end gap-1.5 sm:flex">
+                          <span className="truncate text-right font-medium leading-tight">{homeEs}</span>
+                          <Flag team={match.home_team} className="shrink-0" />
+                        </div>
+                        <div className="flex flex-col items-center px-3 text-center">
+                          {live || match.home_score !== null ? (
+                            <span className="text-xl font-bold tabular-nums text-neutral-200">
+                              {match.home_score ?? 0} – {match.away_score ?? 0}
+                            </span>
+                          ) : (
+                            <span className="text-neutral-600">vs</span>
+                          )}
+                          {match.home_pen != null && match.away_pen != null && (
+                            <span className="whitespace-nowrap text-[10px] font-medium text-neutral-400">
+                              ({match.home_pen}-{match.away_pen} pen.)
+                            </span>
+                          )}
+                        </div>
+                        <div className="hidden min-w-0 items-center gap-1.5 sm:flex">
+                          <Flag team={match.away_team} className="shrink-0" />
+                          <span className="truncate font-medium leading-tight">{awayEs}</span>
+                        </div>
                       </div>
                     </div>
 
