@@ -2,10 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { fetchEventsByIds, fetchEventsByName, fetchWorldCupFixtures, type ExternalMatch } from "@/lib/thesportsdb";
 import { verifyCronSecret } from "@/lib/cron";
-import { reconcileKnockoutFixtures } from "@/lib/matches/reconcile";
+import { reconcileKnockoutFixtures, teamPairKey } from "@/lib/matches/reconcile";
+import { buildStandingsByGroup, resolveBracket } from "@/lib/matches/resolveBracket";
 import { resolveScore90 } from "@/lib/matches/score90";
 import { recalculateMatchScores } from "@/lib/scoring-service";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import type { Round } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -115,39 +117,61 @@ export async function GET(request: NextRequest) {
   let discoveryFixtures: ExternalMatch[] = [];
   const shouldDiscover = !isBootstrap && isDiscoveryMinute;
   if (shouldDiscover) {
-    // Solo filas REALES (no manuales) cuentan para "ronda completa": una fila
-    // manual-* es un placeholder que todavía espera al fixture del proveedor. Si
-    // contara, la ronda se daría por completa (16/16) y el descubrimiento dejaría
-    // de pedirla → el cruce real nunca entraría y reconcile nunca lo adoptaría
-    // (quedaría manual para siempre). Contando solo los reales, el descubrimiento
-    // sigue pidiendo la ronda mientras quede alguna manual.
-    const { data: koRows } = await supabase
-      .from("matches")
-      .select("round")
-      .neq("round", "group_stage")
-      .not("external_id", "like", "manual-%");
+    // Una sola lectura de todos los KO + los partidos de grupo, para: (a) contar
+    // rondas incompletas, (b) reconciliar manuales pendientes, y (c) resolver el
+    // bracket y detectar cruces YA definidos que todavía no están en la DB.
+    const [{ data: koRowsAll }, { data: groupRows }] = await Promise.all([
+      supabase
+        .from("matches")
+        .select("id, external_id, round, home_team, away_team, status, winner")
+        .neq("round", "group_stage"),
+      supabase
+        .from("matches")
+        .select("group_name, home_team, away_team, home_score, away_score, status")
+        .eq("round", "group_stage"),
+    ]);
+    const koRows = koRowsAll ?? [];
+
+    // (a) eventsround de las rondas incompletas. Cuenta SOLO filas reales: una
+    // fila manual-* es un placeholder que aún espera el fixture del proveedor; si
+    // contara, la ronda se daría por completa y dejaría de pedirse → el cruce real
+    // nunca entraría y reconcile nunca lo adoptaría (quedaría manual para siempre).
     const koCount = new Map<string, number>();
-    for (const r of koRows ?? []) koCount.set(r.round, (koCount.get(r.round) ?? 0) + 1);
+    for (const r of koRows) {
+      if (!r.external_id.startsWith("manual-")) koCount.set(r.round, (koCount.get(r.round) ?? 0) + 1);
+    }
     const incompleteSdb = KO_ROUNDS
       .filter((k) => (koCount.get(k.round) ?? 0) < k.expected)
       .map((k) => k.sdb);
 
-    // Partidos cargados a mano todavía sin reconciliar → buscar por nombre.
-    const { data: manualKo } = await supabase
-      .from("matches")
-      .select("home_team, away_team")
-      .neq("round", "group_stage")
-      .like("external_id", "manual-%")
-      .neq("home_team", "")
-      .neq("away_team", "");
-    const pairs = (manualKo ?? []).map((m) => ({ home: m.home_team, away: m.away_team }));
+    // (b) Manuales sin reconciliar → buscar por nombre, FORZANDO su ronda.
+    const manualPairs = koRows
+      .filter((r) => r.external_id.startsWith("manual-") && r.home_team && r.away_team)
+      .map((r) => ({ home: r.home_team, away: r.away_team, round: r.round as Round }));
+
+    // (c) Cruces ya definidos por el bracket que todavía no están en la DB. El
+    // proveedor publica algunos KO con intRound=0 y fuera de eventsround (ej. el
+    // cuarto Francia-Marruecos), así que eventsround no los trae. Los buscamos por
+    // nombre forzando la ronda que dicta el esquema: apenas terminan los dos
+    // partidos que alimentan un cruce, este entra y se auto-activa para predecir.
+    const resolved = resolveBracket(buildStandingsByGroup(groupRows ?? []), koRows);
+    const resolvedPairs = [...resolved.values()]
+      .filter((s) => s.homeTeam && s.awayTeam && !s.dbMatch)
+      .map((s) => ({ home: s.homeTeam!, away: s.awayTeam!, round: s.round }));
+
+    // Dedupe por {ronda + par sin orden}.
+    const pairByKey = new Map<string, { home: string; away: string; round: Round }>();
+    for (const p of [...manualPairs, ...resolvedPairs]) {
+      pairByKey.set(`${p.round}::${teamPairKey(p.home, p.away)}`, p);
+    }
+    const namePairs = [...pairByKey.values()];
 
     const [roundFx, nameFx] = await Promise.all([
       incompleteSdb.length > 0
         ? fetchWorldCupFixtures(incompleteSdb).catch(() => [] as ExternalMatch[])
         : Promise.resolve([] as ExternalMatch[]),
-      pairs.length > 0
-        ? fetchEventsByName(pairs).catch(() => [] as ExternalMatch[])
+      namePairs.length > 0
+        ? fetchEventsByName(namePairs).catch(() => [] as ExternalMatch[])
         : Promise.resolve([] as ExternalMatch[]),
     ]);
     // searchevents es más fresco que eventsround → que pise en el merge.

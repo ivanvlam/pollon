@@ -13,6 +13,7 @@ import {
   KNOCKOUT_MATCHES,
   type KnockoutSlot,
 } from "@/lib/knockoutSchedule";
+import { resolveBracket } from "@/lib/matches/resolveBracket";
 import { createClient } from "@/lib/supabase/server";
 import {
   computeGroupClinch,
@@ -157,19 +158,17 @@ export default async function BracketPage({ params }: { params: { id: string } }
     winnerTeam: string | null;
   }
 
-  const winnerTeamOf = (m: KoMatch | null): string | null =>
-    m && m.status === "finished" && m.winner
-      ? (m.winner === "home" ? m.home_team : m.away_team)
-      : null;
-  const loserTeamOf = (m: KoMatch | null): string | null =>
-    m && m.status === "finished" && m.winner
-      ? (m.winner === "home" ? m.away_team : m.home_team)
-      : null;
+  // La resolución de equipos/ganador/partido-de-DB vive en resolveBracket,
+  // COMPARTIDA con el cron sync-matches para que ambos coincidan en qué juega
+  // cada llave. Aquí solo se le añade encima la etiqueta ("1° Grupo X" / "Ganador
+  // Partido N") y el groupData del modal, que son cosa de la vista.
+  const resolvedSlots = resolveBracket(standingsByGroup, allKnockout ?? []);
 
-  const resolveGroupSide = (slot: Extract<KnockoutSlot, { group: string }>): SideInfo => {
-    const s = standingsByGroup.get(slot.group);
-    const idx = slot.type === "winner" ? 0 : slot.type === "runnerUp" ? 1 : 2;
-    const team = s?.[idx]?.team ?? null;
+  const sideInfo = (slot: KnockoutSlot, team: string | null): SideInfo => {
+    if (slot.type === "feeder")
+      return { team, label: `Ganador Partido ${slot.matchNum}`, groupData: null, feeder: slot.matchNum };
+    if (slot.type === "loser")
+      return { team, label: `Perdedor Partido ${slot.matchNum}`, groupData: null, feeder: slot.matchNum };
     const pos = slot.type === "winner" ? "1°" : slot.type === "runnerUp" ? "2°" : "3°";
     return {
       team,
@@ -179,46 +178,18 @@ export default async function BracketPage({ params }: { params: { id: string } }
     };
   };
 
-  // DB knockout por ronda (para matchear por equipos).
-  const dbByRound = new Map<Round, KoMatch[]>();
-  const usedByRound = new Map<Round, Set<string>>();
-  for (const round of ALL_KO_ROUNDS) { dbByRound.set(round, []); usedByRound.set(round, new Set()); }
-  for (const m of allKnockout ?? []) dbByRound.get(m.round as Round)?.push(m);
-
   const slotByNum = new Map<number, SlotInfo>();
-  const nums = Object.keys(KNOCKOUT_MATCHES).map(Number).sort((a, b) => a - b);
-  for (const num of nums) {
+  for (const num of Object.keys(KNOCKOUT_MATCHES).map(Number)) {
     const def = KNOCKOUT_MATCHES[num]!;
-    const resolveSide = (slot: KnockoutSlot): SideInfo => {
-      if (slot.type === "feeder") {
-        const fed = slotByNum.get(slot.matchNum);
-        const team = fed?.winnerTeam ?? null;
-        return { team, label: `Ganador Partido ${slot.matchNum}`, groupData: null, feeder: slot.matchNum };
-      }
-      if (slot.type === "loser") {
-        const fed = slotByNum.get(slot.matchNum);
-        const team = fed ? loserTeamOf(fed.match) : null;
-        return { team, label: `Perdedor Partido ${slot.matchNum}`, groupData: null, feeder: slot.matchNum };
-      }
-      return resolveGroupSide(slot);
-    };
-    const home = resolveSide(def.home);
-    const away = resolveSide(def.away);
-
-    const known = [home.team, away.team].filter((t): t is string => t !== null);
-    const dbList = dbByRound.get(def.round) ?? [];
-    const used = usedByRound.get(def.round)!;
-    let match: KoMatch | null = null;
-    if (known.length > 0) {
-      match = dbList.find(
-        (m) => !used.has(m.id) && known.every((t) => m.home_team === t || m.away_team === t),
-      ) ?? null;
-      if (match) used.add(match.id);
-    }
+    const rs = resolvedSlots.get(num)!;
     slotByNum.set(num, {
-      num, round: def.round, home, away, match,
-      kickoff: match?.kickoff_at ?? def.kickoff,
-      winnerTeam: winnerTeamOf(match),
+      num,
+      round: rs.round,
+      home: sideInfo(def.home, rs.homeTeam),
+      away: sideInfo(def.away, rs.awayTeam),
+      match: rs.dbMatch,
+      kickoff: rs.dbMatch?.kickoff_at ?? rs.kickoff,
+      winnerTeam: rs.winnerTeam,
     });
   }
 

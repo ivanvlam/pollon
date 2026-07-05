@@ -82,6 +82,14 @@ const SDB_ROUND_TO_ROUND: Record<number, Round> = {
   150: "semifinal", 200: "final",
 };
 
+// Enum interno → número de ronda SDB canónico. Se usa al importar un cruce por
+// nombre con la ronda FORZADA (el proveedor a veces publica los KO con
+// intRound=0), para guardar un sdb_round coherente igual que si viniera por
+// eventsround.
+const ROUND_TO_SDB: Partial<Record<Round, number>> = {
+  round_of_32: 32, round_of_16: 16, quarterfinal: 125, semifinal: 150, final: 200,
+};
+
 // "AP" = After Penalties (lo que de verdad usa la API en partidos a penales),
 // "AET" = After Extra Time. Sin "AP" en esta lista, los partidos a penales NO
 // se auto-finalizaban (había que marcarlos a mano en /admin).
@@ -320,29 +328,40 @@ export async function fetchEventsByIds(ids: string[]): Promise<ExternalMatch[]> 
  * liga, así que un homónimo de otra competición no se cuela).
  */
 export async function fetchEventsByName(
-  pairs: { home: string; away: string }[],
+  pairs: { home: string; away: string; round?: Round }[],
 ): Promise<ExternalMatch[]> {
   const key = process.env.THESPORTSDB_KEY || "3";
   const base = `https://www.thesportsdb.com/api/v1/json/${key}`;
 
+  // searchevents matchea el nombre exacto "A vs B" y es SENSIBLE al orden. El
+  // bracket puede resolver un cruce en distinto orden que el proveedor, así que
+  // probamos los dos órdenes y nos quedamos con el primero que exista.
+  const searchOne = async (a: string, b: string): Promise<SdbEvent | null> => {
+    const name = encodeURIComponent(`${a} vs ${b}`);
+    const res = await fetch(
+      `${base}/searchevents.php?e=${name}&s=${WORLD_CUP_SEASON}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as { event: SdbEvent[] | null };
+    return (json.event ?? []).find((e) => e.idLeague === String(WORLD_CUP_LEAGUE_ID)) ?? null;
+  };
+
   const results = await Promise.all(
-    pairs.map(async ({ home, away }) => {
+    pairs.map(async ({ home, away, round: forcedRound }) => {
       // Resiliente por-item: una request que falla no debe hundir el lote.
       try {
-        const name = encodeURIComponent(`${home} vs ${away}`);
-        const res = await fetch(
-          `${base}/searchevents.php?e=${name}&s=${WORLD_CUP_SEASON}`,
-          { cache: "no-store" },
-        );
-        if (!res.ok) return null;
-        const json = (await res.json()) as { event: SdbEvent[] | null };
-        const ev = (json.event ?? []).find(
-          (e) => e.idLeague === String(WORLD_CUP_LEAGUE_ID),
-        );
+        const ev = (await searchOne(home, away)) ?? (await searchOne(away, home));
         if (!ev) return null;
         const sdbRound = Number(ev.intRound);
-        const round = SDB_ROUND_TO_ROUND[sdbRound];
-        return round ? toExternal(ev, round, sdbRound) : null;
+        // Cuando el llamador ya sabe la ronda (cruce resuelto por el bracket o
+        // fila manual), la FORZAMOS: el proveedor publica algunos KO con
+        // intRound=0, que no está en SDB_ROUND_TO_ROUND y haría descartar el
+        // partido. Sin ronda conocida, se deriva del intRound como siempre.
+        const round = forcedRound ?? SDB_ROUND_TO_ROUND[sdbRound];
+        if (!round) return null;
+        const sdbNum = forcedRound ? (ROUND_TO_SDB[forcedRound] ?? sdbRound) : sdbRound;
+        return toExternal(ev, round, sdbNum);
       } catch {
         return null;
       }
