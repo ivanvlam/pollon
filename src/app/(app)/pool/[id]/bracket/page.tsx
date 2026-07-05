@@ -339,7 +339,7 @@ export default async function BracketPage({ params }: { params: { id: string } }
 
       {/* ── Desktop: cuadro completo (swipe horizontal + vertical) ──────── */}
       <p className="hidden text-xs text-neutral-600 md:block">
-        Deslizá para ver todas las rondas; los encabezados quedan fijos arriba.
+        Desliza para ver todas las rondas; los encabezados quedan fijos arriba.
       </p>
 
       <div className="hidden md:block" style={{ containerType: "inline-size" }}>
