@@ -50,7 +50,10 @@ export async function GET(request: NextRequest) {
   const windowStart = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
   const windowEnd = new Date(now.getTime() + 2.75 * 60 * 60 * 1000).toISOString();
   // Descubrimiento: una vez por hora (en el minuto 0). Antes cada 15 min.
-  const isDiscoveryMinute = now.getUTCMinutes() === 0;
+  // `?discover=1` (protegido por el mismo CRON_SECRET) lo fuerza a demanda, para
+  // importar cruces recién definidos sin esperar al próximo minuto 0.
+  const forceDiscover = request.nextUrl.searchParams.get("discover") === "1";
+  const isDiscoveryMinute = now.getUTCMinutes() === 0 || forceDiscover;
 
   // Partidos "activos": live, o con kickoff en la ventana [-3h, +2.75h]. El
   // lookback de 3h es CLAVE: cubre un partido en curso (90' + entretiempo +
