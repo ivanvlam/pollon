@@ -202,7 +202,7 @@ export default async function PoolRankingPage({
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="stagger">
                 {rows.map((row, i) => {
                   const isMe = row.user_id === user!.id;
                   const { rank, tied } = rankInfo[i]!;

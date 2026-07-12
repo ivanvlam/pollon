@@ -321,7 +321,7 @@ export default async function DashboardPage() {
             </Link>
           </div>
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="stagger grid gap-3 sm:grid-cols-2">
             {pools.map((pool) => {
               const rows = pool.rows;
               const count = rows.length;
