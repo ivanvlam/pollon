@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { buttonClasses } from "@/components/ui/Button";
 import { removeMember } from "@/lib/pools/actions";
@@ -43,6 +44,9 @@ export function RemoveMemberButton({
             if (r) {
               setError(r.error);
               setConfirming(false);
+              toast.error(r.error);
+            } else {
+              toast.success("Participante quitado");
             }
           })
         }

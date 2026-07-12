@@ -28,7 +28,7 @@ export function Stepper({
         aria-label={`Restar gol a ${ariaLabel}`}
         disabled={disabled || (num !== null && num <= min)}
         onClick={() => onChange(clamp((num ?? min + 1) - 1))}
-        className="h-9 w-9 rounded-lg border border-neutral-700 text-xl leading-none text-neutral-300 transition hover:bg-neutral-800 disabled:opacity-40"
+        className="flex h-11 w-11 items-center justify-center rounded-lg border border-neutral-700 text-xl leading-none text-neutral-300 transition hover:bg-neutral-800 active:scale-90 motion-reduce:active:scale-100 disabled:opacity-40"
       >
         −
       </button>
@@ -48,7 +48,7 @@ export function Stepper({
         aria-label={`Sumar gol a ${ariaLabel}`}
         disabled={disabled || (num !== null && num >= max)}
         onClick={() => onChange(clamp((num ?? -1) + 1))}
-        className="h-9 w-9 rounded-lg border border-neutral-700 text-xl leading-none text-neutral-300 transition hover:bg-neutral-800 disabled:opacity-40"
+        className="flex h-11 w-11 items-center justify-center rounded-lg border border-neutral-700 text-xl leading-none text-neutral-300 transition hover:bg-neutral-800 active:scale-90 motion-reduce:active:scale-100 disabled:opacity-40"
       >
         +
       </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -30,10 +31,12 @@ export function PoolNameForm({
       if (r) {
         setIsError(true);
         setMsg(r.error);
+        toast.error(r.error);
       } else {
         setIsError(false);
         setSaved(trimmed);
         setMsg("Nombre actualizado ✓");
+        toast.success("Nombre actualizado");
       }
     });
   }

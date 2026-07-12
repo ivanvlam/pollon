@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
-import { createPortal } from "react-dom";
-
 import { Flag } from "@/components/Flag";
 import { rowClinchClass, type GroupMatchRow } from "@/components/GroupCard";
 import { LockCountdown } from "@/components/LockCountdown";
 import { PredictionForm } from "@/components/PredictionForm";
 import { TeamName } from "@/components/TeamName";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { formatLiveMinute } from "@/lib/liveMinute";
 import { calculateMatchScore } from "@/lib/scoring";
 import type { GroupClinch, StandingRow } from "@/lib/standings";
@@ -34,42 +37,13 @@ const fmtDate = (iso: string) => {
 };
 
 export function GroupModal({ name, standings, matches, onClose, qualifyingThirds, clinch }: Props) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, []);
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="flex max-h-[90dvh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-neutral-700 bg-neutral-950"
-        onClick={(e) => e.stopPropagation()}
-      >
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="flex max-h-[90dvh] w-full max-w-4xl flex-col gap-0 overflow-hidden rounded-2xl border-neutral-700 bg-neutral-950 p-0">
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-neutral-800 px-5 py-4">
-          <h2 className="text-base font-semibold">{name}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="rounded-full p-1.5 text-neutral-400 transition hover:bg-neutral-800 hover:text-neutral-100"
-          >
-            ✕
-          </button>
-        </div>
+        <DialogHeader className="shrink-0 border-b border-neutral-800 px-5 py-4">
+          <DialogTitle className="text-base font-semibold">{name}</DialogTitle>
+        </DialogHeader>
 
         {/* Contenido scrollable */}
         <div className="flex-1 space-y-6 overflow-y-auto px-5 py-4">
@@ -260,8 +234,7 @@ export function GroupModal({ name, standings, matches, onClose, qualifyingThirds
             })}
           </div>
         </div>
-      </div>
-    </div>,
-    document.body,
+      </DialogContent>
+    </Dialog>
   );
 }

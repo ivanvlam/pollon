@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
-import { createPortal } from "react-dom";
-
 import { Flag } from "@/components/Flag";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ROUND_LABELS } from "@/lib/labels";
 import { formatLiveMinute } from "@/lib/liveMinute";
 import type { StandingRow } from "@/lib/standings";
@@ -60,21 +63,6 @@ const fmtDate = (iso: string) => {
 };
 
 export function TeamModal({ team, standing, matches, groupName, position, progress, onClose, onOpenGroup }: Props) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, []);
-
   const teamEs = toSpanish(team);
   const groupLabel = groupName ? groupName.replace(/^Group\s+/i, "Grupo ") : null;
 
@@ -96,21 +84,15 @@ export function TeamModal({ team, standing, matches, groupName, position, progre
       ]
     : [];
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="flex max-h-[85dvh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-neutral-700 bg-neutral-950"
-        onClick={(e) => e.stopPropagation()}
-      >
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="z-[60] flex max-h-[85dvh] w-full max-w-xl flex-col gap-0 overflow-hidden rounded-2xl border-neutral-700 bg-neutral-950 p-0">
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-neutral-800 px-5 py-4">
+        <DialogHeader className="shrink-0 border-b border-neutral-800 px-5 py-4">
           <div className="flex items-center gap-3">
             <Flag team={team} className="h-9 w-14 shrink-0" />
             <div>
-              <h2 className="text-xl font-bold">{teamEs}</h2>
+              <DialogTitle className="text-xl font-bold">{teamEs}</DialogTitle>
               {progress && (
                 <p className={`text-sm font-semibold ${PROGRESS_COLOR[progress.kind]}`}>
                   {progress.label}
@@ -139,15 +121,7 @@ export function TeamModal({ team, standing, matches, groupName, position, progre
               )}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="rounded-full p-1.5 text-neutral-400 transition hover:bg-neutral-800 hover:text-neutral-100"
-          >
-            ✕
-          </button>
-        </div>
+        </DialogHeader>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
           {/* Stats grid */}
@@ -296,8 +270,7 @@ export function TeamModal({ team, standing, matches, groupName, position, progre
             </div>
           )}
         </div>
-      </div>
-    </div>,
-    document.body,
+      </DialogContent>
+    </Dialog>
   );
 }
