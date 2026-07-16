@@ -28,6 +28,7 @@ const ROUND_DEFS: { r: number; round: Round }[] = [
   { r: 16, round: "round_of_16" },
   { r: 125, round: "quarterfinal" },
   { r: 150, round: "semifinal" },
+  { r: 160, round: "third_place" },
   { r: 200, round: "final" },
 ];
 
@@ -42,7 +43,7 @@ export interface ExternalMatch {
   home_score: number | null; // resultado en cancha (incluye alargue)
   away_score: number | null;
   winner: MatchWinner | null;
-  sdb_round: number; // número de ronda de TheSportsDB (1,2,3,16,32,125,150,200)
+  sdb_round: number; // número de ronda de TheSportsDB (1,2,3,16,32,125,150,160,200)
   live_minute: string | null; // minuto de juego (strProgress), solo si está live
   // Marcador a 90' que reporta la API EN ESE MOMENTO (= home_score salvo cuando
   // el partido ya pasó del reglamentario). null si ya está en alargue/penales:
@@ -79,7 +80,7 @@ interface SdbEvent {
 const SDB_ROUND_TO_ROUND: Record<number, Round> = {
   1: "group_stage", 2: "group_stage", 3: "group_stage",
   32: "round_of_32", 16: "round_of_16", 125: "quarterfinal",
-  150: "semifinal", 200: "final",
+  150: "semifinal", 160: "third_place", 200: "final",
 };
 
 // Enum interno → número de ronda SDB canónico. Se usa al importar un cruce por
@@ -87,7 +88,8 @@ const SDB_ROUND_TO_ROUND: Record<number, Round> = {
 // intRound=0), para guardar un sdb_round coherente igual que si viniera por
 // eventsround.
 const ROUND_TO_SDB: Partial<Record<Round, number>> = {
-  round_of_32: 32, round_of_16: 16, quarterfinal: 125, semifinal: 150, final: 200,
+  round_of_32: 32, round_of_16: 16, quarterfinal: 125, semifinal: 150,
+  third_place: 160, final: 200,
 };
 
 // "AP" = After Penalties (lo que de verdad usa la API en partidos a penales),

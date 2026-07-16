@@ -37,6 +37,7 @@ const STAGE_TO_ROUND: Record<string, Round> = {
   LAST_16: "round_of_16",
   QUARTER_FINALS: "quarterfinal",
   SEMI_FINALS: "semifinal",
+  THIRD_PLACE: "third_place",
   FINAL: "final",
 };
 const STAGE_TO_SDB_ROUND: Record<string, number> = {
@@ -44,6 +45,7 @@ const STAGE_TO_SDB_ROUND: Record<string, number> = {
   LAST_16: 16,
   QUARTER_FINALS: 125,
   SEMI_FINALS: 150,
+  THIRD_PLACE: 160,
   FINAL: 200,
 };
 
@@ -90,7 +92,7 @@ function deriveWinner(
 
 function toExternal(m: FdMatch): ExternalMatch | null {
   const round = STAGE_TO_ROUND[m.stage];
-  if (!round) return null; // p.ej. THIRD_PLACE u otros stages no soportados
+  if (!round) return null; // stage no soportado
 
   const status = mapStatus(m.status);
   const home = m.score.fullTime.home;
