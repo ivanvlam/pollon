@@ -27,7 +27,9 @@ export default async function AppLayout({
         </Link>
         <LogoutButton />
       </header>
-      <div className="mx-auto max-w-4xl px-6 py-8">{children}</div>
+      <div className="mx-auto max-w-4xl px-6 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
+        {children}
+      </div>
     </div>
   );
 }

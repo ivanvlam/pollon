@@ -1,6 +1,8 @@
 "use client";
 
+import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { Flag } from "@/components/Flag";
 import { Stepper } from "@/components/Stepper";
@@ -78,21 +80,29 @@ export function PredictionForm({
     }
 
     setState("saving");
-    timer.current = setTimeout(async () => {
-      const result = await submitPrediction({
-        matchId,
-        predictedHome: h,
-        predictedAway: a,
-        predictedWinner: winner,
+    timer.current = setTimeout(() => performSave(h, a, winner), PREDICTION_DEBOUNCE_MS);
+  }
+
+  async function performSave(h: number, a: number, winner: MatchWinner | undefined) {
+    setState("saving");
+    const result = await submitPrediction({
+      matchId,
+      predictedHome: h,
+      predictedAway: a,
+      predictedWinner: winner,
+    });
+    if (result.ok) {
+      setState("saved");
+      onSaved?.(matchId, h, a, winner ?? null);
+    } else {
+      setState("error");
+      setErrorMsg(result.error);
+      // Toast persistente por si el usuario no está mirando la línea de estado.
+      toast.error(`No se pudo guardar ${homeTeam} vs ${awayTeam}`, {
+        description: result.error,
+        action: { label: "Reintentar", onClick: () => performSave(h, a, winner) },
       });
-      if (result.ok) {
-        setState("saved");
-        onSaved?.(matchId, h, a, winner ?? null);
-      } else {
-        setState("error");
-        setErrorMsg(result.error);
-      }
-    }, PREDICTION_DEBOUNCE_MS);
+    }
   }
 
   const chip = (active: boolean) =>
@@ -193,10 +203,28 @@ export function PredictionForm({
         </p>
       )}
 
-      <p className="h-4 text-center text-xs" aria-live="polite">
-        {state === "saving" && <span className="text-neutral-500">Guardando…</span>}
-        {state === "saved" && <span className="text-emerald-400">Guardado ✓</span>}
-        {state === "error" && <span className="text-red-400">{errorMsg}</span>}
+      <p
+        className="flex h-4 items-center justify-center gap-1 text-center text-xs"
+        aria-live="polite"
+      >
+        {state === "saving" && (
+          <span className="flex items-center gap-1 text-neutral-500">
+            <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+            Guardando…
+          </span>
+        )}
+        {state === "saved" && (
+          <span className="flex items-center gap-1 text-emerald-400">
+            <Check className="h-3 w-3" aria-hidden />
+            Guardado
+          </span>
+        )}
+        {state === "error" && (
+          <span className="flex items-center gap-1 text-red-400">
+            <AlertCircle className="h-3 w-3" aria-hidden />
+            {errorMsg}
+          </span>
+        )}
       </p>
     </div>
   );
