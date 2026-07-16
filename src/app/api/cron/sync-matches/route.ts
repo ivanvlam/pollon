@@ -21,6 +21,7 @@ const KO_ROUNDS: { round: string; sdb: number; expected: number }[] = [
   { round: "round_of_16", sdb: 16, expected: 8 },
   { round: "quarterfinal", sdb: 125, expected: 4 },
   { round: "semifinal", sdb: 150, expected: 2 },
+  { round: "third_place", sdb: 160, expected: 1 },
   { round: "final", sdb: 200, expected: 1 },
 ];
 
