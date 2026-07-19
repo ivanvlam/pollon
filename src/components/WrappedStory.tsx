@@ -178,7 +178,7 @@ export function WrappedStory({ data }: { data: WrappedData }) {
 
   return (
     <div
-      className={`fixed inset-0 z-[100] flex touch-none cursor-pointer select-none flex-col overflow-hidden bg-gradient-to-b ${slide.bg} text-white transition-[background-color] duration-500`}
+      className="fixed inset-0 z-[100] flex touch-none cursor-pointer select-none flex-col overflow-hidden bg-neutral-950 text-white"
       onClick={onTap}
       onTouchStart={(e) => (touchStartX.current = e.touches[0]!.clientX)}
       onTouchEnd={(e) => {
@@ -194,12 +194,22 @@ export function WrappedStory({ data }: { data: WrappedData }) {
     >
       <StoryStyles />
 
+      {/* Fondo por slide: los gradientes son background-image (no
+          transicionable), así que el cambio se hace con crossfade de una capa
+          re-montada por slide. -z-10 la deja bajo el contenido pero sobre el
+          fondo neutral del contenedor. */}
+      <div
+        key={`bg-${i}`}
+        aria-hidden
+        className={`wrapped-bg absolute inset-0 -z-10 bg-gradient-to-b ${slide.bg}`}
+      />
+
       {/* Barras de progreso segmentadas */}
       <div className="flex gap-1.5 px-3 pb-1 pt-[max(0.75rem,env(safe-area-inset-top))]">
         {slides.map((_, idx) => (
           <div key={idx} className="h-1 flex-1 overflow-hidden rounded-full bg-white/25">
             <div
-              className="h-full rounded-full bg-white transition-all duration-300"
+              className="h-full rounded-full bg-white transition-[width] duration-300 ease-out"
               style={{ width: idx <= i ? "100%" : "0%" }}
             />
           </div>
@@ -230,8 +240,8 @@ export function WrappedStory({ data }: { data: WrappedData }) {
         <SlideContent data={data} kind={slide.kind} onShare={share} onRestart={() => setI(0)} />
       </div>
 
-      {/* Pista de navegación */}
-      {i < last && (
+      {/* Pista de navegación (el intro ya trae su propio "Toca para empezar") */}
+      {i > 0 && i < last && (
         <p className="pointer-events-none pb-[max(1rem,env(safe-area-inset-bottom))] text-center text-xs text-white/60">
           Toca para continuar →
         </p>
@@ -460,9 +470,11 @@ function SlideContent({
           {data.poolWinner?.isMe && (
             <p className="anim-3 mt-2 text-xl font-bold text-emerald-300">¡Eres tú! 🎉</p>
           )}
+          {/* Solo visible en el preview de admin: con el gate abierto la final
+              ya terminó y siempre se muestra "Campeón de la polla". */}
           {!data.tournamentFinished && (
-            <p className="anim-4 mt-3 text-sm text-white/70">
-              El torneo sigue: vuelve al terminar la final para el veredicto final.
+            <p className="anim-4 mt-3 text-sm text-white/60">
+              (Preview: la final aún no termina, el resultado puede cambiar)
             </p>
           )}
         </>
@@ -498,7 +510,7 @@ function SlideContent({
                 e.stopPropagation();
                 onShare();
               }}
-              className="rounded-full bg-white px-6 py-3 text-base font-bold text-neutral-900 shadow-lg transition active:scale-95"
+              className="rounded-full bg-white px-6 py-3 text-base font-bold text-neutral-900 shadow-lg transition active:scale-95 motion-reduce:active:scale-100"
             >
               📲 Compartir mi Wrapped
             </button>
@@ -508,10 +520,11 @@ function SlideContent({
                 e.stopPropagation();
                 onRestart();
               }}
-              className="rounded-full bg-black/25 px-5 py-2 text-sm font-medium ring-1 ring-white/20 transition hover:bg-black/40"
+              className="rounded-full bg-black/25 px-5 py-2 text-sm font-medium ring-1 ring-white/20 transition hover:bg-black/40 active:scale-[0.97] motion-reduce:active:scale-100"
             >
               ↺ Ver de nuevo
             </button>
+            <GitHubLink />
           </div>
         </>
       );
@@ -585,6 +598,31 @@ function StatRow({
   );
 }
 
+/** Enlace al repo: Pollon es open source. Pill discreto bajo los botones del
+ *  cierre, con el logo de GitHub inline (sin URL cruda visible). */
+function GitHubLink() {
+  return (
+    <a
+      href="https://github.com/ivanvlam/pollon"
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="group mt-1 inline-flex items-center gap-2 rounded-full bg-black/25 px-4 py-2 text-sm font-medium text-white/75 ring-1 ring-white/15 transition-colors hover:bg-black/40 hover:text-white"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden className="h-4 w-4 fill-current">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z" />
+      </svg>
+      Pollon es open source · Mira el código
+      <span
+        aria-hidden
+        className="text-white/40 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+      >
+        →
+      </span>
+    </a>
+  );
+}
+
 /** Chip compacto para pares etiqueta/valor (comparaciones). */
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
@@ -637,6 +675,13 @@ function StoryStyles() {
       @keyframes wrapped-rise {
         from { opacity: 0; transform: translate3d(0, 18px, 0); }
         to   { opacity: 1; transform: translate3d(0, 0, 0); }
+      }
+      @keyframes wrapped-bg-fade {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+      }
+      .wrapped-bg {
+        animation: wrapped-bg-fade 0.4s ease-out both;
       }
       .wrapped-slide .anim-1,
       .wrapped-slide .anim-2,

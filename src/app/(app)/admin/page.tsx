@@ -91,6 +91,16 @@ export default async function GlobalAdminPage() {
     svc.from("top_scorer_predictions").select("user_id, player_name"),
   ]);
 
+  // Preview del Wrapped: la primera polla del admin por orden alfabético
+  // (misma regla que el banner del dashboard). Derivada de datos ya cargados.
+  const myPoolIds = new Set(
+    (members ?? []).filter((m) => m.user_id === user.id).map((m) => m.pool_id),
+  );
+  const adminWrappedPoolId =
+    (pools ?? [])
+      .filter((p) => myPoolIds.has(p.id))
+      .sort((a, b) => a.name.localeCompare(b.name))[0]?.id ?? null;
+
   // Predicciones del propio admin (para prellenar el bloque de predicción).
   const { data: myPreds } = await svc
     .from("predictions")
@@ -396,6 +406,23 @@ export default async function GlobalAdminPage() {
       {/* Gestión del torneo */}
       <section className="flex flex-col gap-6">
         <h2 className="text-lg font-semibold">Torneo</h2>
+
+        {adminWrappedPoolId && (
+          <Link
+            href={`/pool/${adminWrappedPoolId}/wrapped`}
+            className="group flex items-center justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 transition hover:border-emerald-500/50"
+          >
+            <span className="flex flex-col">
+              <span className="font-medium text-neutral-100">🐔 Preview del Pollon Wrapped</span>
+              <span className="text-sm text-neutral-400">
+                Solo tú puedes verlo antes de que haya campeón y goleador definidos.
+              </span>
+            </span>
+            <span className="shrink-0 text-sm text-emerald-400 transition-transform group-hover:translate-x-0.5">
+              Ver →
+            </span>
+          </Link>
+        )}
 
         <AdminTopScorer players={players ?? []} />
 

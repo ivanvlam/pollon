@@ -64,9 +64,11 @@ export default async function WrappedPage({ params }: { params: { id: string } }
   if (!membership) notFound();
 
   // El Wrapped solo se habilita al terminar el torneo (campeón + goleador
-  // definidos). Antes de eso la ruta no existe.
+  // definidos). Antes de eso la ruta no existe — salvo para el admin, que
+  // puede previsualizarlo desde el panel.
+  const isAdmin = user!.email === process.env.ADMIN_EMAIL;
   const gate = await getWrappedGate(supabase);
-  if (!gate.ready) notFound();
+  if (!gate.ready && !isAdmin) notFound();
 
   const [
     { data: ranking },
