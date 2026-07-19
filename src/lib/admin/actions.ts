@@ -486,6 +486,10 @@ export async function setActualTopScorer(playerName: string): Promise<AdminResul
 
   if (error) return { ok: false, error: `Error al calcular: ${error.message}` };
 
+  // Persiste el goleador real: habilita el "Pollon Wrapped" (necesita campeón +
+  // goleador definidos).
+  await svc.rpc("set_tournament_top_scorer", { p_top_scorer: playerName });
+
   revalidateTournament();
   return { ok: true };
 }

@@ -6,6 +6,7 @@ import { LeavePoolButton } from "@/components/LeavePoolButton";
 import { buttonClasses } from "@/components/ui/Button";
 import { calculateMatchScore, liveKnockoutWinner, regulationScore } from "@/lib/scoring";
 import { createClient } from "@/lib/supabase/server";
+import { getWrappedGate } from "@/lib/tournament";
 import type { MatchWinner, Round } from "@/types";
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
@@ -47,6 +48,10 @@ export default async function PoolRankingPage({
 
   const inviterName = myProfile?.display_name ?? "Alguien";
   const isPoolCreator = user!.id === pool.created_by;
+
+  // El banner del Wrapped solo aparece cuando el torneo terminó (campeón +
+  // goleador definidos).
+  const { ready: wrappedReady } = await getWrappedGate(supabase);
 
   const memberIds = (ranking ?? []).map((r) => r.user_id as string);
   const liveMatchIds = (liveMatches ?? []).map((m) => m.id);
@@ -131,6 +136,26 @@ export default async function PoolRankingPage({
           )}
         </div>
       </header>
+
+      {wrappedReady && (
+        <Link
+          href={`/pool/${pool.id}/wrapped`}
+          className="group relative flex items-center justify-between gap-3 overflow-hidden rounded-xl border border-emerald-500/40 bg-gradient-to-r from-emerald-600/25 via-violet-600/20 to-fuchsia-600/25 px-5 py-4 transition hover:border-emerald-400/70"
+        >
+          <span className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-emerald-400/20 blur-2xl" />
+          <span className="flex flex-col">
+            <span className="flex items-center gap-2 text-base font-bold text-white">
+              🐔 Tu Pollon Wrapped 2026
+            </span>
+            <span className="text-sm text-neutral-300">
+              Tu resumen del Mundial: puntos, mejor pálpito y tu personaje.
+            </span>
+          </span>
+          <span className="shrink-0 text-emerald-300 transition-transform group-hover:translate-x-0.5">
+            Ver →
+          </span>
+        </Link>
+      )}
 
       <nav className="flex flex-wrap gap-2">
         <Link

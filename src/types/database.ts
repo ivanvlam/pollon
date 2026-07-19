@@ -54,6 +54,27 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_result: {
+        Row: {
+          id: boolean
+          champion: string | null
+          top_scorer: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          champion?: string | null
+          top_scorer?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          champion?: string | null
+          top_scorer?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       champion_predictions: {
         Row: {
           created_at: string
@@ -464,6 +485,7 @@ export type Database = {
         }[]
       }
       increment_api_usage: { Args: { p_delta: number }; Returns: undefined }
+      get_tournament_stats: { Args: never; Returns: Json }
       is_in_any_pool: { Args: never; Returns: boolean }
       is_pool_member: { Args: { p_pool_id: string }; Returns: boolean }
       join_pool_by_code: { Args: { p_invite_code: string }; Returns: string }
@@ -477,6 +499,8 @@ export type Database = {
         Returns: undefined
       }
       replace_champion_scores: { Args: { p_scores: Json }; Returns: undefined }
+      set_tournament_champion: { Args: { p_champion: string }; Returns: undefined }
+      set_tournament_top_scorer: { Args: { p_top_scorer: string }; Returns: undefined }
       replace_match_scores: {
         Args: { p_match_id: string; p_scores: Json }
         Returns: undefined

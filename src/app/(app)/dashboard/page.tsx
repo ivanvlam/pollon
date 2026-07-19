@@ -8,6 +8,7 @@ import { TimezoneSync } from "@/components/TimezoneSync";
 import { buttonClasses } from "@/components/ui/Button";
 import type { Round } from "@/types";
 import { createClient } from "@/lib/supabase/server";
+import { getWrappedGate } from "@/lib/tournament";
 import { syncLiveMatchesNow } from "@/lib/sync-live";
 import {
   computeGroupClinch,
@@ -54,6 +55,11 @@ export default async function DashboardPage() {
     .map(([id, e]) => ({ id, name: e.name, created_by: e.created_by, rows: e.rows }))
     .sort((a, b) => a.name.localeCompare(b.name));
   const livePoolId = pools[0]?.id ?? null;
+
+  // Banner del Wrapped: aparece al terminar el torneo (campeón + goleador
+  // definidos) y lleva a la primera polla alfabética, igual que "Predecir".
+  const { ready: wrappedReady } = await getWrappedGate(supabase);
+  const wrappedPoolId = pools[0]?.id ?? null;
 
   // Datos para los recordatorios del inicio (campeón/goleador + próximo partido).
   const nowIso = new Date().toISOString();
@@ -286,6 +292,26 @@ export default async function DashboardPage() {
           )}
         </div>
       </section>
+
+      {wrappedReady && wrappedPoolId && (
+        <Link
+          href={`/pool/${wrappedPoolId}/wrapped`}
+          className="group relative flex items-center justify-between gap-3 overflow-hidden rounded-xl border border-emerald-500/40 bg-gradient-to-r from-emerald-600/25 via-violet-600/20 to-fuchsia-600/25 px-5 py-4 transition hover:border-emerald-400/70"
+        >
+          <span className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-emerald-400/20 blur-2xl" />
+          <span className="flex flex-col">
+            <span className="flex items-center gap-2 text-base font-bold text-white">
+              🐔 Tu Pollon Wrapped 2026
+            </span>
+            <span className="text-sm text-neutral-300">
+              Tu resumen del Mundial: puntos, mejor pálpito y tu personaje.
+            </span>
+          </span>
+          <span className="shrink-0 text-emerald-300 transition-transform group-hover:translate-x-0.5">
+            Ver →
+          </span>
+        </Link>
+      )}
 
       <LiveMatches
         matches={liveRows}
