@@ -159,18 +159,18 @@ export function choosePersona(s: PersonaInput): Persona {
       blurb: "Nadie predijo mejor que tú. El trono es tuyo.",
     };
   }
-  if (s.exactCount >= 5) {
-    return {
-      title: "El Francotirador",
-      emoji: "🎯",
-      blurb: "Marcadores exactos como si tuvieras la bola de cristal.",
-    };
-  }
-  if (s.longestStreak >= 5) {
+  if (s.longestStreak >= 14) {
     return {
       title: "El Imparable",
       emoji: "🔥",
       blurb: "Una racha que no se apagaba nunca.",
+    };
+  }
+  if (s.exactCount >= 8) {
+    return {
+      title: "El Francotirador",
+      emoji: "🎯",
+      blurb: "Marcadores exactos como si tuvieras la bola de cristal.",
     };
   }
   if (isPodium) {
@@ -180,7 +180,7 @@ export function choosePersona(s: PersonaInput): Persona {
       blurb: "Top 3. Estuviste a nada de la gloria.",
     };
   }
-  if (s.accuracy >= 0.6 && s.predictionCount >= 5) {
+  if (s.accuracy >= 1.4 && s.predictionCount >= 30) {
     return {
       title: "El Certero",
       emoji: "🧠",
