@@ -6,7 +6,22 @@ Polla del Mundial 2026 (quiniela) para grupos privados de amigos: predices el ma
 
 **🔗 Demo:** https://pollon-nine.vercel.app
 
-<!-- TODO: agregar capturas/GIF (ranking, bracket, animación de gol, Pollon Wrapped) con datos de ejemplo, no de pollas reales. -->
+> Los nombres y el código de invitación de las capturas están reemplazados por datos de ejemplo; los puntajes son reales.
+
+![Ranking de la polla](docs/screenshots/ranking.jpg)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/carrera.jpg" alt="Carrera del historial"></td>
+    <td width="50%"><img src="docs/screenshots/grupos.jpg" alt="Fase de grupos"></td>
+  </tr>
+  <tr>
+    <td align="center"><em>La carrera del historial: cómo se movieron las posiciones</em></td>
+    <td align="center"><em>Fase de grupos con tablas estilo FIFA</em></td>
+  </tr>
+</table>
+
+![Pollon Wrapped](docs/screenshots/wrapped.jpg)
 
 ## Qué es
 
