@@ -135,9 +135,10 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
   // posiciones lo da la transición CSS de cada auto.
   const tick = useCallback(
     (t: number) => {
+      // Al pausar (o terminar) se corta el loop: no reprograma otro frame. El
+      // efecto de abajo lo vuelve a arrancar cuando se le da play.
       if (!playingRef.current) {
         lastRef.current = 0;
-        rafRef.current = requestAnimationFrame(tick);
         return;
       }
       if (lastRef.current === 0) lastRef.current = t;
@@ -164,10 +165,15 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
     [total],
   );
 
+  // El rAF solo corre mientras la carrera está andando. Antes se reprogramaba
+  // siempre, así que el loop seguía vivo (quemando CPU) con la carrera pausada
+  // y mientras la pestaña estuviera abierta.
   useEffect(() => {
+    if (!isPlaying) return;
+    lastRef.current = 0;
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [tick]);
+  }, [isPlaying, tick]);
 
   // Reduced motion: salta directo al estado final, sin countdown ni animación.
   useEffect(() => {
