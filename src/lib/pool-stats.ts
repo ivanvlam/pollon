@@ -27,6 +27,7 @@ export interface StatsMember {
   diffCount: number;
   winnerCount: number;
   championCorrect: boolean;
+  topScorerCorrect: boolean;
 }
 
 export interface StatsInput {
@@ -63,6 +64,7 @@ export interface MemberStats {
   diffCount: number;
   winnerCount: number;
   championCorrect: boolean;
+  topScorerCorrect: boolean;
 }
 
 export interface Leader<V> {
@@ -188,6 +190,7 @@ export function computePoolStats(input: StatsInput): PoolStats {
       diffCount: m.diffCount,
       winnerCount: m.winnerCount,
       championCorrect: m.championCorrect,
+      topScorerCorrect: m.topScorerCorrect,
     };
   });
 

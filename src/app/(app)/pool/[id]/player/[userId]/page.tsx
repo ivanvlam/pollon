@@ -121,6 +121,9 @@ export default async function PlayerProfilePage({
 
   const rankingRows = ranking ?? [];
   const row = rankingRows.find((r) => r.user_id === params.userId) ?? null;
+  // El goleador no viene en get_pool_ranking; se deduce de los scores del
+  // jugador, que ya se consultaron arriba con su `reason`.
+  const topScorerCorrect = (scores ?? []).some((s) => s.reason === "top_scorer");
 
   // Calcular rank igual que en el ranking de la polla (RANK, no DENSE_RANK).
   type RankRow = NonNullable<typeof row>;
@@ -196,8 +199,9 @@ export default async function PlayerProfilePage({
       <header className="flex flex-col gap-2 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold">{name}</h1>
-          {isSelf && <span className="text-xs text-emerald-400">(tú)</span>}
           {row?.champion_correct && <span title="Campeón acertado">🏆</span>}
+          {topScorerCorrect && <span title="Goleador acertado">⚽</span>}
+          {isSelf && <span className="text-xs text-emerald-400">(tú)</span>}
         </div>
         <p className="text-sm text-neutral-400">
           {rank

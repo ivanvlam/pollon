@@ -167,6 +167,7 @@ export default async function WrappedPage({ params }: { params: { id: string } }
     diffCount: Number(myRow?.diff_count ?? 0),
     winnerCount: Number(myRow?.winner_count ?? 0),
     championCorrect: Boolean(myRow?.champion_correct),
+    topScorerCorrect: (myScores ?? []).some((s) => s.reason === "top_scorer"),
   };
   const stats = computePoolStats({
     members: [meMember],

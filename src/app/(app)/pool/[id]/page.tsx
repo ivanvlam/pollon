@@ -255,11 +255,6 @@ export default async function PoolRankingPage({
                       >
                         {row.display_name}
                       </Link>
-                      {isMe && (
-                        <span className="ml-2 text-xs text-emerald-400">
-                          (tú)
-                        </span>
-                      )}
                       {row.champion_correct && (
                         <span className="ml-2" title="Campeón acertado">
                           🏆
@@ -268,6 +263,11 @@ export default async function PoolRankingPage({
                       {topScorerCorrect.has(row.user_id as string) && (
                         <span className="ml-1" title="Goleador acertado">
                           ⚽
+                        </span>
+                      )}
+                      {isMe && (
+                        <span className="ml-2 text-xs text-emerald-400">
+                          (tú)
                         </span>
                       )}
                     </td>

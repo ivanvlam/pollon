@@ -11,6 +11,7 @@ function member(userId: string, displayName: string, over: Partial<StatsMember> 
     diffCount: 0,
     winnerCount: 0,
     championCorrect: false,
+    topScorerCorrect: false,
     ...over,
   };
 }

@@ -130,6 +130,15 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
       : Promise.resolve([] as { user_id: string; match_id: string }[]),
   ]);
 
+  // Quién acertó el goleador: get_pool_ranking trae champion_correct pero no su
+  // equivalente para goleador, así que se deduce de los scores (match_id null).
+  const { data: topScorerHits } = await supabase
+    .from("scores")
+    .select("user_id")
+    .eq("pool_id", pool.id)
+    .eq("reason", "top_scorer");
+  const topScorerCorrect = new Set((topScorerHits ?? []).map((s) => s.user_id as string));
+
   const members: StatsMember[] = rankingRows.map((r) => ({
     userId: r.user_id as string,
     displayName: r.display_name as string,
@@ -138,6 +147,7 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
     diffCount: Number(r.diff_count),
     winnerCount: Number(r.winner_count),
     championCorrect: Boolean(r.champion_correct),
+    topScorerCorrect: topScorerCorrect.has(r.user_id as string),
   }));
 
   const stats = computePoolStats({
@@ -238,8 +248,9 @@ export default async function PoolStatsPage({ params }: { params: { id: string }
                             className="block truncate font-medium text-neutral-100 hover:text-emerald-400 hover:underline"
                           >
                             {m.displayName}
-                            {isMe && <span className="ml-2 text-xs text-emerald-400">(tú)</span>}
                             {m.championCorrect && <span className="ml-1" title="Campeón acertado">🏆</span>}
+                            {m.topScorerCorrect && <span className="ml-1" title="Goleador acertado">⚽</span>}
+                            {isMe && <span className="ml-2 text-xs text-emerald-400">(tú)</span>}
                           </Link>
                         </td>
                         <td className="w-28 py-2 text-center tabular-nums text-neutral-400">{m.predictedFinished}</td>
