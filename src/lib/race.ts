@@ -27,6 +27,10 @@ export interface RaceHistoryPoint {
   cumulativePoints: Record<string, number>;
   /** Puntos ganados por userId en este partido (0 si no sumó). */
   pointsEarned: Record<string, number>;
+  /** Paso final de campeón + goleador: no es un partido, así que no avanza el
+   *  contador de jugados ni suma deriva, pero sí mueve los autos por los puntos
+   *  que reparte. */
+  isSpecials?: boolean;
 }
 
 export interface RaceMember {
@@ -47,8 +51,11 @@ export interface RaceCar {
 }
 
 export interface RaceFrame {
-  /** Partidos jugados hasta e incluyendo este (1-indexed). */
+  /** Partidos jugados hasta e incluyendo este (1-indexed). En el paso de
+   *  especiales no avanza: queda en el total de partidos jugados. */
   played: number;
+  /** Este frame es el paso final de campeón + goleador, no un partido. */
+  isSpecials?: boolean;
   homeTeam: string;
   awayTeam: string;
   homeScore: number | null;
@@ -78,18 +85,24 @@ export function computeRaceFrames({
   drift = RACE_DRIFT,
 }: ComputeRaceInput): RaceData {
   const ids = members.map((m) => m.id);
-  const K = history.length; // partidos jugados
+  const K = history.filter((h) => !h.isSpecials).length; // partidos jugados
   const playedFrac = totalMatches > 0 ? Math.min(K / totalMatches, 1) : 0;
 
-  // Denominador: raw del líder (más puntos) en el ÚLTIMO partido jugado. Así su
-  // auto cae justo en `playedFrac` y la escala es estable en todos los frames.
-  const lastPoint = K > 0 ? history[K - 1]! : null;
+  // Denominador: raw del líder (más puntos) en el ÚLTIMO paso, que puede ser el
+  // de especiales. Así su auto cae justo en `playedFrac` al final y la escala es
+  // estable en todos los frames.
+  const lastPoint = history.length > 0 ? history[history.length - 1]! : null;
   const maxFinalPoints = lastPoint
     ? Math.max(0, ...ids.map((id) => lastPoint.cumulativePoints[id] ?? 0))
     : 0;
   const rawLeaderFinal = drift * K + maxFinalPoints || 1; // evita /0
 
-  const frames: RaceFrame[] = history.map((h, k) => {
+  // Índice de partido (1-indexed). El paso de especiales no lo avanza, así que
+  // reusa la deriva del último partido: su avance es solo por puntos.
+  let matchIdx = 0;
+
+  const frames: RaceFrame[] = history.map((h) => {
+    if (!h.isSpecials) matchIdx += 1;
     // Rank por puntos acumulados (desc); empate estabilizado por id.
     const ranked = [...ids].sort((a, b) => {
       const pa = h.cumulativePoints[a] ?? 0;
@@ -101,7 +114,7 @@ export function computeRaceFrames({
 
     const cars: RaceCar[] = ids.map((uid) => {
       const points = h.cumulativePoints[uid] ?? 0;
-      const raw = drift * (k + 1) + points;
+      const raw = drift * matchIdx + points;
       return {
         userId: uid,
         x: (raw / rawLeaderFinal) * playedFrac,
@@ -112,7 +125,8 @@ export function computeRaceFrames({
     });
 
     return {
-      played: k + 1,
+      played: matchIdx,
+      isSpecials: h.isSpecials,
       homeTeam: h.homeTeam,
       awayTeam: h.awayTeam,
       homeScore: h.homeScore,

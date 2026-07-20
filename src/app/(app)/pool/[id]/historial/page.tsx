@@ -30,13 +30,20 @@ export default async function PoolHistorialPage({
     .maybeSingle();
   if (!pool) notFound();
 
-  const [{ data: ranking }, { data: allScores }] = await Promise.all([
+  const [{ data: ranking }, { data: allScores }, { data: specialScores }] = await Promise.all([
     supabase.rpc("get_pool_ranking", { p_pool_id: pool.id }),
     supabase
       .from("scores")
       .select("user_id, match_id, points, reason")
       .eq("pool_id", pool.id)
       .not("match_id", "is", null),
+    // Campeón y goleador se guardan con match_id null: no cuelgan de ningún
+    // partido, así que van como paso final del historial.
+    supabase
+      .from("scores")
+      .select("user_id, points, reason")
+      .eq("pool_id", pool.id)
+      .is("match_id", null),
   ]);
 
   const { data: finishedMatches } = await supabase
@@ -155,6 +162,51 @@ export default async function PoolHistorialPage({
       predictions: Object.fromEntries(
         memberIds.map((uid) => [uid, predMap.get(m.id)?.get(uid) ?? null]),
       ),
+    });
+  }
+
+  // Paso final: campeón y goleador. Solo si alguien sumó por ellos (el admin ya
+  // los marcó). Sin esto el historial cerraba con totales distintos a los del
+  // ranking, que sí los incluye.
+  const specialsEarned: Record<string, number> = Object.fromEntries(
+    memberIds.map((id) => [id, 0]),
+  );
+  let specialsTotal = 0;
+  for (const s of specialScores ?? []) {
+    if (!(s.user_id in specialsEarned)) continue;
+    specialsEarned[s.user_id] = (specialsEarned[s.user_id] ?? 0) + s.points;
+    specialsTotal += s.points;
+  }
+
+  if (specialsTotal > 0 && history.length > 0) {
+    for (const uid of memberIds) running[uid]!.total += specialsEarned[uid] ?? 0;
+
+    const sorted = [...memberIds].sort((a, b) => {
+      const ra = running[a]!;
+      const rb = running[b]!;
+      if (rb.total !== ra.total) return rb.total - ra.total;
+      if (rb.exact !== ra.exact) return rb.exact - ra.exact;
+      if (rb.diff !== ra.diff) return rb.diff - ra.diff;
+      if (rb.winner !== ra.winner) return rb.winner - ra.winner;
+      return (memberName.get(a) ?? "").localeCompare(memberName.get(b) ?? "");
+    });
+    const rankMap: Record<string, number> = {};
+    sorted.forEach((uid, i) => { rankMap[uid] = i + 1; });
+
+    history.push({
+      kind: "specials",
+      label: "Especiales",
+      fullLabel: "Campeón y goleador del torneo",
+      homeTeam: "",
+      awayTeam: "",
+      kickoffAt: "",
+      homeScore: null,
+      awayScore: null,
+      rankings: rankMap,
+      pointsEarned: specialsEarned,
+      cumulativePoints: Object.fromEntries(memberIds.map((id) => [id, running[id]!.total])),
+      cumulativeStats: Object.fromEntries(memberIds.map((id) => [id, { ...running[id]! }])),
+      predictions: Object.fromEntries(memberIds.map((uid) => [uid, null])),
     });
   }
 

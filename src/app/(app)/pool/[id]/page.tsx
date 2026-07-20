@@ -37,6 +37,7 @@ export default async function PoolRankingPage({
     { data: ranking, error },
     { data: myProfile },
     { data: liveMatches },
+    { data: topScorerHits },
   ] = await Promise.all([
     supabase.rpc("get_pool_ranking", { p_pool_id: pool.id }),
     supabase.from("profiles").select("display_name").eq("id", user!.id).maybeSingle(),
@@ -44,7 +45,16 @@ export default async function PoolRankingPage({
       .from("matches")
       .select("id, round, home_score, away_score, home_score_90, away_score_90, winner")
       .eq("status", "live"),
+    // Quién acertó el goleador. get_pool_ranking trae champion_correct pero no
+    // su equivalente para goleador, así que se deduce de los scores.
+    supabase
+      .from("scores")
+      .select("user_id")
+      .eq("pool_id", pool.id)
+      .eq("reason", "top_scorer"),
   ]);
+
+  const topScorerCorrect = new Set((topScorerHits ?? []).map((s) => s.user_id as string));
 
   const inviterName = myProfile?.display_name ?? "Alguien";
   const isPoolCreator = user!.id === pool.created_by;
@@ -253,6 +263,11 @@ export default async function PoolRankingPage({
                       {row.champion_correct && (
                         <span className="ml-2" title="Campeón acertado">
                           🏆
+                        </span>
+                      )}
+                      {topScorerCorrect.has(row.user_id as string) && (
+                        <span className="ml-1" title="Goleador acertado">
+                          ⚽
                         </span>
                       )}
                     </td>

@@ -24,11 +24,18 @@ interface Props {
 const BASE_MS_PER_FRAME = 650;
 const SPEEDS = [1, 2, 4] as const;
 
+/** Ancho del auto (px). El recorrido es el carril menos este ancho, para que en
+ *  la meta la nariz quede justo en la línea y el auto no se salga. */
+const CAR_W = 40;
+/** Ancho de la línea de meta (px). Dos columnas de cuadros para que se lea como
+ *  bandera a cuadros y no como una línea zigzagueante. */
+const FINISH_W = 10;
+
 // Bandera a cuadros de la meta (patrón CSS, tonos neutros — no es un acento).
 const CHECKER: React.CSSProperties = {
   backgroundImage:
     "conic-gradient(#e5e5e5 90deg, #171717 90deg 180deg, #e5e5e5 180deg 270deg, #171717 270deg)",
-  backgroundSize: "6px 6px",
+  backgroundSize: "5px 5px",
 };
 
 /** Detecta `prefers-reduced-motion` para saltar countdown y animación. */
@@ -58,6 +65,7 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
           kickoffAt: h.kickoffAt,
           cumulativePoints: h.cumulativePoints,
           pointsEarned: h.pointsEarned,
+          isSpecials: h.kind === "specials",
         })),
         members: members.map((m) => ({ id: m.id, name: m.name })),
         totalMatches,
@@ -235,6 +243,13 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
             <span className="text-sm font-semibold text-neutral-100">Salida</span>
             <span className="hidden text-sm text-neutral-400 sm:inline">en la línea de largada</span>
           </div>
+        ) : current.isSpecials ? (
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-sm">🏆</span>
+            <span className="truncate text-sm font-semibold text-neutral-100">
+              Campeón y goleador
+            </span>
+          </div>
         ) : (
           <div className="flex min-w-0 items-center gap-2">
             <Flag team={current.homeTeam} className="shrink-0" />
@@ -280,17 +295,26 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
                 </div>
 
                 {/* Carril (pista de asfalto) */}
-                <div className="relative h-9 flex-1 rounded bg-neutral-900/40">
+                <div className="relative h-9 flex-1 overflow-hidden rounded bg-neutral-900/40">
                   {/* Línea central discontinua */}
                   <div className="pointer-events-none absolute inset-x-2 top-1/2 -translate-y-1/2 border-t border-dashed border-neutral-600/60" />
                   {/* Línea de largada */}
                   <div className="pointer-events-none absolute bottom-1 left-0 top-1 w-px bg-neutral-500/70" />
 
+                  {/* Línea de meta a cuadros. Va ANTES del auto en el DOM para
+                      que el auto la pise al llegar, en vez de quedar tapado. */}
                   <div
-                    className="absolute bottom-0 top-0 my-auto h-7 w-10"
+                    className="pointer-events-none absolute bottom-0 right-0 top-0 rounded-sm"
+                    style={{ ...CHECKER, width: FINISH_W }}
+                  />
+
+                  {/* El auto avanza dentro del carril menos su propio ancho, así
+                      en x=1 la nariz toca la meta y nunca se sale del carril. */}
+                  <div
+                    className="absolute bottom-0 top-0 my-auto h-7"
                     style={{
-                      left: `${x * 100}%`,
-                      transform: "translateX(-50%)",
+                      width: CAR_W,
+                      left: `calc(${x} * (100% - ${CAR_W}px))`,
                       transitionProperty: "left",
                       transitionDuration: `${stepMs}ms`,
                       transitionTimingFunction: "linear",
@@ -308,11 +332,6 @@ export function RankingRaceChart({ history, members, totalMatches }: Props) {
                     )}
                   </div>
 
-                  {/* Línea de meta a cuadros */}
-                  <div
-                    className="pointer-events-none absolute bottom-0 right-0 top-0 w-1.5 rounded-sm"
-                    style={CHECKER}
-                  />
                 </div>
               </div>
             );

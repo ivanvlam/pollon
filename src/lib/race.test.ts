@@ -107,4 +107,42 @@ describe("computeRaceFrames", () => {
       expect(Number.isFinite(car.x)).toBe(true);
     }
   });
+
+  it("el paso de especiales no cuenta como partido jugado", () => {
+    const history = [
+      point({ a: 5, b: 0 }, { a: 5, b: 0 }),
+      point({ a: 8, b: 2 }, { a: 3, b: 2 }),
+      { ...point({ a: 8, b: 17 }, { a: 0, b: 15 }), isSpecials: true },
+    ];
+    const { frames, leaderFinalX } = computeRaceFrames({
+      history,
+      members: MEMBERS,
+      totalMatches: 104,
+    });
+    // Dos partidos jugados, aunque haya tres frames.
+    expect(leaderFinalX).toBeCloseTo(2 / 104);
+    const last = frames[frames.length - 1]!;
+    expect(last.played).toBe(2);
+    expect(last.isSpecials).toBe(true);
+  });
+
+  it("los especiales pueden dar vuelta el resultado y mueven al nuevo líder a la punta", () => {
+    const history = [
+      point({ a: 10, b: 0 }, { a: 10, b: 0 }),
+      // b acierta campeón (15) y supera a a: el ranking final debe reflejarlo.
+      { ...point({ a: 10, b: 15 }, { a: 0, b: 15 }), isSpecials: true },
+    ];
+    const { frames, leaderFinalX } = computeRaceFrames({
+      history,
+      members: MEMBERS,
+      totalMatches: 104,
+    });
+    const last = frames[frames.length - 1]!;
+    const b = last.cars.find((c) => c.userId === "b")!;
+    const a = last.cars.find((c) => c.userId === "a")!;
+    expect(b.rank).toBe(1);
+    expect(a.rank).toBe(2);
+    expect(b.x).toBeCloseTo(leaderFinalX); // el nuevo líder queda en la punta
+    expect(b.x).toBeGreaterThan(a.x);
+  });
 });

@@ -9,6 +9,8 @@ import { flagUrl, teamFlagCode } from "@/lib/flags";
 import { toSpanish } from "@/lib/teamNames";
 
 export interface HistoryPoint {
+  /** "specials" = paso final de campeón + goleador (no es un partido). */
+  kind?: "match" | "specials";
   label: string;
   fullLabel: string;
   homeTeam: string;
@@ -223,6 +225,21 @@ export function RankingHistoryChart({ history, members, poolId }: Props) {
 
           {/* X-axis flags */}
           {history.map((h, i) => {
+            // El paso de especiales no tiene partido: va un trofeo en su lugar.
+            if (h.kind === "specials") {
+              return (
+                <text
+                  key={i}
+                  x={cx(i)}
+                  y={flagY + FLAG_H / 2 + 1}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize={15}
+                >
+                  🏆
+                </text>
+              );
+            }
             const homeCode = teamFlagCode(h.homeTeam);
             const awayCode = teamFlagCode(h.awayTeam);
             const gap = 8;
@@ -280,6 +297,17 @@ export function RankingHistoryChart({ history, members, poolId }: Props) {
           {/* Match header */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
+              {selPt.kind === "specials" ? (
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-neutral-100">
+                    🏆 Campeón y goleador
+                  </p>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Puntos del cierre del torneo
+                  </p>
+                </div>
+              ) : (
+              <>
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2">
                 <div className="flex items-center justify-end gap-1.5 min-w-0">
                   <span className="min-w-0 break-words text-sm font-medium text-right leading-tight">
@@ -300,6 +328,8 @@ export function RankingHistoryChart({ history, members, poolId }: Props) {
               <p className="text-center text-xs text-neutral-500 mt-1">
                 {DATE_FMT.format(new Date(selPt.kickoffAt))}
               </p>
+              </>
+              )}
             </div>
             <button
               type="button"
