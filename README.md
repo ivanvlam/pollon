@@ -2,7 +2,9 @@
 
 [![CI](https://github.com/ivanvlam/pollon/actions/workflows/ci.yml/badge.svg)](https://github.com/ivanvlam/pollon/actions/workflows/ci.yml)
 
-Polla del Mundial 2026 (quiniela) para grupos privados de amigos: predices el marcador de cada partido, la app los puntúa automáticamente al terminar y el ranking se actualiza en vivo.
+Polla del Mundial 2026 para grupos privados de amigos: predices el marcador de cada partido, la app los puntúa automáticamente al terminar y el ranking se actualiza en vivo.
+
+**Estuvo en producción durante todo el torneo: más de 25 jugadores, más de 1.700 predicciones y los 104 partidos puntuados solos.**
 
 **🔗 Demo:** https://pollon-nine.vercel.app
 
@@ -25,7 +27,7 @@ Polla del Mundial 2026 (quiniela) para grupos privados de amigos: predices el ma
 
 ## Qué es
 
-Cada grupo juega en su propia polla, cerrada por código de invitación. Se predice el marcador de los 104 partidos: marcador exacto son 5 puntos, acertar la diferencia de goles 3, solo el ganador 2. En eliminatorias no se suma nada sin acertar quién clasifica. Aparte se elige campeón y goleador del torneo, que quedan sellados poco después del partido inaugural.
+Cada grupo juega en su propia polla, cerrada por código de invitación. Se predice el marcador de los 104 partidos: marcador exacto son 5 puntos, acertar la diferencia de goles 3, solo el ganador 2. En eliminatorias además hay que acertar quién clasifica: si el partido se define en los 90' y te equivocas de clasificado, no sumas nada. Acertar el empate a 90' sí puntúa, aunque la serie termine en penales. Aparte se elige campeón y goleador del torneo, que quedan sellados poco después del partido inaugural.
 
 Las predicciones ajenas no se ven hasta que el partido cierra, una hora antes del kickoff. Tanto el cierre como la visibilidad se aplican con RLS y funciones `SECURITY DEFINER` en la base de datos, no en el frontend.
 
@@ -50,7 +52,7 @@ La app quedó en modo archivo: el ranking final, el historial y el Wrapped sigue
 
 - **Predicciones por partido** con guardado automático (debounce de 500 ms, sin botón de enviar). Cada partido cierra **1 hora antes de su propio inicio**, validado en la base de datos (no solo en el frontend).
 - **Predicciones globales:** la misma predicción cuenta en todas las pollas en las que participas; al unirte a mitad de torneo se hace *backfill* de tus puntos en los partidos ya jugados.
-- **Puntuación excluyente** (se aplica solo el nivel más alto): en grupos 5/3/2 (marcador exacto / misma diferencia de goles / acierto de resultado); en eliminatorias igual, pero **condicionado a acertar el clasificado**. Además **+15** por el campeón y **+10** por el goleador del torneo (ambos se cierran 2h después del inicio del primer partido).
+- **Puntuación excluyente** (se aplica solo el nivel más alto): en grupos 5/3/2 (marcador exacto / misma diferencia de goles / acierto de resultado); en eliminatorias, los mismos niveles pero **condicionados a acertar el clasificado**, y un resultado decisivo con el clasificado equivocado no suma nada. La excepción es el empate a 90', que puntúa aunque falles quién clasifica: 3 si el marcador es exacto, 2 si no. Además **+15** por el campeón y **+10** por el goleador del torneo (ambos se cierran 2h después del inicio del primer partido).
 - **Marcador a los 90':** en eliminatorias se puntúa el resultado del tiempo reglamentario, no el de cancha. El cron congela el marcador a los 90' en cuanto el partido pasa a alargue o penales, así que puedes predecir 1-1 y que igual clasifique tu equipo.
 - **Seguimiento en vivo:** estado del partido, marcador y **animación de gol** (pelota, "GOOOL" y confeti con los colores del equipo) durante los partidos.
 - **Ranking por polla** con desempates por criterios reales (exactos → misma diferencia → aciertos → campeón), sin desempate alfabético, mostrando la razón de cada puntaje.
